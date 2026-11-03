@@ -7,21 +7,21 @@ from typing import Any
 import numpy as np
 import pytest
 
-from wavelibrarian import registry
-from wavelibrarian.architectures._passages import lire_passages
-from wavelibrarian.architectures.lightrag import LightRag
-from wavelibrarian.core.types import ParsedCorpus, QuestionInput
-from wavelibrarian.llm.providers.fake import FakeProvider
-from wavelibrarian.ports.architecture import CorpusChange
-from wavelibrarian.ports.components import ComponentSpec
-from wavelibrarian.runner.context import Context as RunCtx
+from librarian_bench import registry
+from librarian_bench.architectures._passages import lire_passages
+from librarian_bench.architectures.lightrag import LightRag
+from librarian_bench.core.types import ParsedCorpus, QuestionInput
+from librarian_bench.llm.providers.fake import FakeProvider
+from librarian_bench.ports.architecture import CorpusChange
+from librarian_bench.ports.components import ComponentSpec
+from librarian_bench.runner.context import Context as RunCtx
 
 
 @pytest.fixture
 def ctx(tmp_path: Path):  # type: ignore[no-untyped-def]
     provider = FakeProvider()
     c = RunCtx.from_profile(
-        "test", wl_home=tmp_path / "wl", run_id="r-1", seed=1, providers={"fake": provider}
+        "test", bench_home=tmp_path / "wl", run_id="r-1", seed=1, providers={"fake": provider}
     )
     c.parser = "markdown"
     c.provider = provider  # type: ignore[attr-defined]
@@ -350,8 +350,8 @@ def test_update_document_modifie_nouveau_doc_id_reprend_les_extractions(
 
 
 def test_cache_d_extraction_partage_avec_graphrag() -> None:
-    from wavelibrarian.architectures import graphrag
-    from wavelibrarian.components.graph import cache
+    from librarian_bench.architectures import graphrag
+    from librarian_bench.components.graph import cache
 
     assert graphrag.cle_extraction is cache.cle_extraction
     assert graphrag.extraire_avec_cache is cache.extraire_avec_cache
@@ -403,9 +403,9 @@ def test_toutes_les_descriptions_d_une_paire_sont_encodees(
 
 
 def test_texte_repete_extrait_une_seule_fois(ctx: RunCtx, tmp_path: Path) -> None:
-    from wavelibrarian.components.graph.cache import extraire_avec_cache
-    from wavelibrarian.components.graph.extraction import EntityExtractor
-    from wavelibrarian.core.types import Passage
+    from librarian_bench.components.graph.cache import extraire_avec_cache
+    from librarian_bench.components.graph.extraction import EntityExtractor
+    from librarian_bench.core.types import Passage
 
     def passage(i: str) -> Passage:
         return Passage(passage_id=i, doc_id="d", text="Orvane recrute Ellis.", anchor_ids=("a",))

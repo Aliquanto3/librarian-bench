@@ -1,10 +1,10 @@
 ---
 story: "8.3"
-title: "Statut completed_with_errors de wl run"
+title: "Statut completed_with_errors de librarian-bench run"
 status: done
 ---
 
-# Story 8.3 : Statut `completed_with_errors` de `wl run`
+# Story 8.3 : Statut `completed_with_errors` de `librarian-bench run`
 
 Exigences : FR-1, FR-40 ; AD-11 ; `contracts.md` §5 (`manifest.json`, `max_error_rate`), §8 (codes de sortie, `--tolerer-erreurs`) ; arbitrage P9. Limite L1 levée (`runner/execute.py` ne connaissait que `completed` et `budget_exceeded`).
 
@@ -33,7 +33,7 @@ Exigences : FR-1, FR-40 ; AD-11 ; `contracts.md` §5 (`manifest.json`, `max_erro
 ## Acceptance Criteria
 
 1. Statut `completed_with_errors` si une Configuration n'a aucune `ok`, si un Critère reste sans verdict, ou si le taux d'`error` d'une Configuration dépasse `max_error_rate` (0,2 par défaut) ; sinon `completed`. Causes par Configuration dans `manifest.json`.
-2. `wl run` : code 1 avec résumé français ; `--tolerer-erreurs` : code 0, même résumé, **sauf `all_failed` (aucune Réponse valide) : code 1 même avec `--tolerer-erreurs`** (AC modifié par arbitrage d'Anaël du 2026-10-19, réalisé par fix-arbitrages-8-3-8-8) ; `budget_exceeded` et code 3 priment.
+2. `librarian-bench run` : code 1 avec résumé français ; `--tolerer-erreurs` : code 0, même résumé, **sauf `all_failed` (aucune Réponse valide) : code 1 même avec `--tolerer-erreurs`** (AC modifié par arbitrage d'Anaël du 2026-10-19, réalisé par fix-arbitrages-8-3-8-8) ; `budget_exceeded` et code 3 priment.
 3. `report.md` commence (sous le titre) par un avertissement nommant Configurations et causes.
 4. `--reprendre` repose les Questions en `error` et rejuge les Critères sans verdict ; `deja_terminee` faux pour `completed_with_errors`.
 5. Faux LLM : reproduction du run mini-cpu d'avant correctif → `completed_with_errors`, code 1 ; scénario sain → `completed`, code 0. `max_error_rate` hors [0, 1] → code 2.

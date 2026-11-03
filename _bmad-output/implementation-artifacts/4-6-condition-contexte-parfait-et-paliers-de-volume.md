@@ -8,9 +8,9 @@ status: done
 
 ## Code Map
 
-- `src/wavelibrarian/runner/execute.py` : `_Runner.configuration` boucle sur les Conditions puis sur les Paliers (`_cellule` exécute un couple Condition/Palier) ; `passages_de_reference(parse, q)` (un Passage `level 0` par Ancrage de référence), `chemins_requis(questions, presents)` (`required_paths`), `verifier_paliers(experience, questions)` (refus code 2) et `_Runner.palier` (sous-corpus et Profil du Palier, par `corpus/tiers.py::tirer`). `_hors_perimetre` ne refuse plus que `scenario` (story 4.7). `poser` appelle `answer_with_context` quand on lui donne les Passages.
-- `src/wavelibrarian/architectures/long_context.py` : `LongContext.answer_with_context` (Generator `llm` reconstruit avec `cache_system: false`).
-- `src/wavelibrarian/cli.py` : `wl run` appelle `verifier_paliers` juste après le contrôle du Gel (avant le préflight).
+- `src/librarian_bench/runner/execute.py` : `_Runner.configuration` boucle sur les Conditions puis sur les Paliers (`_cellule` exécute un couple Condition/Palier) ; `passages_de_reference(parse, q)` (un Passage `level 0` par Ancrage de référence), `chemins_requis(questions, presents)` (`required_paths`), `verifier_paliers(experience, questions)` (refus code 2) et `_Runner.palier` (sous-corpus et Profil du Palier, par `corpus/tiers.py::tirer`). `_hors_perimetre` ne refuse plus que `scenario` (story 4.7). `poser` appelle `answer_with_context` quand on lui donne les Passages.
+- `src/librarian_bench/architectures/long_context.py` : `LongContext.answer_with_context` (Generator `llm` reconstruit avec `cache_system: false`).
+- `src/librarian_bench/cli.py` : `librarian-bench run` appelle `verifier_paliers` juste après le contrôle du Gel (avant le préflight).
 - Tests : `tests/unit/runner/test_story_4_6.py`. Le test de refus de la story 4.4 (`test_conditions_et_paliers_refuses_explicitement`) est supprimé ; les fixtures de `test_installer.py` et `test_validate.py` neutralisent aussi `verifier_paliers`.
 
 ## Design Notes
@@ -54,7 +54,7 @@ Revue Opus du 2026-10-18 (rebasée sur `main` 89b3758), constats du second avis 
 - medium, second avis 2 : `tier: 20` seul refusé à cause du Palier de 5. Corrigé : `tirer_chemins`/`tirer` prennent `tailles`, le runner et `verifier_paliers` ne tirent que les Paliers demandés ; message avec le Palier fautif et le remède. Emboîtement vérifié par test.
 - medium, second avis 3 : `answer_with_context` par défaut sans troncature ni `context_truncated`. Corrigé : passe par `build_arch_answer` (déplacé dans `ports` pour respecter les couches AD-1), test unitaire de troncature.
 - medium, revue : `retrieved` vide pour `retrieval_method: provided`, contraire à contracts.md §1 (« Passages fournis au Generator, dans l'ordre »). Corrigé dans le défaut et dans `long_context`.
-- medium, second avis 4 : `tier: all` inexécutable sur le split `dev` du Mini-corpus. Corrigé pour le message (Palier et remède) ; reporté : la 4.14 (Expériences livrées) doit poser `max_questions` ou un `tier` adapté pour toute Expérience à Paliers sur le Mini-corpus (vérifier `wl run` en code 0 sur chaque Expérience livrée).
+- medium, second avis 4 : `tier: all` inexécutable sur le split `dev` du Mini-corpus. Corrigé pour le message (Palier et remède) ; reporté : la 4.14 (Expériences livrées) doit poser `max_questions` ou un `tier` adapté pour toute Expérience à Paliers sur le Mini-corpus (vérifier `librarian-bench run` en code 0 sur chaque Expérience livrée).
 - low, second avis 5 : pas d'espion sur `check()` en contexte parfait. Corrigé (test qui échoue si `check()` est appelé).
 - low, second avis 6 : vérifier que la Réponse de référence n'est pas dans le prompt. Corrigé en partie : le test apparie chaque appel à sa génération, vérifie bloc par bloc que le Contexte ne reprend que les Passages fournis, et que la Réponse de référence n'y figure pas quand aucun Ancrage ne la contient (elle y figure légitimement sinon, c'est le principe du contexte parfait).
 - low, second avis 7 : prompts identiques entre Paliers. Consigné dans les Design Notes (le cache LLM absorbe le coût).

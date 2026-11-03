@@ -7,15 +7,15 @@ from typing import Any, get_args
 import pytest
 from pydantic import BaseModel
 
-from wavelibrarian.core.types import ArchAnswer, Citation, ParsedCorpus, Passage, QuestionInput
-from wavelibrarian.ports import architecture, components, context, gateway, measure
-from wavelibrarian.ports.architecture import (
+from librarian_bench.core.types import ArchAnswer, Citation, ParsedCorpus, Passage, QuestionInput
+from librarian_bench.ports import architecture, components, context, gateway, measure
+from librarian_bench.ports.architecture import (
     Applicability,
     ArchCapabilities,
     ArchitectureBase,
     CorpusChange,
 )
-from wavelibrarian.ports.components import Context, GenerationResult, SearchIndex
+from librarian_bench.ports.components import Context, GenerationResult, SearchIndex
 
 ATTENDUS = {
     components: [

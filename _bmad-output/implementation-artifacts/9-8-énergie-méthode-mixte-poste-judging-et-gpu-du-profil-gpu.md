@@ -24,7 +24,7 @@ Exigences : FR-31, FR-32 ; AD-17 (amendé) ; `contracts.md` §1, §4.3, §6, §7
 ## Reports
 
 - Vérification réelle GPU (`nvml`) : en attente de l'accord d'Anaël (ni GPU, ni Ollama, ni mesure réelle lancés).
-- `wl calibrer` (Poste `judging` hors Exécution) n'a pas de mesureur d'énergie : ses Juges locaux gardent une énergie non mesurée.
+- `librarian-bench calibrer` (Poste `judging` hors Exécution) n'a pas de mesureur d'énergie : ses Juges locaux gardent une énergie non mesurée.
 - Vérifier sur le poste réel que la RAM de codecarbon apparaît bien comme `RAM` dans `_hardware` (API privée) ; sinon le cas Windows retomberait sur `measured`.
 - Les valeurs `measured` des `costs.csv` d'Exécutions antérieures (Windows `windows_emi`) ne sont pas réétiquetées.
 

@@ -9,11 +9,11 @@ import pytest
 import yaml
 from typer.testing import CliRunner
 
-from wavelibrarian.cli import app
-from wavelibrarian.core.errors import ConfigError
-from wavelibrarian.report.generer import generer_rapport
-from wavelibrarian.report.paquet import exporter_paquet, graine_de_tirage, lire_paquet
-from wavelibrarian.scoring.calibration import charger_dossier, kappa_inter_annotateurs
+from librarian_bench.cli import app
+from librarian_bench.core.errors import ConfigError
+from librarian_bench.report.generer import generer_rapport
+from librarian_bench.report.paquet import exporter_paquet, graine_de_tirage, lire_paquet
+from librarian_bench.scoring.calibration import charger_dossier, kappa_inter_annotateurs
 
 RACINE = Path(__file__).resolve().parents[3] / "corpora" / "minicorpus"
 DONNEES: dict[str, Any] = {
@@ -37,12 +37,12 @@ DONNEES: dict[str, Any] = {
 @pytest.fixture(scope="module")
 def run_dir(tmp_path_factory: pytest.TempPathFactory) -> Path:
     base = tmp_path_factory.mktemp("run-8-9")
-    home = base / "wl_home"
+    home = base / "bench_home"
     home.mkdir()
     chemin = base / "exp.yaml"
     chemin.write_text(yaml.safe_dump(DONNEES, allow_unicode=True), encoding="utf-8")
     mp = pytest.MonkeyPatch()
-    mp.setenv("WL_HOME", str(home))
+    mp.setenv("LIBRARIAN_BENCH_HOME", str(home))
     try:
         res = CliRunner().invoke(app, ["run", str(chemin)])
         assert res.exit_code == 0, res.output
@@ -150,7 +150,7 @@ def test_completed_with_errors_exportable_et_running_refuse(run_dir: Path, tmp_p
 def test_cli_codes_de_sortie(
     run_dir: Path, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:
-    monkeypatch.setenv("WL_HOME", str(run_dir.parents[1]))
+    monkeypatch.setenv("LIBRARIAN_BENCH_HOME", str(run_dir.parents[1]))
     vers = str(tmp_path / "p")
     base = ["annotations", "exporter", run_dir.name, "--vers", vers]
     ok = CliRunner().invoke(app, [*base, "--nombre", "3", "--graine", "1"])
@@ -192,7 +192,7 @@ def _calibration(run: Path, inter: list[dict[str, Any]]) -> None:
 def test_rapport_section_calibration(
     run_dir: Path, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:
-    monkeypatch.setenv("WL_HOME", str(run_dir.parents[1]))
+    monkeypatch.setenv("LIBRARIAN_BENCH_HOME", str(run_dir.parents[1]))
     copie = _copie(run_dir, tmp_path / "run")
 
     def md() -> str:
@@ -275,7 +275,7 @@ def test_bout_en_bout_export_calibrer_rapport(
     """Paquet exporté par la CLI (Corpus relu), rempli, calibré au Faux LLM, lu par le Rapport."""
     home = tmp_path / "home"
     shutil.copytree(run_dir.parents[1], home)
-    monkeypatch.setenv("WL_HOME", str(home))
+    monkeypatch.setenv("LIBRARIAN_BENCH_HOME", str(home))
     d = tmp_path / "annotations"
     exp = run_dir.parents[2] / "exp.yaml"
     args = ["annotations", "exporter", run_dir.name, "--vers", str(d), "--nombre", "6"]
@@ -303,7 +303,7 @@ def test_bout_en_bout_export_calibrer_rapport(
 
 def test_paquet_rempli_avec_na_se_recharge(run_dir: Path, tmp_path: Path) -> None:
     """Revue 9.3 : un paquet exporté, rempli avec `na` (nu en YAML) sur les trois Critères, est
-    accepté par le chargeur de `wl calibrer`."""
+    accepté par le chargeur de `librarian-bench calibrer`."""
     d = tmp_path / "p"
     exporter_paquet(run_dir, d, annotateurs=["anael"], nombre=2)
     f = d / "anael.yaml"

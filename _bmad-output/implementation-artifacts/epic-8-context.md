@@ -12,7 +12,7 @@ Anaël obtient d'un run réel un statut, des coûts et une calibration auxquels 
 |---|---|---|---|
 | 8.1 Licences SPDX par liste blanche exacte | F (P5) | 2011-2037 | non |
 | 8.2 Coûts factices hors du coût réel | B (L2) | 2038-2060 | SM-4 `real_api` (plafond 5 $) |
-| 8.3 Statut `completed_with_errors` de `wl run` | A (L1, P9) | 2061-2093 | non |
+| 8.3 Statut `completed_with_errors` de `librarian-bench run` | A (L1, P9) | 2061-2093 | non |
 | 8.4 `think` par modèle au Catalogue | G (P7) | 2094-2116 | vérif. réelle Ollama en attente |
 | 8.5 Alignements de spec Catalogue / Registre | H (P1, P2) | 2117-2138 | WebFetch page de prix |
 | 8.6 Énergie CPU mesurée sous Windows | E (P4) | 2139-2164 | non (charge CPU locale) |
@@ -37,13 +37,13 @@ Anaël obtient d'un run réel un statut, des coûts et une calibration auxquels 
 - P8 : `relevance_threshold` reste 0,1 jusqu'à la mesure ; changement sur décision d'Anaël.
 - P9 : `completed_with_errors`, code 1, `--tolerer-erreurs`, `max_error_rate` = 0,2 (hors [0, 1] → code 2).
 
-## Contrats touchés (`planning-artifacts/architecture/architecture-wavelibrarian-2026-10-17/contracts.md`)
+## Contrats touchés (`planning-artifacts/architecture/architecture-librarian-bench-2026-10-17/contracts.md`)
 
 §4.1 licences, §4.2 `ModelEntry.think`, §5 `manifest.json` (`completed_with_errors`, causes, `max_error_rate`), §6 spans (`wl.energy_source`, coûts), §7 fronts, §8 codes de sortie et `--tolerer-erreurs` ; 8.9 ajoute la commande d'export au §8 ; §4.6 format des annotations.
 
 ## Points de code connus
 
-- `corpus/declare.py:119` (préfixes de licence), `report/couts.py:186` (somme `wl.cost`), `runner/execute.py:75,910-929` (`RunStatus`), `runner/rundir.py` (`Status`), `runner/resume.py:125` (`deja_terminee`), `report/generer.py:144` (`_bandeau`), `llm/providers/ollama.py:154` (`think: False`), `measure/energy.py:23` (`_MODES_MATERIELS`), `architectures/pageindex.py:144-145` (`select_max_tokens`), `config/resolve.py` (`answer_producer`), `tests/unit/llm/test_ledger_cache.py:72`, `tests/unit/config/test_catalog.py`, `cli.py:224-270` (`wl calibrer`).
+- `corpus/declare.py:119` (préfixes de licence), `report/couts.py:186` (somme `wl.cost`), `runner/execute.py:75,910-929` (`RunStatus`), `runner/rundir.py` (`Status`), `runner/resume.py:125` (`deja_terminee`), `report/generer.py:144` (`_bandeau`), `llm/providers/ollama.py:154` (`think: False`), `measure/energy.py:23` (`_MODES_MATERIELS`), `architectures/pageindex.py:144-145` (`select_max_tokens`), `config/resolve.py` (`answer_producer`), `tests/unit/llm/test_ledger_cache.py:72`, `tests/unit/config/test_catalog.py`, `cli.py:224-270` (`librarian-bench calibrer`).
 - Modèle à suivre pour `think` : `accepts_temperature` (story 4.15), clé de cache sur la valeur effective.
 
 ## Contraintes du run
@@ -52,4 +52,4 @@ Anaël obtient d'un run réel un statut, des coûts et une calibration auxquels 
 - Ollama : rien au-delà de `/api/version`, `/api/ps`, `/api/tags` sans « Ollama disponible » d'Anaël ; ensuite profil `cpu`, `num_gpu: 0`, `CUDA_VISIBLE_DEVICES=-1`.
 - API Anthropic : seulement SM-4 (8.2), plafond 5 $ ; toute dépense > 1 $ soumise à Anaël.
 - Non décidable seul : valeurs par défaut (`relevance_threshold`, prix/palier du Catalogue, options PageIndex hors AC), modification d'AC.
-- Vider `WL_HOME` (Cache de réponses) après une mise à jour d'un provider (L8).
+- Vider `LIBRARIAN_BENCH_HOME` (Cache de réponses) après une mise à jour d'un provider (L8).

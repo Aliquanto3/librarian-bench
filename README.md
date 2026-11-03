@@ -1,4 +1,4 @@
-# WaveLibrarian
+# LibrarianBench
 
 Banc de comparaison des architectures de recherche documentaire IA (RAG naïf, hybride, GraphRAG, LLM Wiki, recherche agentique…) sur la qualité, le coût, la latence, l'énergie et la conformité.
 

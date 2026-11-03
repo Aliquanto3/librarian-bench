@@ -7,22 +7,22 @@ from typing import Any
 
 import pytest
 
-from wavelibrarian import registry
-from wavelibrarian.architectures import graphrag as _graphrag  # noqa: F401  (enregistre graphrag)
-from wavelibrarian.architectures._passages import lire_passages
-from wavelibrarian.architectures.lazy_graphrag import LazyGraphRag, _mots
-from wavelibrarian.core.types import ParsedCorpus, QuestionInput
-from wavelibrarian.llm.providers.fake import FakeProvider
-from wavelibrarian.ports.architecture import CorpusChange
-from wavelibrarian.ports.components import ComponentSpec
-from wavelibrarian.runner.context import Context as RunCtx
+from librarian_bench import registry
+from librarian_bench.architectures import graphrag as _graphrag  # noqa: F401  (enregistre graphrag)
+from librarian_bench.architectures._passages import lire_passages
+from librarian_bench.architectures.lazy_graphrag import LazyGraphRag, _mots
+from librarian_bench.core.types import ParsedCorpus, QuestionInput
+from librarian_bench.llm.providers.fake import FakeProvider
+from librarian_bench.ports.architecture import CorpusChange
+from librarian_bench.ports.components import ComponentSpec
+from librarian_bench.runner.context import Context as RunCtx
 
 
 @pytest.fixture
 def ctx(tmp_path: Path):  # type: ignore[no-untyped-def]
     provider = FakeProvider()
     c = RunCtx.from_profile(
-        "test", wl_home=tmp_path / "wl", run_id="r-1", seed=1, providers={"fake": provider}
+        "test", bench_home=tmp_path / "wl", run_id="r-1", seed=1, providers={"fake": provider}
     )
     c.parser = "markdown"
     c.provider = provider  # type: ignore[attr-defined]

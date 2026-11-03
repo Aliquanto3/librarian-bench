@@ -8,9 +8,9 @@ status: done
 
 ## Code Map
 
-- `src/wavelibrarian/evalset/freeze.py` : `geler(doc, dev_ratio, seed, at)` -> `QuestionsFile` ; `empreinte(doc)` ; `nb_dev(n, ratio)` ; `verify_frozen(doc)` ; `select_questions(questions, split)`.
-- `src/wavelibrarian/evalset/io.py` : `load_agrege(chemin)` (toutes les erreurs du fichier, `ValidationFailed`) ; `load` inchangée.
-- `src/wavelibrarian/cli.py` : `wl questions geler <questions.yaml> [--dev-ratio 0.4] [--graine 42]`.
+- `src/librarian_bench/evalset/freeze.py` : `geler(doc, dev_ratio, seed, at)` -> `QuestionsFile` ; `empreinte(doc)` ; `nb_dev(n, ratio)` ; `verify_frozen(doc)` ; `select_questions(questions, split)`.
+- `src/librarian_bench/evalset/io.py` : `load_agrege(chemin)` (toutes les erreurs du fichier, `ValidationFailed`) ; `load` inchangée.
+- `src/librarian_bench/cli.py` : `librarian-bench questions geler <questions.yaml> [--dev-ratio 0.4] [--graine 42]`.
 - `tests/unit/evalset/test_freeze.py`.
 
 ## Design Notes
@@ -44,7 +44,7 @@ Revue Opus du 2026-10-18, après rebase sur `main` (1d36f95).
 
 - medium, second avis 1 (Questions contaminées gelées sans exclusion) : rejeté. AD-15 exclut `contaminated_by` de l'empreinte pour que le Filtre closed-book puisse tourner après le Gel ; FR-12 et la story Rapport de l'epic 4 (« exclues des scores principaux et rapportées dans une section à part ») placent l'exclusion au Rapport. Règle ajoutée à `contracts.md` §4.5. Aucun report nouveau : la story Rapport porte déjà l'AC.
 - low relevé medium, second avis 2 (re-Gel avec une autre graine ou un autre ratio réaffecte le split sans prévenir) : corrigé. Un re-Gel qui ferait passer une Question de dev à test, ou l'inverse, est refusé sans `--forcer`, ce qui protège la partie test (SM-C2). Couvre aussi l'ajout de Questions à un Type déjà gelé. Test `test_regel_qui_change_la_partie_refuse_sans_forcer`.
-- low, second avis 3 (arrondi de `nb_dev`) : corrigé, règle en une ligne dans `contracts.md` §4.5. Le commentaire du contrat nommait aussi `wl questions freeze` au lieu de `geler` : corrigé.
+- low, second avis 3 (arrondi de `nb_dev`) : corrigé, règle en une ligne dans `contracts.md` §4.5. Le commentaire du contrat nommait aussi `librarian-bench questions freeze` au lieu de `geler` : corrigé.
 - low, second avis 4 (seul le texte est testé) : corrigé, `test_verify_frozen_refuse_un_ancrage_ou_une_reponse_modifies`.
 - low, second avis 5 (doublons d'id dans `geler` appelé hors CLI) : corrigé, `ConfigError` qui liste les ids.
 - low, second avis 6 (`at` naïf interprété en heure locale) : corrigé, refusé.

@@ -10,17 +10,17 @@ import pytest
 import yaml
 from typer.testing import CliRunner
 
-from wavelibrarian.cli import app
-from wavelibrarian.config.load import load_experiment
-from wavelibrarian.core.types import Answer
-from wavelibrarian.report.couts import Couts, LigneCout, LigneLatence
-from wavelibrarian.report.export import exporter_front
-from wavelibrarian.report.fraicheur import calculer_fraicheur
-from wavelibrarian.report.fronts import construire_fronts, lignes_pareto
-from wavelibrarian.report.generer import construire_markdown, generer_rapport
-from wavelibrarian.report.lecture import Execution, charger
-from wavelibrarian.report.scores import QUALITE, LigneScore, Resultats
-from wavelibrarian.scoring.panel import PanelVerdict
+from librarian_bench.cli import app
+from librarian_bench.config.load import load_experiment
+from librarian_bench.core.types import Answer
+from librarian_bench.report.couts import Couts, LigneCout, LigneLatence
+from librarian_bench.report.export import exporter_front
+from librarian_bench.report.fraicheur import calculer_fraicheur
+from librarian_bench.report.fronts import construire_fronts, lignes_pareto
+from librarian_bench.report.generer import construire_markdown, generer_rapport
+from librarian_bench.report.lecture import Execution, charger
+from librarian_bench.report.scores import QUALITE, LigneScore, Resultats
+from librarian_bench.scoring.panel import PanelVerdict
 
 RACINE = Path(__file__).resolve().parents[3] / "corpora" / "minicorpus"
 CONFIGS = [
@@ -49,13 +49,13 @@ def _csv(chemin: Path) -> list[dict[str, str]]:
 
 def _lancer(tmp_path_factory: pytest.TempPathFactory, nom: str, **champs: Any) -> Path:
     base = tmp_path_factory.mktemp(nom)
-    home = base / "wl_home"
+    home = base / "bench_home"
     home.mkdir()
     chemin = base / "exp.yaml"
     donnees = {**DONNEES, **champs}
     chemin.write_text(yaml.safe_dump(donnees, allow_unicode=True), encoding="utf-8")
     mp = pytest.MonkeyPatch()
-    mp.setenv("WL_HOME", str(home))
+    mp.setenv("LIBRARIAN_BENCH_HOME", str(home))
     try:
         res = CliRunner().invoke(app, ["run", str(chemin)])
         assert res.exit_code == 0, res.output
@@ -377,7 +377,7 @@ def _wl(run_dir: Path, *args: str) -> Any:
 def test_export_front_accepte_par_config_load(
     run_dir: Path, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:
-    monkeypatch.setenv("WL_HOME", str(run_dir.parents[1]))
+    monkeypatch.setenv("LIBRARIAN_BENCH_HOME", str(run_dir.parents[1]))
     vers = tmp_path / "front.yaml"
     res = _wl(run_dir, "--exporter-front", "qualite-cout", "--vers", str(vers))
     assert res.exit_code == 0, res.output
@@ -402,7 +402,7 @@ def test_export_front_accepte_par_config_load(
 
 
 def test_export_front_refus(run_dir: Path, tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
-    monkeypatch.setenv("WL_HOME", str(run_dir.parents[1]))
+    monkeypatch.setenv("LIBRARIAN_BENCH_HOME", str(run_dir.parents[1]))
     vers = tmp_path / "f.yaml"
     inconnu = _wl(run_dir, "--exporter-front", "n-importe-quoi", "--vers", str(vers))
     assert inconnu.exit_code == 2 and "qualite-cout" in inconnu.output and not vers.exists()
@@ -414,7 +414,8 @@ def test_export_front_refus(run_dir: Path, tmp_path: Path, monkeypatch: pytest.M
 
 
 def test_export_recopie_reuse_index_et_params_rechargeables(run_dir: Path, tmp_path: Path) -> None:
-    """`reuse_index` est une clé d'index (`<WL_HOME>/index/<cle>`), pas un `config_id` : recopié
+    """`reuse_index` est une clé d'index (`<LIBRARIAN_BENCH_HOME>/index/<cle>`), pas un
+    `config_id` : recopié
     tel quel. Les params résolus (Composants imbriqués) se rechargent par `config/load.py`."""
     copie = tmp_path / "copie"
     (copie / "report").mkdir(parents=True)
@@ -450,7 +451,7 @@ def test_export_recopie_reuse_index_et_params_rechargeables(run_dir: Path, tmp_p
 def test_wl_rapport_regenere_pareto_csv_identique(
     run_dir: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:
-    monkeypatch.setenv("WL_HOME", str(run_dir.parents[1]))
+    monkeypatch.setenv("LIBRARIAN_BENCH_HOME", str(run_dir.parents[1]))
     avant = (run_dir / "report" / "pareto.csv").read_bytes()
     assert _wl(run_dir).exit_code == 0
     assert (run_dir / "report" / "pareto.csv").read_bytes() == avant

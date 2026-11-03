@@ -8,14 +8,14 @@ from typing import Any
 import numpy as np
 import pytest
 
-from wavelibrarian import registry
-from wavelibrarian.components.embedders.fake import FakeEmbedder
-from wavelibrarian.config.catalog import load_catalog
-from wavelibrarian.config.defaults import load_profile
-from wavelibrarian.core.types import Condition, CostPost, Phase
-from wavelibrarian.measure.tokenizers import ApproxTokenizer
-from wavelibrarian.measure.tracing import Tracer
-from wavelibrarian.ports.components import ComponentSpec, Embedder
+from librarian_bench import registry
+from librarian_bench.components.embedders.fake import FakeEmbedder
+from librarian_bench.config.catalog import load_catalog
+from librarian_bench.config.defaults import load_profile
+from librarian_bench.core.types import Condition, CostPost, Phase
+from librarian_bench.measure.tokenizers import ApproxTokenizer
+from librarian_bench.measure.tracing import Tracer
+from librarian_bench.ports.components import ComponentSpec, Embedder
 
 TEXTES = ["orvane guilde fondation", "guilde d'orvane", "recette de cuisine"]
 

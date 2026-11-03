@@ -1,4 +1,4 @@
-"""SM-3 (story 4.14) : `wl run experiments/mini-test.yaml`, profil `test`, sans réseau.
+"""SM-3 (story 4.14) : `librarian-bench run experiments/mini-test.yaml`, profil `test`, sans réseau.
 
 Toutes les Architectures du registre, Conditions standard et contexte parfait, Scénario du
 Mini-corpus, un Palier : l'Exécution termine en `completed` et le Rapport est complet (FR-40).
@@ -15,9 +15,9 @@ import pytest
 import yaml
 from typer.testing import CliRunner
 
-from wavelibrarian import registry
-from wavelibrarian.cli import app
-from wavelibrarian.config.load import load_experiment
+from librarian_bench import registry
+from librarian_bench.cli import app
+from librarian_bench.config.load import load_experiment
 
 RACINE = Path(__file__).resolve().parents[2]
 MINI_TEST = RACINE / "experiments" / "mini-test.yaml"
@@ -51,7 +51,7 @@ def _csv(chemin: Path) -> list[dict[str, str]]:
 
 def _wl(home: Path, *args: str) -> Any:
     mp = pytest.MonkeyPatch()
-    mp.setenv("WL_HOME", str(home))
+    mp.setenv("LIBRARIAN_BENCH_HOME", str(home))
     try:
         return CliRunner().invoke(app, list(args))
     finally:
@@ -64,9 +64,10 @@ def _executions(home: Path) -> list[Path]:
 
 @pytest.fixture(scope="module")
 def sm3(tmp_path_factory: pytest.TempPathFactory) -> tuple[Path, Path]:
-    """`WL_HOME` et dossier de l'Exécution SM-3, relevé juste après `wl run` : d'autres tests
-    lancent ensuite d'autres Exécutions dans ce même `WL_HOME`."""
-    dossier = tmp_path_factory.mktemp("sm3") / "wl_home"
+    """`LIBRARIAN_BENCH_HOME` et dossier de l'Exécution SM-3, relevé juste après `librarian-bench
+    run` : d'autres tests
+    lancent ensuite d'autres Exécutions dans ce même `LIBRARIAN_BENCH_HOME`."""
+    dossier = tmp_path_factory.mktemp("sm3") / "bench_home"
     dossier.mkdir()
     res = _wl(dossier, "run", str(MINI_TEST))
     assert res.exit_code == 0, res.output
@@ -265,7 +266,8 @@ def test_front_exporte_relance_par_wl_run(home: Path, run_dir: Path, tmp_path: P
 
 
 def test_reuse_index_refuse_sur_un_autre_wl_home(home: Path, tmp_path: Path) -> None:
-    """Une clé d'index de ce `WL_HOME` n'existe pas dans un autre : `wl run` refuse (code 2)."""
+    """Une clé d'index de ce `LIBRARIAN_BENCH_HOME` n'existe pas dans un autre : `librarian-bench
+    run` refuse (code 2)."""
     cle = next(d.name for d in (home / "index").iterdir() if (d / "manifest.json").is_file())
     configuration = {"id": "bm25", "architecture": "bm25_only", "reuse_index": cle}
     chemin = tmp_path / "reuse.yaml"

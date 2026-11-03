@@ -18,7 +18,7 @@ Reports du lot v0.2.0 traités ici :
 |---|---|---|
 | 1 | Opus Juge principal dans les Expériences livrées, avec plafond ; AD-14 pour un Generator Claude | décision du 26/10, limites de la série du 26/10 |
 | 2 | Rejuger le run mini-cpu du split dev (18 Questions, Gel b2) avec Opus | limite L3 confirmée |
-| 3 | `wl calibrer` perd les verdicts payés en cas de plafond ou de 4xx | revue 8.11 (pre-existing) |
+| 3 | `librarian-bench calibrer` perd les verdicts payés en cas de plafond ou de 4xx | revue 8.11 (pre-existing) |
 | 4 | Pas de modalité « sans objet » (Réponse vide jugée fidèle par convention) | série du 26/10 |
 | 5 | Justification des Juges qui délibère jusqu'à la coupure | arbitrage B1 de la 8.8 |
 | 6 | Balayage de `relevance_threshold` non discriminant (Decider 1 B, exemple `[0.0, 0.0]`) | arbitrage B2 de la 8.8 |
@@ -34,7 +34,7 @@ Reports du lot v0.2.0 traités ici :
   - FR-37 : ajout d'une exception, « un Juge unique est admis s'il est calibré au-dessus du seuil sur chaque Critère (FR-38) ; la règle de famille s'applique à lui ». La dernière conséquence (Panel local + Haiku au MVP) est remplacée par : « depuis la v0.3.0, `claude-opus-5-5` est Juge unique calibré des Expériences dont le Generator n'est pas Claude ».
   - FR-38 : kappa calculé hors `sans objet`, accords et désaccords `sans objet` comptés à part.
   - FR-32 : troisième étiquette « mixte » (CPU mesuré, RAM estimée).
-- **Architecture** : AD-14 amendé (Juge unique calibré, `na` au Panel) ; AD-17 (phase `judging`, `mixed`, GPU du profil `gpu`). `contracts.md` : §4.4 (`panel_size: 1`, `llm_cache.isoler_configurations`), §4.3 (`energy.gpu`), §4.6 (`na`, paquet court), §5 (`rejudged_from`, verdicts au fil de l'eau), §6 (`mixed`), §7, §8 (`wl rejuger`, `wl annotations page`, `wl annotations importer`, `wl calibrer --reprendre/--ecraser`). Chaque story met à jour ce qu'elle touche.
+- **Architecture** : AD-14 amendé (Juge unique calibré, `na` au Panel) ; AD-17 (phase `judging`, `mixed`, GPU du profil `gpu`). `contracts.md` : §4.4 (`panel_size: 1`, `llm_cache.isoler_configurations`), §4.3 (`energy.gpu`), §4.6 (`na`, paquet court), §5 (`rejudged_from`, verdicts au fil de l'eau), §6 (`mixed`), §7, §8 (`librarian-bench rejuger`, `librarian-bench annotations page`, `librarian-bench annotations importer`, `librarian-bench calibrer --reprendre/--ecraser`). Chaque story met à jour ce qu'elle touche.
 - **Données** : `anael.yaml` (5 fidélités de Réponses vides passées à `na`) ; nouveau `corpora/minicorpus/calibration/opus.json` (dérivé du Mini-corpus fictif, publiable).
 - **Pas d'UX** : seule la page d'annotation change, décrite dans la story 9.4.
 
@@ -42,7 +42,7 @@ Reports du lot v0.2.0 traités ici :
 
 Ajustement direct : un nouvel epic, sans retour arrière. Le cœur est le Juge unique calibré. Il demande une recalibration d'Opus (9.9), puisque le prompt des Juges change (9.2, 9.3).
 
-Le rejugement passe par une commande `wl rejuger` (9.6) plutôt que par un nouveau `wl run`. Elle ne demande pas Ollama, elle porte sur les Réponses mêmes qui ont été annotées, et elle resservira à chaque changement de Panel.
+Le rejugement passe par une commande `librarian-bench rejuger` (9.6) plutôt que par un nouveau `librarian-bench run`. Elle ne demande pas Ollama, elle porte sur les Réponses mêmes qui ont été annotées, et elle resservira à chaque changement de Panel.
 
 **Ressources.** Ollama sert à 9.11 seulement, en profil `cpu`, environ 1 h, sur accord d'Anaël. Le GPU ne sert qu'à une vérification facultative de 9.8, elle aussi sur accord.
 
@@ -64,12 +64,12 @@ Le rejugement passe par une commande `wl rejuger` (9.6) plutôt que par un nouve
 
 | Story | Report | Contenu | Agent de dev |
 |---|---|---|---|
-| 9.1 | 3 | Verdicts de `wl calibrer` écrits au fil de l'eau, `--reprendre`, `--ecraser` | Sonnet |
+| 9.1 | 3 | Verdicts de `librarian-bench calibrer` écrits au fil de l'eau, `--reprendre`, `--ecraser` | Sonnet |
 | 9.2 | 5 | Justification d'une phrase, `maxLength: 200`, grammaire Ollama, troncature côté Anthropic | Sonnet |
 | 9.3 ★ | 4 | `na` dans les annotations, les Juges, l'automatique, le Panel, le kappa et le Rapport ; 5 fidélités de `anael.yaml` passées à `na` | Opus (transverse) |
-| 9.4 | 8, 9 | Paquet court, tirage stratifié, `--depuis` ; `wl annotations page` et `importer` ; scripts retirés | Sonnet |
+| 9.4 | 8, 9 | Paquet court, tirage stratifié, `--depuis` ; `librarian-bench annotations page` et `importer` ; scripts retirés | Sonnet |
 | 9.5 ★ | 1 | `panel_size: 1` calibré ; Opus dans `mini-cpu` et `lazy-seuil-cpu` avec plafond ; `mini-real-haiku` à Juges factices | Sonnet |
-| 9.6 | 2 | `wl rejuger` | Opus (runner, rundir, Rapport) |
+| 9.6 | 2 | `librarian-bench rejuger` | Opus (runner, rundir, Rapport) |
 | 9.7 | 6 | Prompt du Decider sans valeur, `granite4.2:3b`, `llm_cache.isoler_configurations` | Sonnet |
 | 9.8 | 7 | `mixed`, phase `judging`, `energy.gpu` | Sonnet |
 | 9.9 | 1 | Calibration réelle d'Opus, `opus.json` versionné | orchestrateur |
@@ -85,7 +85,7 @@ Chaque point a une recommandation. Les recommandations sont déjà écrites dans
 |---|---|---|---|
 | A1 | Panel des Expériences livrées. AD-14 et FR-37 exigent 2 Juges de familles différentes, or Opus est le seul Juge calibré. | **Juge unique calibré** (`panel_size: 1` admis seulement si le Juge passe le seuil sur chaque Critère d'un fichier de calibration). `mini-cpu` et `lazy-seuil-cpu` : `[claude-opus-5-5]`. `mini-real-haiku` : Juges factices gardés (c'est le test de coût SM-4, et aucun Juge non-Claude n'est calibré), mention « qualité non interprétable ». `calibration-claude` et `mini-test` : inchangés. | Opus + `qwen3.5:4b` avec le verdict d'Opus qui prime (le témoin qwen exige Ollama et ~30 min de jugement local par run) |
 | A2 | Plafonds `per_run` Anthropic | `mini-cpu` 3,00 USD, `lazy-seuil-cpu` 2,00 USD, `calibration-opus` 4,00 USD ; plafond de période inchangé (50 USD) | |
-| A3 | Rejuger le run mini-cpu | **`wl rejuger`** (nouvelle Exécution qui copie les Réponses des 18 Questions dev ; sans Ollama) | Nouveau `wl run` complet : préflight Ollama, génération servie par le Cache, énergie et latence rejouées donc non mesurées |
+| A3 | Rejuger le run mini-cpu | **`librarian-bench rejuger`** (nouvelle Exécution qui copie les Réponses des 18 Questions dev ; sans Ollama) | Nouveau `librarian-bench run` complet : préflight Ollama, génération servie par le Cache, énergie et latence rejouées donc non mesurées |
 | A4 | « Sans objet » | Valeur `na`. `faithfulness` vaut `na` automatiquement (sans Juge) pour une Réponse vide ou une abstention. Les Juges peuvent dire `na` en `faithfulness` seulement. Le kappa est calculé hors `na`, avec le compte des accords et désaccords `na` à part. Taux de oui hors `na`. Les 5 fidélités des Réponses vides de `anael.yaml` passent de `yes` à `na`. | Kappa à 3 modalités ; `na` permis sur les 3 Critères côté Juges |
 | A5 | Justification courte | Une phrase, `maxLength: 200` caractères (borné par la grammaire côté Ollama, tronqué à l'enregistrement côté Anthropic) ; budget de sortie inchangé | Schéma sans `justification` (perd l'explication de FR-36) |
 | A6 | Calibration d'Opus | **5 passes** (FR-38 : au moins 5), ~2,50 USD ; fichier versionné `corpora/minicorpus/calibration/opus.json`, référencé par `excluded_from` | 2 passes comme la 8.11 (~1 USD, instabilité moins bien mesurée) |

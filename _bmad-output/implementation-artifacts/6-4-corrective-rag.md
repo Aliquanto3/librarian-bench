@@ -8,9 +8,9 @@ status: done
 
 ## Code Map
 
-- `src/wavelibrarian/components/deciders/llm.py` : `LLMDecider` (`("decider", "llm")`, rôle `grade_relevance`, step `crag.grade.loopN`).
-- `src/wavelibrarian/components/query_rewriters/llm.py` : `LLMQueryRewriter` (`("query_rewriter", "llm")`, rôle `rewrite`, step `crag.rewrite.loopN`).
-- `src/wavelibrarian/architectures/corrective_rag.py` : `CorrectiveRag(NaiveRag)` enregistrée `("architecture", "corrective_rag")`.
+- `src/librarian_bench/components/deciders/llm.py` : `LLMDecider` (`("decider", "llm")`, rôle `grade_relevance`, step `crag.grade.loopN`).
+- `src/librarian_bench/components/query_rewriters/llm.py` : `LLMQueryRewriter` (`("query_rewriter", "llm")`, rôle `rewrite`, step `crag.rewrite.loopN`).
+- `src/librarian_bench/architectures/corrective_rag.py` : `CorrectiveRag(NaiveRag)` enregistrée `("architecture", "corrective_rag")`.
 - Tests : `tests/unit/architectures/test_story_6_4.py` (Faux LLM, faux embedder dim 64, profil `test`).
 
 ## Design Notes

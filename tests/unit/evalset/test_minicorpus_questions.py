@@ -8,12 +8,12 @@ import yaml
 from conftest import CONFORMANCE_QUESTION_ID
 from typer.testing import CliRunner
 
-from wavelibrarian.cli import app
-from wavelibrarian.core.errors import ConfigError
-from wavelibrarian.core.types import ParsedCorpus, Question
-from wavelibrarian.corpus.scenario import corpus_apres
-from wavelibrarian.evalset import check, freeze, io
-from wavelibrarian.llm.providers.fake import _grade_relevance, _mots
+from librarian_bench.cli import app
+from librarian_bench.core.errors import ConfigError
+from librarian_bench.core.types import ParsedCorpus, Question
+from librarian_bench.corpus.scenario import corpus_apres
+from librarian_bench.evalset import check, freeze, io
+from librarian_bench.llm.providers.fake import _grade_relevance, _mots
 
 RACINE = Path(__file__).resolve().parents[3] / "corpora" / "minicorpus"
 QUESTIONS = RACINE / "questions.yaml"

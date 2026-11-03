@@ -10,7 +10,7 @@ Exigences : FR-1, FR-26 ; SM-3 ; arbitrage P8. Story réelle (Ollama, profil `cp
 
 ## Réalisé
 
-- `experiments/mini-cpu.yaml` : sans `max_questions` (19 Questions du split dev), 4 Configurations (bm25, rag-naif, raptor, pageindex avec `select_model` granite4.2:3b, décision 8.7). Run `20261018-115941-a2a512` lancé le 2026-10-18 à 13:59 (heure locale), `WL_HOME` hors dépôt. **Ce `run_id` est la source de la story 8.9** (`corpora/minicorpus/annotations/anael.yaml`).
+- `experiments/mini-cpu.yaml` : sans `max_questions` (19 Questions du split dev), 4 Configurations (bm25, rag-naif, raptor, pageindex avec `select_model` granite4.2:3b, décision 8.7). Run `20261018-115941-a2a512` lancé le 2026-10-18 à 13:59 (heure locale), `LIBRARIAN_BENCH_HOME` hors dépôt. **Ce `run_id` est la source de la story 8.9** (`corpora/minicorpus/annotations/anael.yaml`).
 - `experiments/lazy-seuil-cpu.yaml` : 3 Configurations LazyGraphRAG (`relevance_threshold` 0,1 ; 0,3 ; 0,5) sur le split dev, index partagé. Run `20261018-131800-492c48`.
 - Aucun code, aucune Expérience, aucune valeur par défaut modifiés par cette synthèse.
 

@@ -8,9 +8,9 @@ status: review
 
 ## Code Map
 
-- `src/wavelibrarian/report/couts.py` (nouveau) : `calculer_couts(ex, res) -> Couts` lit `traces.jsonl` (`lire_jsonl`, tolérant à une ligne tronquée) et `answers.jsonl` ; lignes par (config_id, condition, tier, phase, post), latences, points morts. `total_configuration(config, condition, tier)` (indexation + mise à jour + requête, possession comprise, `judging`/`evalset` exclus) est prévu pour les fronts de Pareto de 4.13.
-- `src/wavelibrarian/report/section_couts.py` (nouveau) : section « Coûts, énergie et latence » de `report.md`.
-- `src/wavelibrarian/report/generer.py` : écrit `costs.csv` et branche la section ; `construire_markdown(ex, res, couts=None)`.
+- `src/librarian_bench/report/couts.py` (nouveau) : `calculer_couts(ex, res) -> Couts` lit `traces.jsonl` (`lire_jsonl`, tolérant à une ligne tronquée) et `answers.jsonl` ; lignes par (config_id, condition, tier, phase, post), latences, points morts. `total_configuration(config, condition, tier)` (indexation + mise à jour + requête, possession comprise, `judging`/`evalset` exclus) est prévu pour les fronts de Pareto de 4.13.
+- `src/librarian_bench/report/section_couts.py` (nouveau) : section « Coûts, énergie et latence » de `report.md`.
+- `src/librarian_bench/report/generer.py` : écrit `costs.csv` et branche la section ; `construire_markdown(ex, res, couts=None)`.
 - Tests : `tests/unit/report/test_story_4_12.py` (traces écrites à la main) ; `test_story_4_11.py` attend désormais `costs.csv`.
 
 ## Design Notes
@@ -49,7 +49,7 @@ status: review
 - high, second avis 1 : un span `wl.resumed` ajoutait son `wl.cost_uncached` à celui de l'appel d'origine (double comptage, 0,178760 au lieu de 0,089380). Corrigé : le coût hors cache d'un span repris n'est plus compté ; `test_reprise_ne_recompte_pas_le_cout_hors_cache`.
 - medium, second avis 2 : `_decimal` rendait 0 sans signal sur une valeur illisible (et laissait passer `NaN`, qui faisait échouer `quantize`). Corrigé : valeur non finie ou illisible comptée 0, journalisée et comptée dans `Couts.valeurs_invalides`, ligne « Anomalie » au Rapport ; `test_cout_illisible_compte_et_signale`.
 - medium, second avis 3 : coût par requête = Poste `query` (échecs payés compris) ÷ Réponses `ok`. Définition gardée (coût par Question répondue, contracts.md §7), documentée dans le Rapport et la Design Note ; `test_cout_par_requete_compte_les_echecs_payes`.
-- low, second avis 4 : `index_gb = 0`. Reporté : l'index vit dans le cache partagé `index/<index_key>/` hors du dossier de l'Exécution ; le mesurer casserait la régénération identique (`wl rapport`) et AD-1. À reprendre si sa taille entre dans le manifeste (voir Reports).
+- low, second avis 4 : `index_gb = 0`. Reporté : l'index vit dans le cache partagé `index/<index_key>/` hors du dossier de l'Exécution ; le mesurer casserait la régénération identique (`librarian-bench rapport`) et AD-1. À reprendre si sa taille entre dans le manifeste (voir Reports).
 - low, second avis 5 : `n_calls` compte `embed` et `rerank`. Rejeté : conforme à la Design Note (spans non `local` et non repris).
 - low, second avis 6 : `kwh_local` mêle mesuré et estimé. Rejeté : il ne sert qu'au Coût de possession (électricité payée), chaque span n'a qu'une méthode ; les colonnes d'énergie restent séparées (AD-17).
 - low, second avis 7 : `total_possession()` inclut `judging`/`evalset`. Rejeté : c'est un total global, comme `total_api()` (FR-29) ; le total par Configuration les exclut, comme le veut l'AC.

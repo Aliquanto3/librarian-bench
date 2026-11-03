@@ -22,25 +22,25 @@ import httpx2
 import pytest
 from pydantic import BaseModel, SecretStr
 
-from wavelibrarian.config.catalog import load_catalog
-from wavelibrarian.config.defaults import load_profile
-from wavelibrarian.config.experiment import Budget, RetrySettings
-from wavelibrarian.core.errors import ProviderError, WlError
-from wavelibrarian.core.types import Condition, CostPost, Phase
-from wavelibrarian.llm.budget import Ledger
-from wavelibrarian.llm.cache import ResponseCache
-from wavelibrarian.llm.gateway import MeteredGateway
-from wavelibrarian.llm.providers import anthropic as ant_mod
-from wavelibrarian.llm.providers.anthropic import AnthropicProvider
-from wavelibrarian.llm.providers.logs import limiter_journaux
-from wavelibrarian.llm.providers.ollama import OllamaProvider
-from wavelibrarian.llm.providers.secrets import load_secret
-from wavelibrarian.measure import energy
-from wavelibrarian.measure.energy import FakeEstimator
-from wavelibrarian.measure.tokenizers import ApproxTokenizer, ScaledTokenizer
-from wavelibrarian.measure.tracing import Tracer
-from wavelibrarian.ports.gateway import LLMRequest, Message
-from wavelibrarian.ports.measure import Tokenizer
+from librarian_bench.config.catalog import load_catalog
+from librarian_bench.config.defaults import load_profile
+from librarian_bench.config.experiment import Budget, RetrySettings
+from librarian_bench.core.errors import LibrarianBenchError, ProviderError
+from librarian_bench.core.types import Condition, CostPost, Phase
+from librarian_bench.llm.budget import Ledger
+from librarian_bench.llm.cache import ResponseCache
+from librarian_bench.llm.gateway import MeteredGateway
+from librarian_bench.llm.providers import anthropic as ant_mod
+from librarian_bench.llm.providers.anthropic import AnthropicProvider
+from librarian_bench.llm.providers.logs import limiter_journaux
+from librarian_bench.llm.providers.ollama import OllamaProvider
+from librarian_bench.llm.providers.secrets import load_secret
+from librarian_bench.measure import energy
+from librarian_bench.measure.energy import FakeEstimator
+from librarian_bench.measure.tokenizers import ApproxTokenizer, ScaledTokenizer
+from librarian_bench.measure.tracing import Tracer
+from librarian_bench.ports.gateway import LLMRequest, Message
+from librarian_bench.ports.measure import Tokenizer
 
 CLE = "sk-ant-api03-CLE-DE-TEST-0123456789"
 HAIKU = "claude-haiku-5-5"
@@ -324,7 +324,7 @@ def test_init_ecologits(monkeypatch: pytest.MonkeyPatch) -> None:
     assert appels == [{"providers": ["anthropic"], "electricity_mix_zone": None}]
     monkeypatch.setattr(energy, "_ecologits_initialise", False)
     monkeypatch.setitem(sys.modules, "ecologits", None)
-    with pytest.raises(WlError, match="extra energy"):
+    with pytest.raises(LibrarianBenchError, match="extra energy"):
         energy.init_ecologits()
 
 
@@ -370,13 +370,13 @@ class _Capture(logging.Handler):
 
 
 @pytest.fixture
-def passerelle(wl_home: Path, tmp_path: Path) -> Iterator[Callable[..., tuple[Any, Path]]]:
+def passerelle(bench_home: Path, tmp_path: Path) -> Iterator[Callable[..., tuple[Any, Path]]]:
     fermer: list[Callable[[], None]] = []
 
     def fabrique(providers: dict[str, Any], **kw: Any) -> tuple[MeteredGateway, Path]:
         catalog = load_catalog()
-        ledger = Ledger(Budget(per_run={}, period={}), "run-1", wl_home)
-        cache = ResponseCache(wl_home)
+        ledger = Ledger(Budget(per_run={}, period={}), "run-1", bench_home)
+        cache = ResponseCache(bench_home)
         fermer.extend([ledger.close, cache.close])
         chemin = tmp_path / "traces.jsonl"
         ref = ApproxTokenizer()
@@ -442,9 +442,9 @@ _SCRIPT_ANTHROPIC_LOG = """
 import io, logging, sys
 import httpx2
 from pydantic import SecretStr
-from wavelibrarian.llm.providers.anthropic import AnthropicProvider  # SDK importé ici
-from wavelibrarian.llm.providers.logs import limiter_journaux
-from wavelibrarian.ports.gateway import LLMRequest, Message
+from librarian_bench.llm.providers.anthropic import AnthropicProvider  # SDK importé ici
+from librarian_bench.llm.providers.logs import limiter_journaux
+from librarian_bench.ports.gateway import LLMRequest, Message
 
 assert logging.getLogger("anthropic").level == logging.DEBUG  # ANTHROPIC_LOG lu à l'import
 assert logging.getLogger("httpx2").level == logging.DEBUG
@@ -468,7 +468,7 @@ try:
     provider.complete(req, timeout_s=5)
 except Exception as exc:
     print(type(exc).__name__)
-logging.getLogger("wavelibrarian").debug("temoin-debug")
+logging.getLogger("librarian_bench").debug("temoin-debug")
 print(flux.getvalue())
 """
 
@@ -501,7 +501,7 @@ def test_les_loggers_reseau_sont_forces_a_warning() -> None:
     assert len(capture.filters) == 1
     debug = logging.LogRecord("httpx", logging.DEBUG, "f", 1, "x-api-key", None, None)
     alerte = logging.LogRecord("httpcore.http11", logging.WARNING, "f", 1, "panne", None, None)
-    autre = logging.LogRecord("wavelibrarian", logging.DEBUG, "f", 1, "ok", None, None)
+    autre = logging.LogRecord("librarian_bench", logging.DEBUG, "f", 1, "ok", None, None)
     assert [bool(capture.filter(r)) for r in (debug, alerte, autre)] == [False, True, True]
 
 
@@ -527,7 +527,7 @@ def _ollama_contenu(contenu: str) -> Resp:
 
 def test_ollama_schema_des_juges_sans_ref_ni_defs_et_think_desactive() -> None:
     """Le schéma imbriqué du Juge part en ligne (pas de `$ref`) et `think` est coupé."""
-    from wavelibrarian.components.judges.llm import _schema
+    from librarian_bench.components.judges.llm import _schema
 
     schema = _schema(["correctness", "faithfulness"]).model_json_schema()
     assert "$defs" in schema  # le défaut d'origine : Pydantic factorise les modèles imbriqués
@@ -543,7 +543,7 @@ def test_ollama_schema_des_juges_sans_ref_ni_defs_et_think_desactive() -> None:
 
 def test_ollama_format_des_juges_porte_maxlength_et_verdict_avant_justification() -> None:
     """Story 9.2 : la grammaire (`format`) borne la justification ; décider avant de justifier."""
-    from wavelibrarian.components.judges.llm import _schema
+    from librarian_bench.components.judges.llm import _schema
 
     schema = _schema(["correctness"]).model_json_schema()
     t = Transport(_ollama_contenu("{}"))
@@ -555,7 +555,7 @@ def test_ollama_format_des_juges_porte_maxlength_et_verdict_avant_justification(
 
 
 def test_anthropic_outil_des_juges_porte_maxlength() -> None:
-    from wavelibrarian.components.judges.llm import _schema
+    from librarian_bench.components.judges.llm import _schema
 
     schema = _schema(["correctness"]).model_json_schema()
     outil = AnthropicProvider.native_request(_req(), schema)["tools"][0]["input_schema"]
@@ -567,8 +567,8 @@ def test_anthropic_tool_use_a_justification_longue_tronque_et_conforme() -> None
     """Bout en bout sans réseau : `tool_use.input` d'Opus trop long → texte du provider → validation
     de la passerelle (même contexte) : sortie conforme, justification de 200 caractères au plus,
     comptée."""
-    from wavelibrarian.components.judges.llm import _schema
-    from wavelibrarian.llm.roles import TRONQUEES
+    from librarian_bench.components.judges.llm import _schema
+    from librarian_bench.llm.roles import TRONQUEES
 
     longue = "Voyons, la réponse cite 1412 mais " * 20
     entree = {"verdicts": {"correctness": {"verdict": "yes", "justification": longue}}}
@@ -623,14 +623,14 @@ def test_ollama_retire_les_blocs_think_et_la_cloture_markdown() -> None:
     ],
 )
 def test_clean_content_structure(brut: str, attendu: str) -> None:
-    from wavelibrarian.llm.providers.ollama import clean_content
+    from librarian_bench.llm.providers.ollama import clean_content
 
     assert clean_content(brut, structure=True) == attendu
 
 
 def test_clean_content_texte_libre_garde_les_clotures() -> None:
     """Texte libre (generate, hyde, raptor) : seul le bloc <think> de tête part (3)."""
-    from wavelibrarian.llm.providers.ollama import clean_content
+    from librarian_bench.llm.providers.ollama import clean_content
 
     code = "Exemple :\n```python\nprint(1)\n```"
     assert clean_content("```json\n{}\n```") == "```json\n{}\n```"
@@ -645,7 +645,7 @@ def test_inline_refs_garde_les_defs_d_une_definition_recursive() -> None:
     """Une définition récursive garde son `$ref`, et donc `$defs` pour le résoudre (5)."""
     from pydantic import BaseModel
 
-    from wavelibrarian.llm.providers.ollama import inline_refs
+    from librarian_bench.llm.providers.ollama import inline_refs
 
     class Noeud(BaseModel):
         nom: str
@@ -692,7 +692,7 @@ def test_ollama_fenetre_remplie_journalisee(caplog: pytest.LogCaptureFixture) ->
     p = OllamaProvider(
         load_profile("cpu").ollama, context_windows={MINICPM: 4096}, http_client=t.client(httpx)
     )
-    with caplog.at_level(logging.WARNING, logger="wavelibrarian.llm.providers.ollama"):
+    with caplog.at_level(logging.WARNING, logger="librarian_bench.llm.providers.ollama"):
         p.complete(_req(MINICPM), timeout_s=5)
         assert any("tronqué" in r.getMessage() for r in caplog.records)
         caplog.clear()

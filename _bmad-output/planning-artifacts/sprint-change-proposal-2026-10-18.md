@@ -9,7 +9,7 @@ source: _bmad-output/implementation-artifacts/epics-1-7-retro-2026-10-18.md
 
 ## 1. Problème
 
-La v0.1.0 (epics 1 à 7, 56 stories) est acceptée avec des points ouverts. Les vérifications réelles du 2026-10-18 ont montré que le Faux LLM masquait des défauts. Quatre limites faussent encore les résultats réels : `wl run` sort en `completed` et code 0 même si une Architecture n'a rien répondu (L1) ; `cost_eur_real` compte les Juges factices (L2) ; `wl calibrer` n'a jamais tourné sur des annotations réelles (L3) ; PageIndex sur CPU tronque ses sorties (L4). À cela s'ajoute un correctif : `corpus/declare.py:119` accepte `cc-by-nc-*` comme licence ouverte (P5). Anaël a tranché P1 à P9 ; les décisions sont déjà dans `epics.md` (stories 1.4, 1.8, 7.5) et dans `contracts.md`.
+La v0.1.0 (epics 1 à 7, 56 stories) est acceptée avec des points ouverts. Les vérifications réelles du 2026-10-18 ont montré que le Faux LLM masquait des défauts. Quatre limites faussent encore les résultats réels : `librarian-bench run` sort en `completed` et code 0 même si une Architecture n'a rien répondu (L1) ; `cost_eur_real` compte les Juges factices (L2) ; `librarian-bench calibrer` n'a jamais tourné sur des annotations réelles (L3) ; PageIndex sur CPU tronque ses sorties (L4). À cela s'ajoute un correctif : `corpus/declare.py:119` accepte `cc-by-nc-*` comme licence ouverte (P5). Anaël a tranché P1 à P9 ; les décisions sont déjà dans `epics.md` (stories 1.4, 1.8, 7.5) et dans `contracts.md`.
 
 ## 2. Impact
 
@@ -40,7 +40,7 @@ Ajustement direct : un nouvel epic, sans retour arrière. Risques : 8.6, 8.7, 8.
 
 Choix de découpage : l'item C est coupé en deux. La partie code (8.9) peut tourner sans attendre ; la partie réelle (8.10) attend l'annotation humaine.
 
-Hors lot : L5 (`index_gb`), mesure de la RAM pendant `wl run`, test socket sous Linux, profil `gpu`, vérifications réelles des graphes (L6), découpage de `cli.py`.
+Hors lot : L5 (`index_gb`), mesure de la RAM pendant `librarian-bench run`, test socket sous Linux, profil `gpu`, vérifications réelles des graphes (L6), découpage de `cli.py`.
 
 ## 5. Passation
 

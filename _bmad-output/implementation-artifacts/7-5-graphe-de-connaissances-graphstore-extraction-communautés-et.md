@@ -8,11 +8,11 @@ status: done
 
 ## Code Map
 
-- `src/wavelibrarian/components/graph_stores/networkx_store.py` : `NetworkxGraphStore` enregistré `("graph_store", "networkx")` ; `graph.json` (nœuds et arêtes triés) pour `save`/`load`.
-- `src/wavelibrarian/components/graph/extraction.py` : `EntityExtractor` (rôle `extract_entities`, step `graph.extract.<passage_id>`), `Extraction`, `ajouter(store, extraction)`.
-- `src/wavelibrarian/components/graph/communities.py` : `detect_communities(graph, seed, min_size=1) -> list[Community]`, `louvain_seed(experiment_seed)`.
-- `src/wavelibrarian/components/graph/reports.py` : `CommunityReporter` (rôle `community_report`, step `graph.report.<community_id>`), `community_context`.
-- `src/wavelibrarian/components/graph/_texte.py` : contrôle de fenêtre (`borner`, `couper`).
+- `src/librarian_bench/components/graph_stores/networkx_store.py` : `NetworkxGraphStore` enregistré `("graph_store", "networkx")` ; `graph.json` (nœuds et arêtes triés) pour `save`/`load`.
+- `src/librarian_bench/components/graph/extraction.py` : `EntityExtractor` (rôle `extract_entities`, step `graph.extract.<passage_id>`), `Extraction`, `ajouter(store, extraction)`.
+- `src/librarian_bench/components/graph/communities.py` : `detect_communities(graph, seed, min_size=1) -> list[Community]`, `louvain_seed(experiment_seed)`.
+- `src/librarian_bench/components/graph/reports.py` : `CommunityReporter` (rôle `community_report`, step `graph.report.<community_id>`), `community_context`.
+- `src/librarian_bench/components/graph/_texte.py` : contrôle de fenêtre (`borner`, `couper`).
 - `tests/unit/components/test_story_7_5.py`. Aucun changement de `roles.py` ni de `fake.py` (les rôles et leurs sorties par défaut conviennent). Aucune Architecture enregistrée.
 
 ## Design Notes

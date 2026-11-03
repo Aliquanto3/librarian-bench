@@ -8,8 +8,8 @@ status: done
 
 ## Code Map
 
-- `src/wavelibrarian/components/judges/llm.py` : `LLMJudge`, enregistré `("judge", "llm")`, `Params.model` en `ModelRef` (défaut `judge_pool[0]` du profil).
-- `src/wavelibrarian/scoring/answer.py` : `exact_match(reference, answer)` (s'ajoute à `is_short_form`, story 3.1).
+- `src/librarian_bench/components/judges/llm.py` : `LLMJudge`, enregistré `("judge", "llm")`, `Params.model` en `ModelRef` (défaut `judge_pool[0]` du profil).
+- `src/librarian_bench/scoring/answer.py` : `exact_match(reference, answer)` (s'ajoute à `is_short_form`, story 3.1).
 - Tests : `tests/unit/components/test_llm_judge.py`, `tests/unit/scoring/test_answer.py`.
 
 ## Design Notes

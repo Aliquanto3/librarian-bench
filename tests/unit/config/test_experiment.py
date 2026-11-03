@@ -9,18 +9,18 @@ import pytest
 import yaml
 from pydantic import BaseModel, ConfigDict, Field
 
-from wavelibrarian import registry
-from wavelibrarian.config.experiment import Experiment
-from wavelibrarian.config.load import load_experiment
-from wavelibrarian.config.resolve import (
+from librarian_bench import registry
+from librarian_bench.config.experiment import Experiment
+from librarian_bench.config.load import load_experiment
+from librarian_bench.config.resolve import (
     fingerprint,
     resolve_experiment,
     to_yaml,
     write_resolved,
 )
-from wavelibrarian.core.errors import ConfigError
-from wavelibrarian.core.types import ModelRef, ModelRefMeta
-from wavelibrarian.ports.components import ComponentSpec
+from librarian_bench.core.errors import ConfigError
+from librarian_bench.core.types import ModelRef, ModelRefMeta
+from librarian_bench.ports.components import ComponentSpec
 
 
 class _Params(BaseModel):

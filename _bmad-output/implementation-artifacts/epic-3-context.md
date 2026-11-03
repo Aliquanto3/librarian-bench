@@ -8,11 +8,11 @@ Permettre à Anaël de produire un Jeu d'évaluation fiable : générer des Ques
 
 ## Stories
 
-- Story 3.1: Format des Questions et commande `wl questions controler`
+- Story 3.1: Format des Questions et commande `librarian-bench questions controler`
 - Story 3.2: Contexte d'exécution concret
 - Story 3.3: Génération de Questions candidates
 - Story 3.4: Juge LLM et correspondance exacte normalisée
-- Story 3.5: Filtre closed-book et commande `wl questions closed-book`
+- Story 3.5: Filtre closed-book et commande `librarian-bench questions closed-book`
 - Story 3.6: Gel et séparation développement / test
 - Story 3.7: Jeu d'évaluation de référence du Mini-corpus
 
@@ -24,7 +24,7 @@ Permettre à Anaël de produire un Jeu d'évaluation fiable : générer des Ques
 - Closed-book : chaque Question est posée sans contexte à 2 ou 3 modèles ; réponse courte = correspondance exacte normalisée (casse, accents, ponctuation, format des nombres), sinon verdict d'un Juge d'une autre Famille ; les `unanswerable` sont exclues ; le modèle fautif va dans `contaminated_by`.
 - Gel : empreinte enregistrée, répartition stratifiée par Type et déterministe par la graine (40 % dev par défaut), refus de geler s'il reste des Questions `generated`, test utilisable seulement sur demande explicite. Modifier `contaminated_by` ne casse pas l'empreinte.
 - Jeu de référence : au moins 40 Questions validated, tous Types sauf `visual` et `numeric_aggregation`, dont 2 de suivi, 2 interlingues, 3 liées au Scénario, une `unanswerable` sur un fait absent, une `knowledge_trap`, 5 réponses courtes, une citant une page de PDF. Une Question de conformité (`CONFORMANCE_QUESTION_ID`, `factual`, un seul Ancrage) partage au moins 80 % de ses mots avec son Ancrage, pour que le Faux LLM, BM25 et le faux embedder la retrouvent.
-- Suivis du run à traiter ici : `wl questions` doit contrôler `closed_book_models` et `question_gen_model` (modèles au Catalogue, hors réseau) ; `wl calibrer` écrit `calibration.json` au format retenu en 1.6 (par Juge et par Critère, kappa, instabilité, `excluded` booléen strict, `criteria`, plus kappa inter-annotateurs).
+- Suivis du run à traiter ici : `librarian-bench questions` doit contrôler `closed_book_models` et `question_gen_model` (modèles au Catalogue, hors réseau) ; `librarian-bench calibrer` écrit `calibration.json` au format retenu en 1.6 (par Juge et par Critère, kappa, instabilité, `excluded` booléen strict, `criteria`, plus kappa inter-annotateurs).
 - Contraintes du run autonome :
   - Aucun réseau ni API dans les tests : Faux LLM seulement (`fake-llm-a/b/c`, profil `test`).
   - Pas d'Ollama avant le go d'Anaël (seuls `/api/version`, `/api/ps`, `/api/tags` tolérés), pas de GPU.
@@ -39,7 +39,7 @@ Permettre à Anaël de produire un Jeu d'évaluation fiable : générer des Ques
 - Juge du closed-book (AD-14) : `closed_book_judge` = premier modèle du réservoir `judges.pool` d'une autre Famille que le modèle interrogé ; liste des modèles par défaut = `closed_book_models` du profil ; modèle de génération = `question_gen_model`.
 - Gel (AD-15) : `freeze = {sha256, at, seed, dev_ratio}`, empreinte = `canonical_json` du document sans `freeze` ni `contaminated_by`. `verify_frozen` (appelée par le runner) refuse un jeu non gelé ou modifié ; `select_questions(split=...)` ne rend que validated et corrected.
 - Aléa (AD-20) : `ctx.rng(*clés)` ; même graine = même échantillon d'Ancrages et même répartition. `run.lock` pris seulement par un contexte d'Exécution, pas par les commandes hors Exécution.
-- Commandes (`contracts.md` §8) : `wl questions generer|controler|closed-book|geler` ; option `--scenario` ajoutée à `controler`. Codes de sortie : 2 configuration ou Ancrage invalide, 3 plafond. Messages en français.
+- Commandes (`contracts.md` §8) : `librarian-bench questions generer|controler|closed-book|geler` ; option `--scenario` ajoutée à `controler`. Codes de sortie : 2 configuration ou Ancrage invalide, 3 plafond. Messages en français.
 
 ## Cross-Story Dependencies
 

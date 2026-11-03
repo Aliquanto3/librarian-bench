@@ -8,17 +8,17 @@ status: done
 
 ## Code Map
 
-- `src/wavelibrarian/measure/tracing.py` : `Tracer` (port `Tracer`), `JsonlSpanExporter`, protocole `TraceContext` ; un `SimpleSpanProcessor`, OTLP seulement si `otlp_endpoint` est donné.
-- `src/wavelibrarian/measure/tokenizers.py` : `ApproxTokenizer`, `ReferenceTokenizer` (tiktoken `o200k_base`), `ScaledTokenizer`, `make_tokenizer`, `tokenizer_for(model_id, catalog, reference)`.
-- `src/wavelibrarian/measure/energy.py` : `FakeMeter`, `FakeEstimator`, `CodecarbonMeter`, `EcoLogitsEstimator`, `spread_energy`, `is_hardware_counter`, `make_meter`, `make_estimator`.
-- `src/wavelibrarian/measure/tco.py` : `possession_cost`.
+- `src/librarian_bench/measure/tracing.py` : `Tracer` (port `Tracer`), `JsonlSpanExporter`, protocole `TraceContext` ; un `SimpleSpanProcessor`, OTLP seulement si `otlp_endpoint` est donné.
+- `src/librarian_bench/measure/tokenizers.py` : `ApproxTokenizer`, `ReferenceTokenizer` (tiktoken `o200k_base`), `ScaledTokenizer`, `make_tokenizer`, `tokenizer_for(model_id, catalog, reference)`.
+- `src/librarian_bench/measure/energy.py` : `FakeMeter`, `FakeEstimator`, `CodecarbonMeter`, `EcoLogitsEstimator`, `spread_energy`, `is_hardware_counter`, `make_meter`, `make_estimator`.
+- `src/librarian_bench/measure/tco.py` : `possession_cost`.
 - `tests/unit/measure/test_measure.py`.
 
 ## Design Notes
 
 - Le `Tracer` relit `run_id`, `config_id`, `condition`, `tier`, `phase`, `post` et `question_id` dans le contexte à chaque `record` (le runner les change entre deux appels). Les clés de `extra` sont posées d'abord, puis les attributs du contrat les écrasent : l'appelant ne peut pas imposer `wl.post`. `extra` porte `wl.energy_kwh`, `wl.energy_method`, `wl.loop`, `wl.index_cache_hit`, etc.
 - `start_time` = maintenant moins la latence, `end_time` = maintenant (ns). Une ligne JSONL par span, attributs à plat à côté de `trace_id` (32 hex), `span_id` (16 hex), `name`, `start_time`, `end_time`. L'export est synchrone (`SimpleSpanProcessor`), le fichier est écrit en ajout, jamais réécrit.
-- Tokenizer `reference` : le fichier de cache tiktoken (`sha1` de l'URL de l'encodage, dossier `TIKTOKEN_CACHE_DIR`, `DATA_GYM_CACHE_DIR` ou temporaire) est vérifié avant tout appel à tiktoken ; absent = `WlError` citant `wl installer`, sans téléchargement.
+- Tokenizer `reference` : le fichier de cache tiktoken (`sha1` de l'URL de l'encodage, dossier `TIKTOKEN_CACHE_DIR`, `DATA_GYM_CACHE_DIR` ou temporaire) est vérifié avant tout appel à tiktoken ; absent = `WlError` citant `librarian-bench installer`, sans téléchargement.
 - `tokenizer_for` : un modèle dont le Catalogue déclare `tokenizer: reference` reçoit le tokenizer de référence du profil tel quel ; un modèle `approx` reçoit référence × `token_factor` (`Decimal`, arrondi au supérieur).
 - Énergie : `spread_energy(kwh, latences, méthode)` répartit au prorata de la latence ; sans énergie ou sans durée, `(None, "unknown")`. `FakeMeter` est étiqueté `estimated` (jamais `measured`). `CodecarbonMeter` force `gpu_ids=[]` (pas de NVML) et ne marque `measured` que si un matériel suivi lit un compteur (RAPL, Power Gadget, powermetrics, GPU), sinon `estimated` (TDP × charge). `ecologits` et `codecarbon` sont importés au premier usage.
 - `possession_cost` : kWh × prix du kWh + prix du matériel ÷ durée de vie × heures de calcul + Go × prix du stockage × mois, en `Decimal` ; l'argument `months` vaut 1 par défaut.
@@ -29,7 +29,7 @@ status: done
 - [x] `wl.tier` absent sans palier, `wl.post` lu dans le contexte : `test_tier_absent_et_post_lu_dans_le_contexte`.
 - [x] OTLP désactivé, `SimpleSpanProcessor` unique, aucune connexion : `test_export_synchrone_local_sans_otlp` (pytest-socket bloque tout réseau), `test_otlp_demande_sans_paquet`.
 - [x] `approx` compte 12 pour 12 mots : `test_approx_compte_les_mots`.
-- [x] `reference` chargé au premier usage, `WlError("… wl installer …")` sans téléchargement : `test_reference_sans_encodage_local_ne_telecharge_pas`, `test_reference_avec_cache_illisible`.
+- [x] `reference` chargé au premier usage, `WlError("… librarian-bench installer …")` sans téléchargement : `test_reference_sans_encodage_local_ne_telecharge_pas`, `test_reference_avec_cache_illisible`.
 - [x] `tokenizer_for` applique `token_factor` si le Catalogue ne déclare pas `reference` : `test_tokenizer_for_applique_token_factor`.
 - [x] Énergie `fake` : démarrage, arrêt, répartition 25/25/50 % avec `wl.energy_method` : `test_fake_demarre_arrete_et_repartit_au_prorata`, `test_energie_portee_par_les_spans`, `test_repartition_sans_energie_ou_sans_duree`.
 - [x] Adaptateurs importés au premier usage, `WlError("installer l'extra energy")` s'ils manquent : `test_adaptateurs_sans_extra_energy`, `test_import_paresseux_des_adaptateurs`.

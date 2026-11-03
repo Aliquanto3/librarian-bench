@@ -1,0 +1,175 @@
+"""Ingestion d'un Corpus déclaré : Parsers par format, cache de parsing, `ParsedCorpus` (FR-6).
+
+Les Parsers sont obtenus par le registre (`kind: parser`), sans importer `components` (AD-1).
+"""
+
+import json
+import logging
+import os
+from collections.abc import Iterable
+from pathlib import Path
+from typing import Any
+
+from librarian_bench import registry
+from librarian_bench.compat import dossier_home
+from librarian_bench.core.errors import ConfigError
+from librarian_bench.core.ids import sha16
+from librarian_bench.core.types import ParsedCorpus, ParsedDocument
+from librarian_bench.corpus.declare import DeclaredCorpus, Document
+
+log = logging.getLogger(__name__)
+
+# Parser par défaut de chaque format quand `parser: auto`.
+AUTO: dict[str, str] = {"markdown": "markdown", "text": "text", "html": "html", "pdf": "pdf_text"}
+
+
+def parsers_par_format(formats: Iterable[str], parser: str = "auto") -> dict[str, str]:
+    """Nom concret du Parser de chaque format ; remplace `parser: auto` (runner, epic 4).
+
+    `auto` : le Parser par défaut du format, qui doit être enregistré et déclarer ce format.
+    Un nom composite (`markdown+pdf_text`, forme de `nom_parser_resolu` que le runner écrit dans
+    l'Expérience résolue) prend pour chaque format le composant qui le déclare (le Parser `auto`
+    du format s'il en fait partie). Un nom explicite doit couvrir tous les formats demandés.
+    `ConfigError` sinon.
+    """
+    registry.discover()
+    composants = _composants(parser) if "+" in parser else ()
+    resultat: dict[str, str] = {}
+    for fmt in sorted(set(formats)):
+        if parser == "auto":
+            nom = AUTO.get(fmt)
+        elif composants:
+            candidats = [n for n in composants if fmt in _formats(n)]
+            nom = AUTO.get(fmt) if AUTO.get(fmt) in candidats else next(iter(candidats), parser)
+        else:
+            nom = parser
+        if nom is None or nom not in registry.names("parser"):
+            enregistres = ", ".join(registry.names("parser")) or "aucun"
+            manque = f" (Parser « {nom} » non encore disponible)" if nom else ""
+            raise ConfigError(
+                "parser",
+                f"aucun Parser enregistré pour le format « {fmt} »{manque} (parser demandé :"
+                f" {parser}) ; Parsers disponibles : {enregistres}",
+            )
+        if fmt not in getattr(registry.get("parser", nom), "formats", frozenset()):
+            raise ConfigError("parser", f"le Parser « {nom} » ne prend pas en charge « {fmt} »")
+        resultat[fmt] = nom
+    return resultat
+
+
+def _formats(nom: str) -> frozenset[str]:
+    return getattr(registry.get("parser", nom), "formats", frozenset())
+
+
+def _composants(parser: str) -> tuple[str, ...]:
+    """Composants enregistrés d'un nom composite ; `ConfigError` pour un composant inconnu."""
+    noms = tuple(sorted(set(parser.split("+"))))
+    inconnus = [n for n in noms if n not in registry.names("parser")]
+    if inconnus or not all(noms):
+        enregistres = ", ".join(registry.names("parser")) or "aucun"
+        raise ConfigError(
+            "parser",
+            f"Parser composite « {parser} » : composant inconnu {', '.join(inconnus) or '(vide)'}"
+            f" ; Parsers disponibles : {enregistres}",
+        )
+    return noms
+
+
+def nom_parser_resolu(par_format: dict[str, str]) -> str:
+    """Nom unique d'un jeu de Parsers (`markdown`, ou `html+markdown` si plusieurs)."""
+    return "+".join(sorted(set(par_format.values())))
+
+
+def versions_parsers(parser: str) -> dict[str, str]:
+    """`version` de chaque Parser d'un nom résolu (simple ou composite) ; entre dans la clé
+    d'index (AD-10) car le `doc_id` hache les octets bruts, pas la sortie du Parser."""
+    if parser == "auto":
+        raise ConfigError("parser", "parser « auto » non résolu (resolve_parsers d'abord)")
+    registry.discover()
+    noms = _composants(parser) if "+" in parser else (parser,)
+    if parser not in registry.names("parser") and "+" not in parser:
+        raise ConfigError("parser", f"Parser « {parser} » non enregistré")
+    return {nom: _version(registry.get("parser", nom)) for nom in noms}
+
+
+def _bench_home(bench_home: Path | None) -> Path:
+    return bench_home or dossier_home()
+
+
+def _version(cls: Any) -> str:
+    return str(getattr(cls, "version", "0"))
+
+
+def _lire_cache(chemin: Path, version: str) -> ParsedDocument | None:
+    """Document en cache, ou None s'il est absent, corrompu ou d'une autre version du Parser."""
+    try:
+        contenu = json.loads(chemin.read_text(encoding="utf-8"))
+        if not isinstance(contenu, dict) or contenu.get("parser_version") != version:
+            return None
+        return ParsedDocument.model_validate(contenu.get("document"))
+    except (OSError, ValueError):
+        return None  # on reparse
+
+
+def _ecrire_cache(chemin: Path, doc: ParsedDocument, version: str) -> None:
+    chemin.parent.mkdir(parents=True, exist_ok=True)
+    tmp = chemin.with_name(f"{chemin.name}.{os.getpid()}.tmp")
+    contenu = {"parser_version": version, "document": doc.model_dump(mode="json")}
+    tmp.write_text(json.dumps(contenu, ensure_ascii=False), encoding="utf-8")
+    tmp.replace(chemin)
+
+
+def _reancrer(parse: ParsedDocument, doc: Document) -> ParsedDocument:
+    """Reprend chemin, langue et métadonnées du Document déclaré (le cache est par contenu)."""
+    if (parse.source_path, parse.lang, parse.meta) == (doc.source_path, doc.lang, doc.meta):
+        return parse
+    ancres = {
+        k: a.model_copy(update={"source_path": doc.source_path}) for k, a in parse.anchors.items()
+    }
+    return parse.model_copy(
+        update={
+            "source_path": doc.source_path,
+            "lang": doc.lang,
+            "meta": doc.meta,
+            "anchors": ancres,
+        }
+    )
+
+
+def empreinte(documents: Iterable[ParsedDocument]) -> str:
+    """`fingerprint` d'un Corpus : sha256 des (source_path, doc_id) triés, [:16]."""
+    paires = sorted((d.source_path, d.doc_id) for d in documents)
+    return sha16(*(f"{p}\x1e{i}" for p, i in paires))
+
+
+def ingest(
+    corpus: DeclaredCorpus, parser: str = "auto", *, bench_home: Path | None = None
+) -> ParsedCorpus:
+    """Parse les Documents du Corpus (cache par Document et par Parser) en `ParsedCorpus`.
+
+    Un Document que son Parser ne sait pas lire est signalé au journal et ignoré.
+    """
+    par_format = parsers_par_format(corpus.formats, parser)
+    cache = _bench_home(bench_home) / "parse_cache"
+    instances: dict[str, Any] = {}
+    documents: list[ParsedDocument] = []
+    for doc in corpus.documents:  # déjà triés par source_path
+        nom = par_format[doc.format]
+        cls = registry.get("parser", nom)
+        fichier = cache / nom / f"{doc.doc_id}.json"
+        parse = _lire_cache(fichier, _version(cls))
+        if parse is None:
+            if nom not in instances:
+                instances[nom] = cls(cls.Params(), None)
+            try:
+                parse = instances[nom].parse(doc.source_path, corpus.read(doc), doc.lang, doc.meta)
+            except (OSError, ValueError) as exc:
+                log.warning("Document illisible ignoré : %s (%s)", doc.source_path, exc)
+                continue
+            _ecrire_cache(fichier, parse, _version(cls))
+        documents.append(_reancrer(parse, doc))
+    return ParsedCorpus(
+        corpus_id=corpus.corpus_id,
+        fingerprint=empreinte(documents),
+        documents=tuple(sorted(documents, key=lambda d: d.source_path)),
+    )

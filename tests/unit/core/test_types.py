@@ -7,8 +7,8 @@ from typing import Any
 import pytest
 from pydantic import BaseModel, ValidationError
 
-from wavelibrarian.core import types as t
-from wavelibrarian.core.types import (
+from librarian_bench.core import types as t
+from librarian_bench.core.types import (
     Anchor,
     Answer,
     Block,
@@ -18,7 +18,7 @@ from wavelibrarian.core.types import (
     Passage,
     Usage,
 )
-from wavelibrarian.ports.gateway import LLMResult
+from librarian_bench.ports.gateway import LLMResult
 
 NOMS = [
     "Anchor", "Block", "ParsedDocument", "ParsedCorpus", "Passage", "ScoredPassage",

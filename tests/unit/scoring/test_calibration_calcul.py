@@ -2,8 +2,8 @@
 
 import pytest
 
-from wavelibrarian.core.types import VerdictValue
-from wavelibrarian.scoring.calibration import (
+from librarian_bench.core.types import VerdictValue
+from librarian_bench.scoring.calibration import (
     Annotations,
     FicheCritere,
     Passe,

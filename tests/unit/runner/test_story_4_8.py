@@ -11,15 +11,15 @@ import pytest
 import yaml
 from typer.testing import CliRunner
 
-from wavelibrarian.cli import app
-from wavelibrarian.config.validate import validate_file
-from wavelibrarian.core.types import Answer
-from wavelibrarian.evalset import io
-from wavelibrarian.evalset.freeze import select_questions
-from wavelibrarian.runner import execute
-from wavelibrarian.runner.execute import load_questions, run_experiment
-from wavelibrarian.runner.lock import RunLock
-from wavelibrarian.runner.rundir import read_answers
+from librarian_bench.cli import app
+from librarian_bench.config.validate import validate_file
+from librarian_bench.core.types import Answer
+from librarian_bench.evalset import io
+from librarian_bench.evalset.freeze import select_questions
+from librarian_bench.runner import execute
+from librarian_bench.runner.execute import load_questions, run_experiment
+from librarian_bench.runner.lock import RunLock
+from librarian_bench.runner.rundir import read_answers
 
 RACINE = Path(__file__).resolve().parents[3] / "corpora" / "minicorpus"
 SANS_CONTEXTE = {"id": "sans-contexte", "architecture": "no_context"}
@@ -56,8 +56,8 @@ def _wl(*args: str, code: int) -> Any:
     return res
 
 
-def _un_run(wl_home: Path) -> Path:
-    (dossier,) = [d for d in (wl_home / "runs").iterdir() if d.is_dir()]
+def _un_run(bench_home: Path) -> Path:
+    (dossier,) = [d for d in (bench_home / "runs").iterdir() if d.is_dir()]
     return dossier
 
 
@@ -70,9 +70,9 @@ def _lignes(dossier: Path, nom: str) -> list[dict[str, Any]]:
     return [json.loads(ligne) for ligne in texte.splitlines()]
 
 
-def _reservations(wl_home: Path, run_id: str | None = None) -> list[tuple[str, str, str | None]]:
+def _reservations(bench_home: Path, run_id: str | None = None) -> list[tuple[str, str, str | None]]:
     """(statut, estimé, réel) des réservations du registre, dans l'ordre."""
-    conn = sqlite3.connect(wl_home / "ledger.sqlite")
+    conn = sqlite3.connect(bench_home / "ledger.sqlite")
     try:
         requete = "SELECT status, estimated, actual FROM reservations"
         if run_id is not None:
@@ -84,11 +84,12 @@ def _reservations(wl_home: Path, run_id: str | None = None) -> list[tuple[str, s
 
 def _plafond_pour(tmp_path: Path, n: int) -> Decimal:
     """Plafond qui couvre exactement les `n` premiers appels payants : un probe sans plafond, dans
-    un autre `WL_HOME`, donne l'estimé et le réel de chaque appel (même suite d'appels)."""
+    un autre `LIBRARIAN_BENCH_HOME`, donne l'estimé et le réel de chaque appel (même suite
+    d'appels)."""
     probe = tmp_path / "probe_home"
     chemin = _experience(tmp_path, "probe")
     resolue = validate_file(chemin).resolved
-    run_experiment(resolue, load_questions(resolue), wl_home=probe)
+    run_experiment(resolue, load_questions(resolue), bench_home=probe)
     lignes = _reservations(probe)
     reels = [Decimal(r or "0") for _, _, r in lignes]
     estimes = [Decimal(e) for _, e, _ in lignes]
@@ -100,19 +101,19 @@ def _plafond_pour(tmp_path: Path, n: int) -> Decimal:
 
 
 @pytest.fixture
-def arrete(tmp_path: Path, wl_home: Path) -> tuple[Path, Path, Decimal]:
+def arrete(tmp_path: Path, bench_home: Path) -> tuple[Path, Path, Decimal]:
     """Exécution arrêtée après 5 appels payants : (dossier, fichier d'Expérience, plafond)."""
     plafond = _plafond_pour(tmp_path, 5)
     chemin = _experience(tmp_path, "plafonne", plafond)
     _wl(str(chemin), code=3)
-    return _un_run(wl_home), chemin, plafond
+    return _un_run(bench_home), chemin, plafond
 
 
 # --- AC 1 : arrêt au plafond ------------------------------------------------------------------
 
 
 def test_sixieme_appel_refuse_les_restantes_budget_exceeded_et_code_3(
-    arrete: tuple[Path, Path, Decimal], wl_home: Path
+    arrete: tuple[Path, Path, Decimal], bench_home: Path
 ) -> None:
     dossier, _, _ = arrete
     reponses = _lignes(dossier, "answers.jsonl")
@@ -130,13 +131,13 @@ def test_sixieme_appel_refuse_les_restantes_budget_exceeded_et_code_3(
         "budget_exceeded": 2 * N - 5,
     }
     # Refus avant émission : 5 réservations réglées, aucune pour le 6e ; span `budget_refused`.
-    assert [s for s, _, _ in _reservations(wl_home)] == ["settled"] * 5
+    assert [s for s, _, _ in _reservations(bench_home)] == ["settled"] * 5
     spans = _lignes(dossier, "traces.jsonl")
     assert [s["wl.status"] for s in spans if s["wl.kind"] == "llm"].count("budget_refused") == 1
 
 
 def test_un_nouvel_arret_n_ecrit_pas_deux_fois_les_budget_exceeded(
-    tmp_path: Path, arrete: tuple[Path, Path, Decimal], wl_home: Path
+    tmp_path: Path, arrete: tuple[Path, Path, Decimal], bench_home: Path
 ) -> None:
     dossier, _, _ = arrete
     avant = len(_lignes(dossier, "answers.jsonl"))
@@ -154,7 +155,7 @@ def test_un_nouvel_arret_n_ecrit_pas_deux_fois_les_budget_exceeded(
 
 
 def test_reprise_saute_les_cles_presentes_et_ne_fait_que_les_appels_manquants(
-    tmp_path: Path, arrete: tuple[Path, Path, Decimal], wl_home: Path
+    tmp_path: Path, arrete: tuple[Path, Path, Decimal], bench_home: Path
 ) -> None:
     dossier, _, plafond = arrete
     avant_answers = (dossier / "answers.jsonl").read_bytes()
@@ -178,11 +179,11 @@ def test_reprise_saute_les_cles_presentes_et_ne_fait_que_les_appels_manquants(
     spans = [s for s in spans if s["wl.post"] == "query"]  # le jugement : story 4.9
     payes = [s for s in spans if s["wl.status"] == "ok" and not s["wl.llm_cache_hit"]]
     assert len(payes) == 2 * N
-    statuts = [s for s, _, _ in _reservations(wl_home)]
+    statuts = [s for s, _, _ in _reservations(bench_home)]
     assert statuts == ["settled"] * (3 * 2 * N)  # 2 * N Réponses, 2 Juges par Réponse
     # Somme des wl.cost = dépense réelle du registre pour ce run_id.
     total = sum(Decimal(s["wl.cost"]) for s in _lignes(dossier, "traces.jsonl"))
-    reel = sum(Decimal(r or "0") for _, _, r in _reservations(wl_home, dossier.name))
+    reel = sum(Decimal(r or "0") for _, _, r in _reservations(bench_home, dossier.name))
     assert total == reel and total > 0
     manifeste = _manifest(dossier)
     assert manifeste["status"] == "completed"
@@ -201,9 +202,9 @@ class _Kill(BaseException):
 
 
 def test_arret_brutal_reservation_orpheline_reglee_puis_running_et_completed(
-    tmp_path: Path, wl_home: Path, monkeypatch: pytest.MonkeyPatch
+    tmp_path: Path, bench_home: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:
-    from wavelibrarian.llm.budget import Ledger
+    from librarian_bench.llm.budget import Ledger
 
     regler = Ledger.settle
     appels: list[int] = []
@@ -218,10 +219,10 @@ def test_arret_brutal_reservation_orpheline_reglee_puis_running_et_completed(
     chemin = _experience(tmp_path, configurations=[SANS_CONTEXTE])
     resolue = validate_file(chemin).resolved
     with pytest.raises(_Kill):
-        run_experiment(resolue, load_questions(resolue), wl_home=wl_home)
+        run_experiment(resolue, load_questions(resolue), bench_home=bench_home)
     monkeypatch.setattr(Ledger, "settle", regler)
 
-    dossier = _un_run(wl_home)
+    dossier = _un_run(bench_home)
     # État laissé par un arrêt dur : manifeste resté `running`, Réponses et spans locaux de la
     # phase (retenus en mémoire jusqu'à sa fin) perdus ; les spans d'appel, eux, sont écrits.
     manifeste = _manifest(dossier)
@@ -234,7 +235,7 @@ def test_arret_brutal_reservation_orpheline_reglee_puis_running_et_completed(
         "".join(json.dumps(s) + "\n" for s in appels_traces), encoding="utf-8"
     )
     avant_traces = (dossier / "traces.jsonl").read_bytes()
-    assert [s for s, _, _ in _reservations(wl_home)].count("reserved") == 1
+    assert [s for s, _, _ in _reservations(bench_home)].count("reserved") == 1
 
     statuts: list[str] = []
     reprendre = execute._Runner.reprendre  # pyright: ignore[reportPrivateUsage]
@@ -248,7 +249,7 @@ def test_arret_brutal_reservation_orpheline_reglee_puis_running_et_completed(
 
     assert statuts == ["running"]  # repassé à `running` au démarrage de la reprise
     assert _manifest(dossier)["status"] == "completed"
-    lignes = _reservations(wl_home)
+    lignes = _reservations(bench_home)
     assert "reserved" not in {s for s, _, _ in lignes}
     orpheline = lignes[3]  # la 4e : réglée au montant estimé
     assert orpheline[0] == "settled" and orpheline[2] == orpheline[1]
@@ -313,11 +314,11 @@ def test_reprise_d_une_execution_inconnue_ou_terminee_refusee_code_2(
 
 
 def test_arret_brutal_reel_manifeste_failed_puis_reprise_sans_repayer(
-    tmp_path: Path, wl_home: Path, monkeypatch: pytest.MonkeyPatch
+    tmp_path: Path, bench_home: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:
     """Chemin réel (sans état fabriqué) : l'interruption pendant le règlement du 4e appel passe
     par `set_status("failed")`, puis la reprise termine sans repayer aucun appel."""
-    from wavelibrarian.llm.budget import Ledger
+    from librarian_bench.llm.budget import Ledger
 
     regler = Ledger.settle
     appels: list[int] = []
@@ -332,9 +333,9 @@ def test_arret_brutal_reel_manifeste_failed_puis_reprise_sans_repayer(
     chemin = _experience(tmp_path, configurations=[SANS_CONTEXTE])
     resolue = validate_file(chemin).resolved
     with pytest.raises(_Kill):
-        run_experiment(resolue, load_questions(resolue), wl_home=wl_home)
+        run_experiment(resolue, load_questions(resolue), bench_home=bench_home)
     monkeypatch.setattr(Ledger, "settle", regler)
-    dossier = _un_run(wl_home)
+    dossier = _un_run(bench_home)
     assert _manifest(dossier)["status"] == "failed"
 
     _wl(str(chemin), "--reprendre", dossier.name, code=0)
@@ -342,14 +343,14 @@ def test_arret_brutal_reel_manifeste_failed_puis_reprise_sans_repayer(
     assert {a.status for a in read_answers(dossier).values()} == {"ok"}
     assert len(read_answers(dossier)) == N
     # Un appel payé par Question, le 4e compris : aucun n'est repayé à la reprise.
-    lignes = _reservations(wl_home)
+    lignes = _reservations(bench_home)
     assert [s for s, _, _ in lignes] == ["settled"] * (3 * N)  # N réponses + 2 Juges par réponse
     spans = [s for s in _lignes(dossier, "traces.jsonl") if s["wl.kind"] == "llm"]
     neufs = [s for s in spans if not s["wl.llm_cache_hit"] and s["wl.post"] == "query"]
     assert len(neufs) == N
 
 
-def test_reprise_refusee_si_le_contenu_du_corpus_change(tmp_path: Path, wl_home: Path) -> None:
+def test_reprise_refusee_si_le_contenu_du_corpus_change(tmp_path: Path, bench_home: Path) -> None:
     copie = tmp_path / "mini"
     shutil.copytree(RACINE, copie)
     champs: dict[str, Any] = {
@@ -357,7 +358,7 @@ def test_reprise_refusee_si_le_contenu_du_corpus_change(tmp_path: Path, wl_home:
         "questions": str(copie / "questions.yaml"),
     }
     _wl(str(_experience(tmp_path, "c", Decimal("0.000001"), **champs)), code=3)
-    dossier = _un_run(wl_home)
+    dossier = _un_run(bench_home)
     doc = copie / "docs" / "glossaire-maritime.md"
     doc.write_bytes(doc.read_bytes() + b"\nAjout.\n")
     relevee = _experience(tmp_path, "r", Decimal(100), **champs)
@@ -366,13 +367,13 @@ def test_reprise_refusee_si_le_contenu_du_corpus_change(tmp_path: Path, wl_home:
     assert _manifest(dossier)["status"] == "budget_exceeded"
 
 
-def test_reprise_refusee_si_un_tarif_du_catalogue_change(tmp_path: Path, wl_home: Path) -> None:
-    from wavelibrarian.config.defaults import defaults_dir
+def test_reprise_refusee_si_un_tarif_du_catalogue_change(tmp_path: Path, bench_home: Path) -> None:
+    from librarian_bench.config.defaults import defaults_dir
 
     catalogue = tmp_path / "models.yaml"
     shutil.copy(defaults_dir() / "models.yaml", catalogue)
     _wl(str(_experience(tmp_path, "c", Decimal("0.000001"), catalog=str(catalogue))), code=3)
-    dossier = _un_run(wl_home)
+    dossier = _un_run(bench_home)
     texte = catalogue.read_text(encoding="utf-8")
     assert 'input: "1.00"' in texte
     catalogue.write_text(texte.replace('input: "1.00"', 'input: "1.50"', 1), encoding="utf-8")
@@ -398,11 +399,11 @@ def test_reprise_apres_degel_du_jeu_refusee_code_2(
 
 
 def test_reprise_pendant_une_autre_execution_code_1_et_dossier_intact(
-    tmp_path: Path, arrete: tuple[Path, Path, Decimal], wl_home: Path
+    tmp_path: Path, arrete: tuple[Path, Path, Decimal], bench_home: Path
 ) -> None:
     dossier, _, plafond = arrete
     avant = (dossier / "manifest.json").read_bytes(), (dossier / "answers.jsonl").read_bytes()
-    verrou = RunLock(wl_home, "autre-run")
+    verrou = RunLock(bench_home, "autre-run")
     verrou.acquire()
     try:
         res = _wl(

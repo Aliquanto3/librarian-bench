@@ -9,21 +9,26 @@ from typing import Any
 import pytest
 from pydantic import BaseModel
 
-from wavelibrarian.config.catalog import ModelCatalog, load_catalog
-from wavelibrarian.config.defaults import load_profile
-from wavelibrarian.config.experiment import Amount, Budget, RetrySettings
-from wavelibrarian.core.errors import BudgetExceeded, NonConformantOutput, ProviderError, WlError
-from wavelibrarian.core.types import Condition, CostPost, Phase, Usage
-from wavelibrarian.llm.budget import Ledger
-from wavelibrarian.llm.cache import ResponseCache
-from wavelibrarian.llm.gateway import MeteredGateway
-from wavelibrarian.llm.providers.base import ProviderResponse
-from wavelibrarian.measure.energy import FakeEstimator
-from wavelibrarian.measure.tokenizers import ApproxTokenizer, ScaledTokenizer
-from wavelibrarian.measure.tracing import Tracer
-from wavelibrarian.ports.gateway import LLMRequest, Message
-from wavelibrarian.ports.measure import Tokenizer
-from wavelibrarian.runner.wiring import build_gateway
+from librarian_bench.config.catalog import ModelCatalog, load_catalog
+from librarian_bench.config.defaults import load_profile
+from librarian_bench.config.experiment import Amount, Budget, RetrySettings
+from librarian_bench.core.errors import (
+    BudgetExceeded,
+    LibrarianBenchError,
+    NonConformantOutput,
+    ProviderError,
+)
+from librarian_bench.core.types import Condition, CostPost, Phase, Usage
+from librarian_bench.llm.budget import Ledger
+from librarian_bench.llm.cache import ResponseCache
+from librarian_bench.llm.gateway import MeteredGateway
+from librarian_bench.llm.providers.base import ProviderResponse
+from librarian_bench.measure.energy import FakeEstimator
+from librarian_bench.measure.tokenizers import ApproxTokenizer, ScaledTokenizer
+from librarian_bench.measure.tracing import Tracer
+from librarian_bench.ports.gateway import LLMRequest, Message
+from librarian_bench.ports.measure import Tokenizer
+from librarian_bench.runner.wiring import build_gateway
 
 D = Decimal
 USAGE = Usage(input_tokens=1000, output_tokens=500)
@@ -64,10 +69,10 @@ class FauxProvider:
 
 
 class Env:
-    def __init__(self, wl_home: Path, tmp: Path, budget: Budget, provider: FauxProvider) -> None:
+    def __init__(self, bench_home: Path, tmp: Path, budget: Budget, provider: FauxProvider) -> None:
         self.catalog: ModelCatalog = load_catalog()
-        self.ledger = Ledger(budget, "run-1", wl_home)
-        self.cache = ResponseCache(wl_home)
+        self.ledger = Ledger(budget, "run-1", bench_home)
+        self.cache = ResponseCache(bench_home)
         self.path = tmp / "traces.jsonl"
         self.tracer = Tracer(_Ctx(), self.path)
         self.provider = provider
@@ -111,11 +116,11 @@ def _budget(per_run: str | None = None) -> Budget:
 
 
 @pytest.fixture
-def make_env(wl_home: Path, tmp_path: Path) -> Iterator[Callable[..., Env]]:
+def make_env(bench_home: Path, tmp_path: Path) -> Iterator[Callable[..., Env]]:
     envs: list[Env] = []
 
     def fabrique(*script: str | Exception, budget: Budget | None = None, **kw: Any) -> Env:
-        env = Env(wl_home, tmp_path, budget or _budget(), FauxProvider(*script, **kw))
+        env = Env(bench_home, tmp_path, budget or _budget(), FauxProvider(*script, **kw))
         envs.append(env)
         return env
 
@@ -171,7 +176,7 @@ def test_deux_appels_identiques(make_env: Callable[..., Env]) -> None:
 
 def test_composant_qui_pose_le_marqueur_est_refuse(make_env: Callable[..., Env]) -> None:
     env = make_env()
-    with pytest.raises(WlError, match="passerelle seule"):
+    with pytest.raises(LibrarianBenchError, match="passerelle seule"):
         env.gw.complete(_req(system="[[wl:role=judge]]\nx"))
     assert env.provider.requests == []
 
@@ -375,10 +380,10 @@ def test_panne_du_cache_ne_perd_pas_le_span(
 # --- Câblage ----------------------------------------------------------------------------------
 
 
-def test_build_gateway_depuis_le_profil_test(wl_home: Path, tmp_path: Path) -> None:
+def test_build_gateway_depuis_le_profil_test(bench_home: Path, tmp_path: Path) -> None:
     provider = FauxProvider("salut")
-    ledger = Ledger(_budget(), "run-1", wl_home)
-    cache = ResponseCache(wl_home)
+    ledger = Ledger(_budget(), "run-1", bench_home)
+    cache = ResponseCache(bench_home)
     trace = tmp_path / "t.jsonl"
     gw = build_gateway(
         catalog=load_catalog(),
@@ -496,15 +501,15 @@ def test_le_schema_entre_dans_la_cle_de_cache(make_env: Callable[..., Env]) -> N
 
 
 def test_build_gateway_branche_les_providers_du_catalogue(
-    wl_home: Path, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+    bench_home: Path, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:
-    from wavelibrarian.runner import wiring
+    from librarian_bench.runner import wiring
 
     appels: list[str] = []
     monkeypatch.setattr(wiring, "make_estimator", lambda _s: FakeEstimator())
     monkeypatch.setattr(wiring, "init_ecologits", lambda: appels.append("init"))
-    ledger = Ledger(_budget(), "run-1", wl_home)
-    cache = ResponseCache(wl_home)
+    ledger = Ledger(_budget(), "run-1", bench_home)
+    cache = ResponseCache(bench_home)
     try:
         gw = build_gateway(
             catalog=load_catalog(),

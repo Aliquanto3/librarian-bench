@@ -1,4 +1,5 @@
-"""Story 1.12 : `wl installer` et préflight de `wl run`, accès extérieurs simulés."""
+"""Story 1.12 : `librarian-bench installer` et préflight de `librarian-bench run`, accès extérieurs
+simulés."""
 
 import sys
 from pathlib import Path
@@ -9,13 +10,13 @@ import httpx
 import pytest
 from typer.testing import CliRunner
 
-import wavelibrarian.cli as cli
-from wavelibrarian.cli import app
-from wavelibrarian.config.catalog import load_catalog
-from wavelibrarian.config.defaults import load_profile
-from wavelibrarian.core.errors import ProviderError, WlError
-from wavelibrarian.llm.preflight import PreflightResult
-from wavelibrarian.runner import installer as inst
+import librarian_bench.cli as cli
+from librarian_bench.cli import app
+from librarian_bench.config.catalog import load_catalog
+from librarian_bench.config.defaults import load_profile
+from librarian_bench.core.errors import LibrarianBenchError, ProviderError
+from librarian_bench.llm.preflight import PreflightResult
+from librarian_bench.runner import installer as inst
 
 LISTE = """NAME                     ID            SIZE     MODIFIED
 minicpm5:1b-q4_k_m       aaaaaaaa      1.0 GB   2 days ago
@@ -54,7 +55,7 @@ def test_ollama_list_tag_latest() -> None:
 
 
 def test_profil_inconnu() -> None:
-    with pytest.raises(WlError, match="profil"):
+    with pytest.raises(LibrarianBenchError, match="profil"):
         inst.installer("test")
 
 
@@ -76,7 +77,7 @@ def test_cli_installer_echec_telechargement(
     appels: dict[str, Any], monkeypatch: pytest.MonkeyPatch
 ) -> None:
     def echec(_repo: str) -> None:
-        raise WlError("installer l'extra local")
+        raise LibrarianBenchError("installer l'extra local")
 
     monkeypatch.setattr(inst, "telecharger_embedder", echec)
     res = CliRunner().invoke(app, ["installer", "--profil", "cpu"])
@@ -86,7 +87,7 @@ def test_cli_installer_echec_telechargement(
 
 def test_telecharger_embedder_sans_extra_local(monkeypatch: pytest.MonkeyPatch) -> None:
     monkeypatch.setitem(sys.modules, "huggingface_hub", None)
-    with pytest.raises(WlError, match="installer l'extra local"):
+    with pytest.raises(LibrarianBenchError, match="installer l'extra local"):
         inst.telecharger_embedder("intfloat/multilingual-e5-small")
 
 
@@ -100,7 +101,7 @@ def test_ollama_list_commande_introuvable(monkeypatch: pytest.MonkeyPatch) -> No
 
 
 def test_ollama_list_en_echec_code_4(monkeypatch: pytest.MonkeyPatch) -> None:
-    """Ollama arrêté : `ollama list` rend un code non nul, `wl installer` sort en 4."""
+    """Ollama arrêté : `ollama list` rend un code non nul, `librarian-bench installer` sort en 4."""
     monkeypatch.setattr(inst, "telecharger_encodage", lambda _n: None)
     monkeypatch.setattr(inst, "telecharger_embedder", lambda _r: None)
     monkeypatch.setattr(
@@ -174,7 +175,7 @@ def test_wl_run_ollama_injoignable_code_4(monkeypatch: pytest.MonkeyPatch, tmp_p
         raise httpx.ConnectError("refusé", request=requete)
 
     monkeypatch.setattr(
-        "wavelibrarian.llm.providers.ollama.httpx.Client",
+        "librarian_bench.llm.providers.ollama.httpx.Client",
         lambda: vrai_client(transport=httpx.MockTransport(refuse)),
     )
     monkeypatch.setattr(cli, "validate_file", lambda _c: _resultat(["granite4.2:3b"]))

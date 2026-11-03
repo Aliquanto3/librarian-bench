@@ -13,24 +13,24 @@ import pytest
 import yaml
 from typer.testing import CliRunner
 
-from wavelibrarian.architectures.bm25_only import Bm25Only
-from wavelibrarian.architectures.long_context import LongContext
-from wavelibrarian.architectures.no_context import NoContext
-from wavelibrarian.cli import app
-from wavelibrarian.core.errors import BudgetExceeded, WlError
-from wavelibrarian.core.types import Answer, ArchAnswer, QuestionInput, Usage
-from wavelibrarian.corpus.declare import declare
-from wavelibrarian.corpus.ingest import ingest
-from wavelibrarian.evalset import io
-from wavelibrarian.evalset.freeze import select_questions
-from wavelibrarian.llm.providers.base import ProviderResponse
-from wavelibrarian.llm.providers.fake import FakeProvider
-from wavelibrarian.measure.energy import FakeMeter
-from wavelibrarian.ports.architecture import ArchitectureBase
-from wavelibrarian.ports.components import ComponentSpec
-from wavelibrarian.runner.context import Context
-from wavelibrarian.runner.execute import _Runner
-from wavelibrarian.runner.index_cache import IndexCache
+from librarian_bench.architectures.bm25_only import Bm25Only
+from librarian_bench.architectures.long_context import LongContext
+from librarian_bench.architectures.no_context import NoContext
+from librarian_bench.cli import app
+from librarian_bench.core.errors import BudgetExceeded, LibrarianBenchError
+from librarian_bench.core.types import Answer, ArchAnswer, QuestionInput, Usage
+from librarian_bench.corpus.declare import declare
+from librarian_bench.corpus.ingest import ingest
+from librarian_bench.evalset import io
+from librarian_bench.evalset.freeze import select_questions
+from librarian_bench.llm.providers.base import ProviderResponse
+from librarian_bench.llm.providers.fake import FakeProvider
+from librarian_bench.measure.energy import FakeMeter
+from librarian_bench.ports.architecture import ArchitectureBase
+from librarian_bench.ports.components import ComponentSpec
+from librarian_bench.runner.context import Context
+from librarian_bench.runner.execute import _Runner
+from librarian_bench.runner.index_cache import IndexCache
 
 RACINE = Path(__file__).resolve().parents[3] / "corpora" / "minicorpus"
 CONFIGS = ("sans-contexte", "contexte-long", "bm25")
@@ -58,12 +58,12 @@ def _experience(tmp_path: Path) -> Path:
     return chemin
 
 
-def _wl_run(chemin: Path, wl_home: Path) -> Path:
-    avant = set((wl_home / "runs").glob("*")) if (wl_home / "runs").exists() else set()
+def _wl_run(chemin: Path, bench_home: Path) -> Path:
+    avant = set((bench_home / "runs").glob("*")) if (bench_home / "runs").exists() else set()
     # `--tolerer-erreurs` : les Questions en erreur scénarisées ici rendent `completed_with_errors`
     res = CliRunner().invoke(app, ["run", str(chemin), "--tolerer-erreurs"])
     assert res.exit_code == 0, res.output
-    (nouveau,) = set((wl_home / "runs").glob("*")) - avant
+    (nouveau,) = set((bench_home / "runs").glob("*")) - avant
     return nouveau
 
 
@@ -111,9 +111,9 @@ def _ralentir_answer(monkeypatch: pytest.MonkeyPatch) -> None:
 
 
 def test_postes_fixes_par_le_runner_et_span_answer_par_question(
-    tmp_path: Path, wl_home: Path
+    tmp_path: Path, bench_home: Path
 ) -> None:
-    dossier = _wl_run(_experience(tmp_path), wl_home)
+    dossier = _wl_run(_experience(tmp_path), bench_home)
     spans = _jsonl(dossier / "traces.jsonl")
     ids = _ids_dev()
     assert {s["wl.post"] for s in spans} == {"indexing", "query", "judging"}
@@ -135,7 +135,7 @@ def test_postes_fixes_par_le_runner_et_span_answer_par_question(
 
 
 def test_citations_invalides_comptees_dans_le_span_answer(
-    tmp_path: Path, wl_home: Path, monkeypatch: pytest.MonkeyPatch
+    tmp_path: Path, bench_home: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:
     original = Bm25Only.answer
 
@@ -143,7 +143,7 @@ def test_citations_invalides_comptees_dans_le_span_answer(
         return original(self, q).model_copy(update={"invalid_citations": 2})
 
     monkeypatch.setattr(Bm25Only, "answer", answer)
-    spans = _jsonl(_wl_run(_experience(tmp_path), wl_home) / "traces.jsonl")
+    spans = _jsonl(_wl_run(_experience(tmp_path), bench_home) / "traces.jsonl")
     par_config = {
         c: {
             s["wl.invalid_citations"]
@@ -158,10 +158,12 @@ def test_citations_invalides_comptees_dans_le_span_answer(
 def test_load_est_impute_a_l_indexation(tmp_path: Path) -> None:
     """Un span émis pendant `load` porte `wl.post=indexing`, fixé par le runner."""
     with Context.from_profile(
-        "test", wl_home=tmp_path / "wl", run_id="r-load", providers={"fake": FakeProvider()}
+        "test", bench_home=tmp_path / "wl", run_id="r-load", providers={"fake": FakeProvider()}
     ) as ctx:
         ctx.parser = "markdown+pdf_text"
-        parse = ingest(declare(RACINE / "corpus.yaml"), "markdown+pdf_text", wl_home=ctx.wl_home)
+        parse = ingest(
+            declare(RACINE / "corpus.yaml"), "markdown+pdf_text", bench_home=ctx.bench_home
+        )
 
         def fabrique() -> ArchitectureBase:
             arch: ArchitectureBase = ctx.build("architecture", ComponentSpec(name="bm25_only"))
@@ -174,7 +176,7 @@ def test_load_est_impute_a_l_indexation(tmp_path: Path) -> None:
             arch.load = load  # type: ignore[method-assign]
             return arch
 
-        IndexCache(ctx.wl_home).build(ctx, fabrique, parse)
+        IndexCache(ctx.bench_home).build(ctx, fabrique, parse)
         spans = _jsonl(ctx.run_dir / "traces.jsonl")
     assert [s["name"] for s in spans].count("embed") == 1
     assert {s["wl.post"] for s in spans} == {"indexing"}
@@ -184,10 +186,10 @@ def test_load_est_impute_a_l_indexation(tmp_path: Path) -> None:
 
 
 def test_latency_s_egale_somme_des_spans_query_de_la_question(
-    tmp_path: Path, wl_home: Path, monkeypatch: pytest.MonkeyPatch
+    tmp_path: Path, bench_home: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:
     _ralentir_answer(monkeypatch)
-    dossier = _wl_run(_experience(tmp_path), wl_home)
+    dossier = _wl_run(_experience(tmp_path), bench_home)
     spans = _jsonl(dossier / "traces.jsonl")
     reponses = [Answer.model_validate(a) for a in _jsonl(dossier / "answers.jsonl")]
     assert reponses
@@ -207,8 +209,8 @@ def test_latency_s_egale_somme_des_spans_query_de_la_question(
         assert propre == pytest.approx(a.latency_s - LATENCE_EMBED)
 
 
-def test_latence_positive_pour_une_reponse_ok(tmp_path: Path, wl_home: Path) -> None:
-    dossier = _wl_run(_experience(tmp_path), wl_home)
+def test_latence_positive_pour_une_reponse_ok(tmp_path: Path, bench_home: Path) -> None:
+    dossier = _wl_run(_experience(tmp_path), bench_home)
     reponses = [Answer.model_validate(a) for a in _jsonl(dossier / "answers.jsonl")]
     assert all(a.latency_s > 0 for a in reponses)
 
@@ -217,10 +219,10 @@ def test_latence_positive_pour_une_reponse_ok(tmp_path: Path, wl_home: Path) -> 
 
 
 def test_energie_fake_relevee_par_phase_et_repartie_au_prorata(
-    tmp_path: Path, wl_home: Path, monkeypatch: pytest.MonkeyPatch
+    tmp_path: Path, bench_home: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:
     _ralentir_answer(monkeypatch)
-    spans = _jsonl(_wl_run(_experience(tmp_path), wl_home) / "traces.jsonl")
+    spans = _jsonl(_wl_run(_experience(tmp_path), bench_home) / "traces.jsonl")
     locaux = [s for s in spans if s["wl.kind"] in ("local", "embed")]
     for config in CONFIGS:
         for post in ("indexing", "query"):
@@ -238,7 +240,7 @@ def test_energie_fake_relevee_par_phase_et_repartie_au_prorata(
 
 
 def test_phase_sans_duree_energie_a_parts_egales(tmp_path: Path) -> None:
-    with Context.from_profile("test", wl_home=tmp_path / "wl", run_id="r-e") as ctx:
+    with Context.from_profile("test", bench_home=tmp_path / "wl", run_id="r-e") as ctx:
         ctx.traceur.begin_phase()
         with ctx.scope(post="query"):
             _record_local(ctx, "answer", "local", 0.0)
@@ -249,21 +251,21 @@ def test_phase_sans_duree_energie_a_parts_egales(tmp_path: Path) -> None:
 
 
 def test_phase_deja_ouverte_refusee(tmp_path: Path) -> None:
-    with Context.from_profile("test", wl_home=tmp_path / "wl", run_id="r-d") as ctx:
+    with Context.from_profile("test", bench_home=tmp_path / "wl", run_id="r-d") as ctx:
         ctx.traceur.begin_phase()
-        with pytest.raises(WlError):
+        with pytest.raises(LibrarianBenchError):
             ctx.traceur.begin_phase()
         ctx.traceur.end_phase(None)
 
 
 def test_question_en_erreur_garde_son_span_answer_et_la_phase_se_ferme(
-    tmp_path: Path, wl_home: Path, monkeypatch: pytest.MonkeyPatch
+    tmp_path: Path, bench_home: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:
     def answer(self: Any, q: QuestionInput) -> ArchAnswer:
         raise RuntimeError("panne")
 
     monkeypatch.setattr(NoContext, "answer", answer)
-    dossier = _wl_run(_experience(tmp_path), wl_home)
+    dossier = _wl_run(_experience(tmp_path), bench_home)
     spans = _jsonl(dossier / "traces.jsonl")
     en_erreur = [s for s in spans if s["name"] == "answer" and s["wl.config_id"] == "sans-contexte"]
     assert len(en_erreur) == len(_ids_dev())
@@ -277,10 +279,10 @@ def test_question_en_erreur_garde_son_span_answer_et_la_phase_se_ferme(
 # --- AC 4 : rejeu --------------------------------------------------------------------------------
 
 
-def test_rejeu_memes_reponses_aucun_cout_caches_servis(tmp_path: Path, wl_home: Path) -> None:
+def test_rejeu_memes_reponses_aucun_cout_caches_servis(tmp_path: Path, bench_home: Path) -> None:
     chemin = _experience(tmp_path)
-    premier = _wl_run(chemin, wl_home)
-    second = _wl_run(chemin, wl_home)
+    premier = _wl_run(chemin, bench_home)
+    second = _wl_run(chemin, bench_home)
     assert premier != second
 
     def lire(dossier: Path) -> list[dict[str, Any]]:
@@ -316,7 +318,7 @@ def _par_question(spans: list[dict[str, Any]]) -> dict[tuple[str, str], list[dic
 
 
 def test_rejeu_retrace_la_latence_d_origine_des_appels_llm(
-    tmp_path: Path, wl_home: Path, monkeypatch: pytest.MonkeyPatch
+    tmp_path: Path, bench_home: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:
     """review-reconcile §1 : un hit du Cache de réponses porte la latence de l'appel d'origine,
     sinon p50/p95 valent 0 au rejeu ; il ne compte ni dans le temps propre ni dans l'énergie."""
@@ -327,13 +329,13 @@ def test_rejeu_retrace_la_latence_d_origine_des_appels_llm(
 
     monkeypatch.setattr(FakeProvider, "complete", lent)
     chemin = _experience(tmp_path)
-    premier = _wl_run(chemin, wl_home)
+    premier = _wl_run(chemin, bench_home)
 
     def interdit(self: Any, request: Any, **kw: Any) -> ProviderResponse:
         raise AssertionError("appel LLM au rejeu")
 
     monkeypatch.setattr(FakeProvider, "complete", interdit)
-    second = _wl_run(chemin, wl_home)
+    second = _wl_run(chemin, bench_home)
 
     for dossier, hit in ((premier, False), (second, True)):
         spans = _jsonl(dossier / "traces.jsonl")
@@ -354,7 +356,7 @@ def test_rejeu_retrace_la_latence_d_origine_des_appels_llm(
 
 
 def test_echec_du_mesureur_ne_laisse_pas_la_phase_ouverte(
-    tmp_path: Path, wl_home: Path, monkeypatch: pytest.MonkeyPatch
+    tmp_path: Path, bench_home: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:
     """Le mesureur échoue au départ de la première phase : seule cette Configuration est en
     erreur, les suivantes s'exécutent (pas de « phase déjà ouverte » en cascade)."""
@@ -368,7 +370,7 @@ def test_echec_du_mesureur_ne_laisse_pas_la_phase_ouverte(
         original(self, phase)
 
     monkeypatch.setattr(FakeMeter, "start", start)
-    dossier = _wl_run(_experience(tmp_path), wl_home)
+    dossier = _wl_run(_experience(tmp_path), bench_home)
     reponses = [Answer.model_validate(a) for a in _jsonl(dossier / "answers.jsonl")]
     premiere = appels[0].split(":")[0]
     statuts = {c: {a.status for a in reponses if a.config_id == c} for c in CONFIGS}
@@ -377,7 +379,7 @@ def test_echec_du_mesureur_ne_laisse_pas_la_phase_ouverte(
 
 
 def test_reponses_ecrites_apres_les_spans_de_leur_phase(
-    tmp_path: Path, wl_home: Path, monkeypatch: pytest.MonkeyPatch
+    tmp_path: Path, bench_home: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:
     """Pendant la phase query, aucune Réponse n'est encore écrite : un arrêt dur perd les spans
     retenus et les Réponses ensemble, la reprise repose alors ces Questions (AD-9, AD-11)."""
@@ -391,7 +393,7 @@ def test_reponses_ecrites_apres_les_spans_de_leur_phase(
         return original(self, q)
 
     monkeypatch.setattr(Bm25Only, "answer", answer)
-    dossier = _wl_run(_experience(tmp_path), wl_home)
+    dossier = _wl_run(_experience(tmp_path), bench_home)
     assert len(vues) == len(_ids_dev()) and set(vues) == {0}
     spans = _jsonl(dossier / "traces.jsonl")
     reponses = [a for a in _jsonl(dossier / "answers.jsonl") if a["config_id"] == "bm25"]
@@ -413,7 +415,7 @@ class _TraceurEnPanne:
         self, kwh: float | None, method: Any = "estimated", source: str = "unknown"
     ) -> None:
         self.ouvertes -= 1
-        raise WlError("trace non écrite")
+        raise LibrarianBenchError("trace non écrite")
 
 
 def _faux_runner(traceur: Any) -> Any:
@@ -435,12 +437,12 @@ def test_fin_de_phase_en_echec_ne_masque_pas_le_plafond() -> None:
 def test_fin_de_phase_en_echec_sans_exception_remonte() -> None:
     conf: Any = SimpleNamespace(id="c")
     phase = _Runner.energie_de_phase(_faux_runner(_TraceurEnPanne()), conf, "index")
-    with pytest.raises(WlError), phase:
+    with pytest.raises(LibrarianBenchError), phase:
         pass
 
 
 def test_hit_du_cache_hors_temps_ecoule_et_hors_energie(tmp_path: Path) -> None:
-    with Context.from_profile("test", wl_home=tmp_path / "wl", run_id="r-h") as ctx:
+    with Context.from_profile("test", bench_home=tmp_path / "wl", run_id="r-h") as ctx:
         traceur = ctx.traceur
         traceur.begin_phase()
         with ctx.scope(post="query"):
@@ -459,7 +461,7 @@ def test_hit_du_cache_hors_temps_ecoule_et_hors_energie(tmp_path: Path) -> None:
 
 
 def test_temps_propre_negatif_ramene_a_zero_et_signale(caplog: pytest.LogCaptureFixture) -> None:
-    from wavelibrarian.measure.tracing import temps_propre
+    from librarian_bench.measure.tracing import temps_propre
 
     assert temps_propre(1.0, 0.25) == 0.75
     with caplog.at_level("WARNING"):

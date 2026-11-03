@@ -6,16 +6,16 @@ from typing import Any
 
 import pytest
 
-from wavelibrarian import registry
-from wavelibrarian.architectures.corrective_rag import CorrectiveRag
-from wavelibrarian.architectures.naive_rag import NaiveRag
-from wavelibrarian.core.errors import ConfigError, NonConformantOutput
-from wavelibrarian.core.types import ParsedCorpus, QuestionInput
-from wavelibrarian.llm.providers.fake import FakeProvider
-from wavelibrarian.ports.components import ComponentSpec
-from wavelibrarian.ports.gateway import LLMRequest
-from wavelibrarian.runner.context import Context as RunCtx
-from wavelibrarian.runner.index_cache import IndexCache
+from librarian_bench import registry
+from librarian_bench.architectures.corrective_rag import CorrectiveRag
+from librarian_bench.architectures.naive_rag import NaiveRag
+from librarian_bench.core.errors import ConfigError, NonConformantOutput
+from librarian_bench.core.types import ParsedCorpus, QuestionInput
+from librarian_bench.llm.providers.fake import FakeProvider
+from librarian_bench.ports.components import ComponentSpec
+from librarian_bench.ports.gateway import LLMRequest
+from librarian_bench.runner.context import Context as RunCtx
+from librarian_bench.runner.index_cache import IndexCache
 
 PETITS = {"name": "fixed_tokens", "params": {"size": 40, "overlap": 5}}
 REPONSE = '{"answer": "Réponse.", "citations": ["S1"], "abstain": false}'
@@ -26,7 +26,7 @@ REFORMULEE = "taxes douanes marché"
 def ctx(tmp_path: Path):  # type: ignore[no-untyped-def]
     provider = FakeProvider()
     c = RunCtx.from_profile(
-        "test", wl_home=tmp_path / "wl", run_id="r-1", seed=1, providers={"fake": provider}
+        "test", bench_home=tmp_path / "wl", run_id="r-1", seed=1, providers={"fake": provider}
     )
     c.parser = "markdown"
     c.provider = provider  # type: ignore[attr-defined]

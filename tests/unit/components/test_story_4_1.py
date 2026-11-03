@@ -4,14 +4,14 @@ from pathlib import Path
 
 import pytest
 
-from wavelibrarian import registry
-from wavelibrarian.components.chunkers.fixed_tokens import FixedTokenChunker
-from wavelibrarian.components.context import build_arch_answer
-from wavelibrarian.components.context.labeled import LabeledContextBuilder
-from wavelibrarian.components.generators.llm import LLMGenerator
-from wavelibrarian.core.errors import ConfigError
-from wavelibrarian.core.ids import sha16
-from wavelibrarian.core.types import (
+from librarian_bench import registry
+from librarian_bench.components.chunkers.fixed_tokens import FixedTokenChunker
+from librarian_bench.components.context import build_arch_answer
+from librarian_bench.components.context.labeled import LabeledContextBuilder
+from librarian_bench.components.generators.llm import LLMGenerator
+from librarian_bench.core.errors import ConfigError
+from librarian_bench.core.ids import sha16
+from librarian_bench.core.types import (
     Block,
     ConversationTurn,
     ParsedCorpus,
@@ -20,17 +20,17 @@ from wavelibrarian.core.types import (
     QuestionInput,
     ScoredPassage,
 )
-from wavelibrarian.llm.providers.fake import FakeProvider, default_output
-from wavelibrarian.ports.components import ComponentSpec, Context, GenerationResult
-from wavelibrarian.ports.gateway import LLMRequest
-from wavelibrarian.runner.context import Context as RunCtx
+from librarian_bench.llm.providers.fake import FakeProvider, default_output
+from librarian_bench.ports.components import ComponentSpec, Context, GenerationResult
+from librarian_bench.ports.gateway import LLMRequest
+from librarian_bench.runner.context import Context as RunCtx
 
 
 @pytest.fixture
 def ctx(tmp_path: Path):  # type: ignore[no-untyped-def]
     provider = FakeProvider()
     c = RunCtx.from_profile(
-        "test", wl_home=tmp_path / "wl", run_id="r-1", seed=1, providers={"fake": provider}
+        "test", bench_home=tmp_path / "wl", run_id="r-1", seed=1, providers={"fake": provider}
     )
     c.provider = provider  # type: ignore[attr-defined]
     with c:
@@ -267,7 +267,7 @@ class _Mots:
 
 
 def _resultat(*ancres: str) -> GenerationResult:
-    from wavelibrarian.core.types import Citation
+    from librarian_bench.core.types import Citation
 
     return GenerationResult(
         text="R.",

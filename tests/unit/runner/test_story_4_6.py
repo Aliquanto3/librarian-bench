@@ -9,15 +9,15 @@ import pytest
 import yaml
 from typer.testing import CliRunner
 
-from wavelibrarian.cli import app
-from wavelibrarian.components.generators.llm import LLMGenerator
-from wavelibrarian.core.types import Passage, Question, QuestionInput
-from wavelibrarian.corpus.declare import declare
-from wavelibrarian.corpus.ingest import ingest
-from wavelibrarian.evalset import io
-from wavelibrarian.evalset.freeze import select_questions
-from wavelibrarian.ports.architecture import ArchitectureBase
-from wavelibrarian.runner.execute import chemins_requis
+from librarian_bench.cli import app
+from librarian_bench.components.generators.llm import LLMGenerator
+from librarian_bench.core.types import Passage, Question, QuestionInput
+from librarian_bench.corpus.declare import declare
+from librarian_bench.corpus.ingest import ingest
+from librarian_bench.evalset import io
+from librarian_bench.evalset.freeze import select_questions
+from librarian_bench.ports.architecture import ArchitectureBase
+from librarian_bench.runner.execute import chemins_requis
 
 RACINE = Path(__file__).resolve().parents[3] / "corpora" / "minicorpus"
 BASELINES = [
@@ -47,11 +47,13 @@ def _experience(tmp_path: Path, **champs: Any) -> Path:
     return chemin
 
 
-def _wl_run(chemin: Path, wl_home: Path, code: int = 0) -> Path | None:
-    avant = set((wl_home / "runs").glob("*")) if (wl_home / "runs").exists() else set()
+def _wl_run(chemin: Path, bench_home: Path, code: int = 0) -> Path | None:
+    avant = set((bench_home / "runs").glob("*")) if (bench_home / "runs").exists() else set()
     res = CliRunner().invoke(app, ["run", str(chemin)])
     assert res.exit_code == code, res.output
-    nouveau = set((wl_home / "runs").glob("*")) - avant if (wl_home / "runs").exists() else set()
+    nouveau = (
+        set((bench_home / "runs").glob("*")) - avant if (bench_home / "runs").exists() else set()
+    )
     if code != 0:
         assert not nouveau
         return None
@@ -99,7 +101,7 @@ def espion(monkeypatch: pytest.MonkeyPatch) -> dict[str, list[Any]]:
 
     monkeypatch.setattr(ArchitectureBase, "answer_with_context", avec_contexte)
     # `long_context` redéfinit `answer_with_context` : on espionne aussi sa version
-    from wavelibrarian.architectures.long_context import LongContext
+    from librarian_bench.architectures.long_context import LongContext
 
     original_lc = LongContext.answer_with_context
 
@@ -117,12 +119,12 @@ def espion(monkeypatch: pytest.MonkeyPatch) -> dict[str, list[Any]]:
 
 
 def test_contexte_parfait_passages_de_reference_et_aucune_reference_a_l_architecture(
-    tmp_path: Path, wl_home: Path, espion: dict[str, list[Any]]
+    tmp_path: Path, bench_home: Path, espion: dict[str, list[Any]]
 ) -> None:
     # Partie `test` : depuis le Gel b2, les Questions de Scénario (Ancrage créé par le Scénario)
     # n'y sont plus qu'en test ; elles portent le chemin `inapplicable` vérifié ici.
     exp = _experience(tmp_path, split="test", conditions=["standard", "perfect_context"])
-    dossier = _wl_run(exp, wl_home)
+    dossier = _wl_run(exp, bench_home)
     assert dossier is not None
     reponses = _jsonl(dossier / "answers.jsonl")
     dev = _partie("test")
@@ -167,7 +169,7 @@ def test_contexte_parfait_passages_de_reference_et_aucune_reference_a_l_architec
             continue
         if parser not in parse_par_parser:
             parse_par_parser[parser] = ingest(
-                declare(RACINE / "corpus.yaml"), parser, wl_home=wl_home
+                declare(RACINE / "corpus.yaml"), parser, bench_home=bench_home
             )
         parse = parse_par_parser[parser]
         attendus = [parse.resolve(r.doc, r.page, r.headings) for r in q.reference_anchors]
@@ -201,10 +203,10 @@ def test_contexte_parfait_passages_de_reference_et_aucune_reference_a_l_architec
 
 
 def test_question_unanswerable_recoit_un_contexte_vide(
-    tmp_path: Path, wl_home: Path, espion: dict[str, list[Any]]
+    tmp_path: Path, bench_home: Path, espion: dict[str, list[Any]]
 ) -> None:
     unanswerable = next(q for q in _dev() if q.type == "unanswerable")
-    _wl_run(_experience(tmp_path, conditions=["perfect_context"]), wl_home)
+    _wl_run(_experience(tmp_path, conditions=["perfect_context"]), bench_home)
     vides = [
         (nom, p)
         for nom, _parser, question, p in espion["contexte"]
@@ -214,7 +216,7 @@ def test_question_unanswerable_recoit_un_contexte_vide(
 
 
 def test_long_context_en_contexte_parfait_sans_cache_du_system(
-    tmp_path: Path, wl_home: Path, espion: dict[str, list[Any]]
+    tmp_path: Path, bench_home: Path, espion: dict[str, list[Any]]
 ) -> None:
     """Report 4.2 : le contexte parfait de `long_context` passe sans cache du system."""
     _wl_run(
@@ -223,7 +225,7 @@ def test_long_context_en_contexte_parfait_sans_cache_du_system(
             conditions=["standard", "perfect_context"],
             configurations=[{"id": "contexte-long", "architecture": "long_context"}],
         ),
-        wl_home,
+        bench_home,
     )
     n_dev = len(_dev())
     gens = espion["generation"]
@@ -235,9 +237,9 @@ def test_long_context_en_contexte_parfait_sans_cache_du_system(
 
 
 def test_contexte_parfait_sans_index_ni_check(
-    tmp_path: Path, wl_home: Path, monkeypatch: pytest.MonkeyPatch
+    tmp_path: Path, bench_home: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:
-    from wavelibrarian.architectures.long_context import LongContext
+    from librarian_bench.architectures.long_context import LongContext
 
     appels_check: list[str] = []
 
@@ -247,19 +249,21 @@ def test_contexte_parfait_sans_index_ni_check(
 
     monkeypatch.setattr(ArchitectureBase, "check", check)
     monkeypatch.setattr(LongContext, "check", check)
-    dossier = _wl_run(_experience(tmp_path, conditions=["perfect_context"]), wl_home)
+    dossier = _wl_run(_experience(tmp_path, conditions=["perfect_context"]), bench_home)
     assert appels_check == []
     assert dossier is not None
     spans = _jsonl(dossier / "traces.jsonl")
     assert not [s for s in spans if s["name"] == "index"]
     assert {s["wl.condition"] for s in spans} == {"perfect_context"}
-    assert not list((wl_home / "index").glob("*"))  # aucun index construit
+    assert not list((bench_home / "index").glob("*"))  # aucun index construit
 
 
 # --- AC 2 : Paliers `all` ------------------------------------------------------------------------
 
 
-def test_paliers_all_sous_corpus_index_et_lignes_distincts(tmp_path: Path, wl_home: Path) -> None:
+def test_paliers_all_sous_corpus_index_et_lignes_distincts(
+    tmp_path: Path, bench_home: Path
+) -> None:
     dossier = _wl_run(
         _experience(
             tmp_path,
@@ -267,7 +271,7 @@ def test_paliers_all_sous_corpus_index_et_lignes_distincts(tmp_path: Path, wl_ho
             max_questions=TROIS,
             configurations=[{"id": "bm25", "architecture": "bm25_only"}],
         ),
-        wl_home,
+        bench_home,
     )
     assert dossier is not None
     reponses = _jsonl(dossier / "answers.jsonl")
@@ -282,12 +286,12 @@ def test_paliers_all_sous_corpus_index_et_lignes_distincts(tmp_path: Path, wl_ho
     assert sorted(s["wl.tier"] for s in index) == [5, 10, 20]
     assert len({s["wl.index_key"] for s in index}) == 3
     # Chaque Palier est indexé sur son sous-corpus : ses Documents, requis compris.
-    parse = ingest(declare(RACINE / "corpus.yaml"), "markdown+pdf_text", wl_home=wl_home)
+    parse = ingest(declare(RACINE / "corpus.yaml"), "markdown+pdf_text", bench_home=bench_home)
     par_doc = {d.doc_id: d.source_path for d in parse.documents}
     requis = set(chemins_requis(_dev()[:TROIS], _documents()))
     docs_par_palier: dict[int, set[str]] = {}
     for s in index:
-        lignes = _jsonl(wl_home / "index" / s["wl.index_key"] / "passages.jsonl")
+        lignes = _jsonl(bench_home / "index" / s["wl.index_key"] / "passages.jsonl")
         docs_par_palier[s["wl.tier"]] = {par_doc[ligne["doc_id"]] for ligne in lignes}
     for taille, docs in docs_par_palier.items():
         assert len(docs) <= taille and requis <= docs
@@ -308,15 +312,15 @@ def test_required_paths_sont_les_documents_des_ancrages_de_reference() -> None:
 
 
 def test_paliers_trop_petits_pour_les_documents_requis_refuses_en_2(
-    tmp_path: Path, wl_home: Path
+    tmp_path: Path, bench_home: Path
 ) -> None:
     res = CliRunner().invoke(app, ["run", str(_experience(tmp_path, tier="all"))])
     assert res.exit_code == 2, res.output
     assert "Documents requis" in res.output
-    assert not (wl_home / "runs").exists()
+    assert not (bench_home / "runs").exists()
 
 
-def test_paliers_et_contexte_parfait_combines(tmp_path: Path, wl_home: Path) -> None:
+def test_paliers_et_contexte_parfait_combines(tmp_path: Path, bench_home: Path) -> None:
     dossier = _wl_run(
         _experience(
             tmp_path,
@@ -325,7 +329,7 @@ def test_paliers_et_contexte_parfait_combines(tmp_path: Path, wl_home: Path) -> 
             conditions=["standard", "perfect_context"],
             configurations=[{"id": "bm25", "architecture": "bm25_only"}],
         ),
-        wl_home,
+        bench_home,
     )
     assert dossier is not None
     reponses = _jsonl(dossier / "answers.jsonl")
@@ -336,11 +340,11 @@ def test_paliers_et_contexte_parfait_combines(tmp_path: Path, wl_home: Path) -> 
 
 
 def test_palier_inapplicable_long_context_est_juge_sur_son_sous_corpus(
-    tmp_path: Path, wl_home: Path, monkeypatch: pytest.MonkeyPatch
+    tmp_path: Path, bench_home: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:
     """`check()` reçoit le Profil du Palier : la clé d'applicabilité porte le Palier."""
-    from wavelibrarian.architectures.long_context import LongContext
-    from wavelibrarian.ports.architecture import Applicability
+    from librarian_bench.architectures.long_context import LongContext
+    from librarian_bench.ports.architecture import Applicability
 
     def check(self: Any, profile: Any) -> Applicability:
         return Applicability(applicable=profile.n_documents >= 10, reason="trop petit")
@@ -353,7 +357,7 @@ def test_palier_inapplicable_long_context_est_juge_sur_son_sous_corpus(
             max_questions=TROIS,
             configurations=[{"id": "contexte-long", "architecture": "long_context"}],
         ),
-        wl_home,
+        bench_home,
     )
     assert dossier is not None
     applicabilite = json.loads((dossier / "applicability.json").read_text(encoding="utf-8"))
@@ -366,7 +370,7 @@ def test_palier_inapplicable_long_context_est_juge_sur_son_sous_corpus(
 # --- AC 3 : un seul Palier ; taille non déclarée --------------------------------------------------
 
 
-def test_palier_unique_seul_ce_palier_s_execute(tmp_path: Path, wl_home: Path) -> None:
+def test_palier_unique_seul_ce_palier_s_execute(tmp_path: Path, bench_home: Path) -> None:
     dossier = _wl_run(
         _experience(
             tmp_path,
@@ -374,7 +378,7 @@ def test_palier_unique_seul_ce_palier_s_execute(tmp_path: Path, wl_home: Path) -
             max_questions=TROIS,
             configurations=[{"id": "bm25", "architecture": "bm25_only"}],
         ),
-        wl_home,
+        bench_home,
     )
     assert dossier is not None
     reponses = _jsonl(dossier / "answers.jsonl")
@@ -383,20 +387,22 @@ def test_palier_unique_seul_ce_palier_s_execute(tmp_path: Path, wl_home: Path) -
     assert {s["wl.tier"] for s in spans} == {10}
 
 
-def test_palier_unique_ne_requiert_pas_le_plus_petit_palier(tmp_path: Path, wl_home: Path) -> None:
+def test_palier_unique_ne_requiert_pas_le_plus_petit_palier(
+    tmp_path: Path, bench_home: Path
+) -> None:
     """`tier: 20` seul : les 12 Documents requis du split `dev` tiennent dans le Palier de 20,
     même s'ils ne tiennent pas dans celui de 5 ; le Palier 20 est celui du tirage emboîté."""
     dossier = _wl_run(
         _experience(
             tmp_path, tier=20, configurations=[{"id": "bm25", "architecture": "bm25_only"}]
         ),
-        wl_home,
+        bench_home,
     )
     assert dossier is not None
     reponses = _jsonl(dossier / "answers.jsonl")
     assert {a["tier"] for a in reponses} == {20} and len(reponses) == len(_dev())
-    from wavelibrarian.corpus.declare import declare as declarer
-    from wavelibrarian.corpus.tiers import tirer_chemins
+    from librarian_bench.corpus.declare import declare as declarer
+    from librarian_bench.corpus.tiers import tirer_chemins
 
     tiers = declarer(RACINE / "corpus.yaml").spec.tiers
     assert tiers is not None
@@ -408,21 +414,23 @@ def test_palier_unique_ne_requiert_pas_le_plus_petit_palier(tmp_path: Path, wl_h
     assert tirer_chemins(_documents(), tiers, requis[:5], (20,))[20] == petits[20]
 
 
-def test_paliers_all_message_nomme_le_palier_et_le_remede(tmp_path: Path, wl_home: Path) -> None:
+def test_paliers_all_message_nomme_le_palier_et_le_remede(tmp_path: Path, bench_home: Path) -> None:
     res = CliRunner().invoke(app, ["run", str(_experience(tmp_path, tier="all"))])
     assert res.exit_code == 2, res.output
     assert "tiers.sizes[0]" in res.output and "Palier de 5" in res.output
     assert "max_questions" in res.output
 
 
-def test_taille_non_declaree_refusee_en_2_avant_tout_appel(tmp_path: Path, wl_home: Path) -> None:
+def test_taille_non_declaree_refusee_en_2_avant_tout_appel(
+    tmp_path: Path, bench_home: Path
+) -> None:
     res = CliRunner().invoke(app, ["run", str(_experience(tmp_path, tier=7))])
     assert res.exit_code == 2, res.output
     assert "tiers.sizes" in res.output and "7" in res.output
-    assert not (wl_home / "runs").exists()
+    assert not (bench_home / "runs").exists()
 
 
-def test_corpus_sans_tiers_refuse_en_2(tmp_path: Path, wl_home: Path) -> None:
+def test_corpus_sans_tiers_refuse_en_2(tmp_path: Path, bench_home: Path) -> None:
     donnees = yaml.safe_load((RACINE / "corpus.yaml").read_text(encoding="utf-8"))
     del donnees["tiers"]
     donnees["path"] = str(RACINE / donnees["path"])
@@ -433,14 +441,14 @@ def test_corpus_sans_tiers_refuse_en_2(tmp_path: Path, wl_home: Path) -> None:
     )
     assert res.exit_code == 2, res.output
     assert "tiers" in res.output
-    assert not (wl_home / "runs").exists()
+    assert not (bench_home / "runs").exists()
     shutil.rmtree(tmp_path / "x", ignore_errors=True)
 
 
 def test_sans_palier_ni_condition_le_comportement_est_inchange(
-    tmp_path: Path, wl_home: Path
+    tmp_path: Path, bench_home: Path
 ) -> None:
-    dossier = _wl_run(_experience(tmp_path), wl_home)
+    dossier = _wl_run(_experience(tmp_path), bench_home)
     assert dossier is not None
     reponses = _jsonl(dossier / "answers.jsonl")
     assert {(a["condition"], a["tier"]) for a in reponses} == {("standard", None)}
@@ -456,8 +464,8 @@ def test_answer_with_context_par_defaut_tronque_et_garde_les_blocs_cites() -> No
     reprend les Passages fournis dans l'ordre (méthode `provided`)."""
     from types import SimpleNamespace
 
-    from wavelibrarian.core.types import Citation
-    from wavelibrarian.ports.components import Context, GenerationResult
+    from librarian_bench.core.types import Citation
+    from librarian_bench.ports.components import Context, GenerationResult
 
     passages = [
         Passage(passage_id=f"p{i}", doc_id="d", text="mot " * 5000, anchor_ids=(f"d#a{i}",))

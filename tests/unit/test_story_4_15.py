@@ -3,7 +3,7 @@
 from decimal import Decimal
 from pathlib import Path
 
-from wavelibrarian.config.validate import validate_file
+from librarian_bench.config.validate import validate_file
 
 RACINE = Path(__file__).resolve().parents[2]
 
@@ -17,8 +17,8 @@ def test_experience_sm4_est_mini_real_haiku_plafonnee() -> None:
 
 def test_majorant_de_schema_unique() -> None:
     """Les Composants ne voient pas les providers : `SURCOUT_SCHEMA` recopie le majorant."""
-    from wavelibrarian.components.graph._texte import SURCOUT_SCHEMA
-    from wavelibrarian.llm.providers.anthropic import AnthropicProvider
+    from librarian_bench.components.graph._texte import SURCOUT_SCHEMA
+    from librarian_bench.llm.providers.anthropic import AnthropicProvider
 
     assert SURCOUT_SCHEMA == AnthropicProvider.schema_prompt_overhead
 

@@ -8,10 +8,10 @@ status: done
 
 ## Code Map
 
-- `src/wavelibrarian/stats/appariement.py` : `questions_communes(a, b)` (intersection triée).
-- `src/wavelibrarian/stats/bootstrap.py` : `bootstrap_ci -> Intervalle | None`, `paired_bootstrap -> DifferenceAppariee | None`, `compare_continu(a, b)` sur dicts par Question.
-- `src/wavelibrarian/stats/mcnemar.py` : `mcnemar_exact(b, c)`, `compare(a, b) -> ResultatMcNemar` (b, c, p_value, n_common).
-- `src/wavelibrarian/stats/pareto.py` : `Point(config_id, qualite, cout)`, `domine`, `front_pareto`.
+- `src/librarian_bench/stats/appariement.py` : `questions_communes(a, b)` (intersection triée).
+- `src/librarian_bench/stats/bootstrap.py` : `bootstrap_ci -> Intervalle | None`, `paired_bootstrap -> DifferenceAppariee | None`, `compare_continu(a, b)` sur dicts par Question.
+- `src/librarian_bench/stats/mcnemar.py` : `mcnemar_exact(b, c)`, `compare(a, b) -> ResultatMcNemar` (b, c, p_value, n_common).
+- `src/librarian_bench/stats/pareto.py` : `Point(config_id, qualite, cout)`, `domine`, `front_pareto`.
 - Tests : `tests/unit/stats/test_bootstrap_mcnemar_pareto.py`.
 
 ## Design Notes

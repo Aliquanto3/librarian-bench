@@ -1,4 +1,4 @@
-"""Tests du Profil de corpus, des entités et de `wl corpus profiler` (story 2.4)."""
+"""Tests du Profil de corpus, des entités et de `librarian-bench corpus profiler` (story 2.4)."""
 
 import json
 from decimal import Decimal
@@ -7,14 +7,14 @@ from pathlib import Path
 import pytest
 from typer.testing import CliRunner
 
-from wavelibrarian.cli import app
-from wavelibrarian.config.catalog import ModelCatalog
-from wavelibrarian.config.schemas import ModelEntry
-from wavelibrarian.core.errors import ConfigError
-from wavelibrarian.core.types import Anchor, Block, ParsedCorpus, ParsedDocument
-from wavelibrarian.corpus.entities import extraire_entites, link_density
-from wavelibrarian.corpus.profile import profile
-from wavelibrarian.measure.tokenizers import ApproxTokenizer
+from librarian_bench.cli import app
+from librarian_bench.config.catalog import ModelCatalog
+from librarian_bench.config.schemas import ModelEntry
+from librarian_bench.core.errors import ConfigError
+from librarian_bench.core.types import Anchor, Block, ParsedCorpus, ParsedDocument
+from librarian_bench.corpus.entities import extraire_entites, link_density
+from librarian_bench.corpus.profile import profile
+from librarian_bench.measure.tokenizers import ApproxTokenizer
 
 runner = CliRunner()
 
@@ -144,7 +144,7 @@ def _ecrire_corpus(racine: Path, volatilite: str = "medium") -> Path:
     return yml
 
 
-def test_cli_ecrit_le_profil(tmp_path: Path, wl_home: Path) -> None:
+def test_cli_ecrit_le_profil(tmp_path: Path, bench_home: Path) -> None:
     yml = _ecrire_corpus(tmp_path)
     sortie = tmp_path / "out"
     args = ["corpus", "profiler", str(yml), "--parser", "auto", "--profil", "test"]
@@ -160,7 +160,7 @@ def test_cli_ecrit_le_profil(tmp_path: Path, wl_home: Path) -> None:
     assert "Langue dominante : fr" in r.output
 
 
-def test_cli_corpus_invalide_sort_en_code_2(tmp_path: Path, wl_home: Path) -> None:
+def test_cli_corpus_invalide_sort_en_code_2(tmp_path: Path, bench_home: Path) -> None:
     yml = _ecrire_corpus(tmp_path, volatilite="inconnue")
     r = runner.invoke(
         app, ["corpus", "profiler", str(yml), "--profil", "test", "--sortie", str(tmp_path)]
@@ -181,7 +181,7 @@ def test_entites_apostrophe_typographique_elision_et_initiale() -> None:
     assert extraire_entites("Le rapport de M. Durand.") == set()  # « M » seul est écarté
 
 
-def test_cli_resume_en_francais_et_profil_inconnu(tmp_path: Path, wl_home: Path) -> None:
+def test_cli_resume_en_francais_et_profil_inconnu(tmp_path: Path, bench_home: Path) -> None:
     yml = _ecrire_corpus(tmp_path)
     args = ["corpus", "profiler", str(yml), "--sortie", str(tmp_path / "out")]
     r = runner.invoke(app, [*args, "--profil", "test"])

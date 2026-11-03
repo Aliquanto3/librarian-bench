@@ -5,14 +5,14 @@ from pathlib import Path
 
 import pytest
 
-from wavelibrarian import registry
-from wavelibrarian.components.judges.llm import LLMJudge
-from wavelibrarian.core.errors import NonConformantOutput
-from wavelibrarian.core.types import Criterion
-from wavelibrarian.llm.providers.fake import FakeProvider
-from wavelibrarian.ports.components import ComponentSpec, Judge, JudgeInput
-from wavelibrarian.ports.gateway import LLMRequest
-from wavelibrarian.runner.context import Context
+from librarian_bench import registry
+from librarian_bench.components.judges.llm import LLMJudge
+from librarian_bench.core.errors import NonConformantOutput
+from librarian_bench.core.types import Criterion
+from librarian_bench.llm.providers.fake import FakeProvider
+from librarian_bench.ports.components import ComponentSpec, Judge, JudgeInput
+from librarian_bench.ports.gateway import LLMRequest
+from librarian_bench.runner.context import Context
 
 CRITERES: list[Criterion] = ["correctness", "completeness", "faithfulness"]
 ITEM = JudgeInput(
@@ -25,20 +25,20 @@ ITEM = JudgeInput(
 
 
 class Env:
-    def __init__(self, wl_home: Path) -> None:
+    def __init__(self, bench_home: Path) -> None:
         self.provider = FakeProvider()
         self.requetes: list[LLMRequest] = []
         self.sortie: str | None = None
         self.provider.script("judge", "judge*", self._appel)
         self.ctx = Context.from_profile(
-            "test", wl_home=wl_home, run_id="r-1", seed=1, providers={"fake": self.provider}
+            "test", bench_home=bench_home, run_id="r-1", seed=1, providers={"fake": self.provider}
         )
 
     def _appel(self, req: LLMRequest) -> str:
         self.requetes.append(req)
         if self.sortie is not None:
             return self.sortie
-        from wavelibrarian.llm.providers.fake import default_output
+        from librarian_bench.llm.providers.fake import default_output
 
         return default_output("judge", req.inputs)
 
@@ -118,7 +118,7 @@ def test_faithfulness_reprend_les_textes_du_generator(env: Env) -> None:
 
 
 def test_prompt_demande_decision_puis_une_phrase_de_200_caracteres() -> None:
-    from wavelibrarian.components.judges.llm import _SYSTEM
+    from librarian_bench.components.judges.llm import _SYSTEM
 
     assert "décide d'abord" in _SYSTEM
     assert "une seule phrase de 200 caractères au plus" in _SYSTEM
@@ -182,7 +182,7 @@ def test_borne_la_justification_bornee_ne_peut_plus_atteindre_le_budget(n: int) 
     caractère par token (le français tokenisé en BPE est plutôt à 3-4). Hypothèses : sans
     échappements JSON ni blancs de mise en forme. La coupure de la 8.8 (délibération sans fin
     dans `justification`) n'est donc plus atteignable par la justification seule."""
-    from wavelibrarian.components.judges.llm import budget_sortie
+    from librarian_bench.components.judges.llm import budget_sortie
 
     criteres = ["completeness", "faithfulness", "correctness"][:n]
     pire = {"verdicts": {c: {"verdict": "yes", "justification": "x" * 200} for c in criteres}}
@@ -191,7 +191,7 @@ def test_borne_la_justification_bornee_ne_peut_plus_atteindre_le_budget(n: int) 
 
 
 def test_troncature_bornes_exactes() -> None:
-    from wavelibrarian.llm.roles import JUSTIFICATION_MAX, CriterionVerdict
+    from librarian_bench.llm.roles import JUSTIFICATION_MAX, CriterionVerdict
 
     assert JUSTIFICATION_MAX == 200
     exact = "a" * 200
@@ -201,7 +201,7 @@ def test_troncature_bornes_exactes() -> None:
 
 
 def test_budget_de_sortie_couvre_les_sorties_observees(env: Env) -> None:
-    from wavelibrarian.components.judges.llm import budget_sortie
+    from librarian_bench.components.judges.llm import budget_sortie
 
     # Run 8.8 : sorties conformes jusqu'à 414 tokens (3 Critères), coupées à 300 et 420 avant.
     assert budget_sortie(2) == 500 and budget_sortie(3) == 700 and budget_sortie(0) == 300
@@ -242,7 +242,7 @@ def test_na_sur_un_autre_critere_est_non_conforme(env: Env, critere: str) -> Non
 
 
 def test_schema_enum_par_critere_et_prompt_na() -> None:
-    from wavelibrarian.components.judges.llm import _SYSTEM, _schema
+    from librarian_bench.components.judges.llm import _SYSTEM, _schema
 
     schema = _schema(CRITERES).model_json_schema()
     defs = schema["$defs"]
@@ -260,7 +260,7 @@ def test_schema_enum_par_critere_et_prompt_na() -> None:
 def test_sortie_generique_du_role_refuse_na_hors_faithfulness() -> None:
     from pydantic import ValidationError
 
-    from wavelibrarian.llm.roles import JudgeOutput
+    from librarian_bench.llm.roles import JudgeOutput
 
     ok = JudgeOutput.model_validate_json(_sortie({"faithfulness": "na", "correctness": "yes"}))
     assert ok.verdicts["faithfulness"].verdict == "na"

@@ -2,8 +2,8 @@
 
 import math
 
-from wavelibrarian.core.types import Passage, ScoredPassage
-from wavelibrarian.scoring.retrieval import est_pertinent, retrieval_metrics
+from librarian_bench.core.types import Passage, ScoredPassage
+from librarian_bench.scoring.retrieval import est_pertinent, retrieval_metrics
 
 
 def _sp(i: int, *anchors: str) -> ScoredPassage:

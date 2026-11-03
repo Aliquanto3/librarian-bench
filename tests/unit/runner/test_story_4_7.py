@@ -9,11 +9,11 @@ import pytest
 import yaml
 from typer.testing import CliRunner
 
-from wavelibrarian.cli import app
-from wavelibrarian.corpus.declare import declare
-from wavelibrarian.corpus.ingest import ingest
-from wavelibrarian.corpus.scenario import appliquer_fichier, charger
-from wavelibrarian.ports.architecture import ArchitectureBase, CorpusChange
+from librarian_bench.cli import app
+from librarian_bench.corpus.declare import declare
+from librarian_bench.corpus.ingest import ingest
+from librarian_bench.corpus.scenario import appliquer_fichier, charger
+from librarian_bench.ports.architecture import ArchitectureBase, CorpusChange
 
 RACINE = Path(__file__).resolve().parents[3] / "corpora" / "minicorpus"
 SCENARIO = RACINE / "scenario" / "scenario.yaml"
@@ -44,11 +44,13 @@ def _experience(tmp_path: Path, numero: int = 1, **champs: Any) -> Path:
     return chemin
 
 
-def _wl_run(chemin: Path, wl_home: Path, code: int = 0) -> Path | None:
-    avant = set((wl_home / "runs").glob("*")) if (wl_home / "runs").exists() else set()
+def _wl_run(chemin: Path, bench_home: Path, code: int = 0) -> Path | None:
+    avant = set((bench_home / "runs").glob("*")) if (bench_home / "runs").exists() else set()
     res = CliRunner().invoke(app, ["run", str(chemin)])
     assert res.exit_code == code, res.output
-    nouveau = set((wl_home / "runs").glob("*")) - avant if (wl_home / "runs").exists() else set()
+    nouveau = (
+        set((bench_home / "runs").glob("*")) - avant if (bench_home / "runs").exists() else set()
+    )
     if code != 0:
         assert not nouveau
         return None
@@ -76,10 +78,10 @@ def _index_spans(dossier: Path, phase: str) -> list[dict[str, Any]]:
     ]
 
 
-def _changement(wl_home: Path) -> tuple[CorpusChange, set[str]]:
+def _changement(bench_home: Path) -> tuple[CorpusChange, set[str]]:
     """Changement net du Scénario réel et `doc_id` du Corpus après mise à jour."""
     declare_corpus = declare(RACINE / "corpus.yaml")
-    base = ingest(declare_corpus, "markdown+pdf_text", wl_home=wl_home)
+    base = ingest(declare_corpus, "markdown+pdf_text", bench_home=bench_home)
     change, apres = appliquer_fichier(
         base, SCENARIO, lang=declare_corpus.spec.lang, parser="markdown+pdf_text"
     )
@@ -90,7 +92,7 @@ def _changement(wl_home: Path) -> tuple[CorpusChange, set[str]]:
 
 
 def test_phase_apres_mise_a_jour_repose_toutes_les_questions_et_ne_touche_pas_l_ancien_index(
-    tmp_path: Path, wl_home: Path, monkeypatch: pytest.MonkeyPatch
+    tmp_path: Path, bench_home: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:
     appels: list[tuple[str, CorpusChange, Path, Path, dict[str, str]]] = []
     original = ArchitectureBase.update
@@ -100,7 +102,7 @@ def test_phase_apres_mise_a_jour_repose_toutes_les_questions_et_ne_touche_pas_l_
         original(self, change, apres, ancien, nouveau)
 
     monkeypatch.setattr(ArchitectureBase, "update", espion)
-    dossier = _wl_run(_experience(tmp_path), wl_home)
+    dossier = _wl_run(_experience(tmp_path), bench_home)
     assert dossier is not None
     reponses = _jsonl(dossier / "answers.jsonl")
     base = [a for a in reponses if a["phase"] == "base"]
@@ -116,7 +118,7 @@ def test_phase_apres_mise_a_jour_repose_toutes_les_questions_et_ne_touche_pas_l_
 
     # `update(change, corpus_after, old_dir, tmp_dir)` : une fois par Configuration indexée.
     assert sorted(nom for nom, *_ in appels) == ["bm25_only", "long_context", "no_context"]
-    change, _ = _changement(wl_home)
+    change, _ = _changement(bench_home)
     for _nom, vu, ancien, nouveau, avant in appels:
         assert vu == change  # le changement net du Scénario (story 2.6)
         assert (ancien / "manifest.json").is_file()
@@ -129,25 +131,25 @@ def test_phase_apres_mise_a_jour_repose_toutes_les_questions_et_ne_touche_pas_l_
     for s in spans:
         cle = s["wl.index_key"]
         assert cle not in base_cles
-        manifeste = json.loads((wl_home / "index" / cle / "manifest.json").read_text("utf-8"))
+        manifeste = json.loads((bench_home / "index" / cle / "manifest.json").read_text("utf-8"))
         assert manifeste["index_key"] == cle
-        assert not list((wl_home / "index").glob(".tmp-*"))
+        assert not list((bench_home / "index").glob(".tmp-*"))
 
 
 def test_ancien_index_reste_reutilisable_par_une_autre_execution(
-    tmp_path: Path, wl_home: Path
+    tmp_path: Path, bench_home: Path
 ) -> None:
-    premier = _wl_run(_experience(tmp_path, 1), wl_home)
+    premier = _wl_run(_experience(tmp_path, 1), bench_home)
     assert premier is not None
     cles_base = {s["wl.index_key"] for s in _index_spans(premier, "base")}
-    avant = {cle: _empreinte(wl_home / "index" / cle) for cle in cles_base}
+    avant = {cle: _empreinte(bench_home / "index" / cle) for cle in cles_base}
     # Autre Exécution, sans Scénario : mêmes index de base, servis par le cache, intacts.
-    second = _wl_run(_experience(tmp_path, 2, scenario=None), wl_home)
+    second = _wl_run(_experience(tmp_path, 2, scenario=None), bench_home)
     assert second is not None
     spans = _index_spans(second, "base")
     assert {s["wl.index_key"] for s in spans} == cles_base
     assert all(s["wl.index_cache_hit"] is True for s in spans)
-    assert {cle: _empreinte(wl_home / "index" / cle) for cle in cles_base} == avant
+    assert {cle: _empreinte(bench_home / "index" / cle) for cle in cles_base} == avant
     assert not [a for a in _jsonl(second / "answers.jsonl") if a["phase"] == "after_update"]
 
 
@@ -155,9 +157,9 @@ def test_ancien_index_reste_reutilisable_par_une_autre_execution(
 
 
 def test_reindexation_complete_par_defaut_spans_au_poste_update_et_energie(
-    tmp_path: Path, wl_home: Path
+    tmp_path: Path, bench_home: Path
 ) -> None:
-    dossier = _wl_run(_experience(tmp_path, configurations=BASELINES[2:]), wl_home)
+    dossier = _wl_run(_experience(tmp_path, configurations=BASELINES[2:]), bench_home)
     assert dossier is not None
     spans = _jsonl(dossier / "traces.jsonl")
     apres = [s for s in spans if s.get("wl.phase") == "after_update"]
@@ -181,13 +183,13 @@ def test_reindexation_complete_par_defaut_spans_au_poste_update_et_energie(
 
 
 def test_apres_mise_a_jour_aucun_ancien_doc_id_et_ancrages_vers_les_nouveaux(
-    tmp_path: Path, wl_home: Path
+    tmp_path: Path, bench_home: Path
 ) -> None:
     dossier = _wl_run(
-        _experience(tmp_path, configurations=BASELINES[2:], conditions=["standard"]), wl_home
+        _experience(tmp_path, configurations=BASELINES[2:], conditions=["standard"]), bench_home
     )
     assert dossier is not None
-    change, nouveaux = _changement(wl_home)
+    change, nouveaux = _changement(bench_home)
     anciens = set(change.removed) | {ancien for ancien, _ in change.modified}
     assert anciens and not anciens & nouveaux
     toutes = [a for a in _jsonl(dossier / "answers.jsonl") if a["phase"] == "after_update"]
@@ -207,15 +209,15 @@ def test_apres_mise_a_jour_aucun_ancien_doc_id_et_ancrages_vers_les_nouveaux(
 
 
 def test_contexte_parfait_apres_mise_a_jour_ancrages_nouveaux_et_ancrage_supprime_inapplicable(
-    tmp_path: Path, wl_home: Path
+    tmp_path: Path, bench_home: Path
 ) -> None:
     dossier = _wl_run(
         _experience(tmp_path, configurations=BASELINES[2:], conditions=["perfect_context"]),
-        wl_home,
+        bench_home,
     )
     assert dossier is not None
     reponses = _jsonl(dossier / "answers.jsonl")
-    _, nouveaux = _changement(wl_home)
+    _, nouveaux = _changement(bench_home)
     base = {a["question_id"]: a for a in reponses if a["phase"] == "base"}
     apres = {a["question_id"]: a for a in reponses if a["phase"] == "after_update"}
     assert set(apres) == set(base) and LIEES_TEST <= set(apres)
@@ -237,9 +239,9 @@ def test_contexte_parfait_apres_mise_a_jour_ancrages_nouveaux_et_ancrage_supprim
 
 
 def test_rejeu_l_index_apres_mise_a_jour_est_servi_par_le_cache(
-    tmp_path: Path, wl_home: Path, monkeypatch: pytest.MonkeyPatch
+    tmp_path: Path, bench_home: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:
-    premier = _wl_run(_experience(tmp_path, 1), wl_home)
+    premier = _wl_run(_experience(tmp_path, 1), bench_home)
     assert premier is not None
     assert all(s["wl.index_cache_hit"] is False for s in _index_spans(premier, "after_update"))
     appels: list[str] = []
@@ -249,7 +251,7 @@ def test_rejeu_l_index_apres_mise_a_jour_est_servi_par_le_cache(
         "update",
         lambda self, *a: (appels.append(self.name), original(self, *a))[1],
     )
-    second = _wl_run(_experience(tmp_path, 2), wl_home)
+    second = _wl_run(_experience(tmp_path, 2), bench_home)
     assert second is not None
     spans = _index_spans(second, "after_update")
     assert len(spans) == 3
@@ -265,10 +267,10 @@ def test_rejeu_l_index_apres_mise_a_jour_est_servi_par_le_cache(
 
 
 def test_scenario_applique_avec_la_langue_du_corpus_et_le_parser_de_la_configuration(
-    tmp_path: Path, wl_home: Path, monkeypatch: pytest.MonkeyPatch
+    tmp_path: Path, bench_home: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:
     vus: list[dict[str, Any]] = []
-    import wavelibrarian.runner.execute as execute
+    import librarian_bench.runner.execute as execute
 
     original = execute.appliquer_fichier
 
@@ -277,7 +279,7 @@ def test_scenario_applique_avec_la_langue_du_corpus_et_le_parser_de_la_configura
         return original(parse, chemin, **kw)
 
     monkeypatch.setattr(execute, "appliquer_fichier", espion)
-    _wl_run(_experience(tmp_path, configurations=BASELINES[2:]), wl_home)
+    _wl_run(_experience(tmp_path, configurations=BASELINES[2:]), bench_home)
     assert len(vus) == 1  # une fois par parser, pas par Condition
     assert vus[0]["lang"] == declare(RACINE / "corpus.yaml").spec.lang
     assert vus[0]["parser"] == "markdown+pdf_text"
@@ -285,7 +287,7 @@ def test_scenario_applique_avec_la_langue_du_corpus_et_le_parser_de_la_configura
 
 
 def test_scenario_avec_paliers_applique_le_scenario_au_sous_corpus_de_chaque_palier(
-    tmp_path: Path, wl_home: Path, monkeypatch: pytest.MonkeyPatch
+    tmp_path: Path, bench_home: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:
     """Palier tiré sur le Corpus de base (Documents visés par le Scénario requis), puis Scénario
     appliqué au sous-corpus : l'index après mise à jour du Palier a la taille du Palier, plus
@@ -303,7 +305,7 @@ def test_scenario_avec_paliers_applique_le_scenario_au_sous_corpus_de_chaque_pal
     champs: dict[str, Any] = {"split": "dev", "max_questions": 3, "tier": "all"}
     dossier = _wl_run(
         _experience(tmp_path, configurations=BASELINES[2:], conditions=["standard"], **champs),
-        wl_home,
+        bench_home,
     )
     assert dossier is not None
     tailles = declare(RACINE / "corpus.yaml").spec.tiers.sizes  # type: ignore[union-attr]
@@ -321,7 +323,7 @@ def test_scenario_avec_paliers_applique_le_scenario_au_sous_corpus_de_chaque_pal
 
 
 def test_scenario_avec_paliers_refuse_en_2_si_les_cibles_ne_tiennent_pas(
-    tmp_path: Path, wl_home: Path
+    tmp_path: Path, bench_home: Path
 ) -> None:
     """Documents visés par le Scénario requis dans le plus petit Palier : tirage à blanc en 2."""
     faux = tmp_path / "scenario.yaml"
@@ -333,12 +335,12 @@ def test_scenario_avec_paliers_refuse_en_2_si_les_cibles_ne_tiennent_pas(
         f"scenario_id: s\ncorpus_id: minicorpus\noperations:\n{cibles}\n", encoding="utf-8"
     )
     chemin = _experience(tmp_path, split="dev", max_questions=1, tier=5, scenario=str(faux))
-    _wl_run(chemin, wl_home, code=2)
+    _wl_run(chemin, bench_home, code=2)
     res = CliRunner().invoke(app, ["run", str(chemin)])
     assert "Documents requis" in res.output, res.output
 
 
-def test_scenario_invalide_refuse_en_2(tmp_path: Path, wl_home: Path) -> None:
+def test_scenario_invalide_refuse_en_2(tmp_path: Path, bench_home: Path) -> None:
     faux = tmp_path / "scenario.yaml"
     faux.write_text(
         SCENARIO.read_text("utf-8").replace("note-obsolete.md", "inconnu.md"), encoding="utf-8"
@@ -346,13 +348,13 @@ def test_scenario_invalide_refuse_en_2(tmp_path: Path, wl_home: Path) -> None:
     (tmp_path / "updates").mkdir()
     for source in (RACINE / "scenario" / "updates").iterdir():
         (tmp_path / "updates" / source.name).write_bytes(source.read_bytes())
-    _wl_run(_experience(tmp_path, scenario=str(faux)), wl_home, code=2)  # sans dossier créé
+    _wl_run(_experience(tmp_path, scenario=str(faux)), bench_home, code=2)  # sans dossier créé
 
 
 def test_scenario_sans_question_liee_repose_quand_meme_les_questions(
-    tmp_path: Path, wl_home: Path
+    tmp_path: Path, bench_home: Path
 ) -> None:
-    dossier = _wl_run(_experience(tmp_path, split="dev", max_questions=3), wl_home)
+    dossier = _wl_run(_experience(tmp_path, split="dev", max_questions=3), bench_home)
     assert dossier is not None
     reponses = _jsonl(dossier / "answers.jsonl")
     base = {a["question_id"] for a in reponses if a["phase"] == "base"}
@@ -361,12 +363,12 @@ def test_scenario_sans_question_liee_repose_quand_meme_les_questions(
 
 
 def test_architecture_incrementale_naive_rag_appelle_son_update_sans_reindexer(
-    tmp_path: Path, wl_home: Path, monkeypatch: pytest.MonkeyPatch
+    tmp_path: Path, bench_home: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:
     """`naive_rag` (`incremental_update: true`) : son `update` n'encode que les Documents
     ajoutés ou modifiés ; `index` n'est appelé qu'en phase `base`."""
-    from wavelibrarian.architectures.naive_rag import NaiveRag
-    from wavelibrarian.components.embedders.fake import FakeEmbedder
+    from librarian_bench.architectures.naive_rag import NaiveRag
+    from librarian_bench.components.embedders.fake import FakeEmbedder
 
     appels: list[str] = []
     encodes: list[int] = []
@@ -390,7 +392,7 @@ def test_architecture_incrementale_naive_rag_appelle_son_update_sans_reindexer(
     monkeypatch.setattr(FakeEmbedder, "embed_passages", embed)
     conf = {"id": "rag", "architecture": "naive_rag", "params": {"embedder": {"name": "fake"}}}
     dossier = _wl_run(
-        _experience(tmp_path, configurations=[conf], conditions=["standard"]), wl_home
+        _experience(tmp_path, configurations=[conf], conditions=["standard"]), bench_home
     )
     assert dossier is not None
     assert appels == ["index", "update"]
@@ -402,7 +404,7 @@ def test_architecture_incrementale_naive_rag_appelle_son_update_sans_reindexer(
     assert len(reponses) == N_TEST and all(a["status"] == "ok" for a in reponses)
 
 
-def test_charger_le_scenario_du_mini_corpus_reste_valide(wl_home: Path) -> None:
+def test_charger_le_scenario_du_mini_corpus_reste_valide(bench_home: Path) -> None:
     declare_corpus = declare(RACINE / "corpus.yaml")
-    base = ingest(declare_corpus, "markdown+pdf_text", wl_home=wl_home)
+    base = ingest(declare_corpus, "markdown+pdf_text", bench_home=bench_home)
     assert len(charger(SCENARIO, base).scenario.operations) == 3

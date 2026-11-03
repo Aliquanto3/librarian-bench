@@ -1,17 +1,17 @@
 ---
 story: "5.2"
-title: Commande `wl calibrer` et exclusion des Juges
+title: Commande `librarian-bench calibrer` et exclusion des Juges
 status: review
 ---
 
-# Story 5.2 : Commande `wl calibrer` et exclusion des Juges
+# Story 5.2 : Commande `librarian-bench calibrer` et exclusion des Juges
 
 ## Code Map
 
-- `src/wavelibrarian/cli.py` : commande `wl calibrer <experience.yaml> --annotations <dossier> --run <run_id> [--sortie <calibration.json>]`. Codes : 0, 1, 2 (Expérience invalide, Exécution inconnue, dossier sans annotation valide, aucune annotation sur une Réponse de l'Exécution), 3 (Plafond), 4 (préflight du réservoir de Juges et de `calibration_judge`, ou fournisseur injoignable).
-- `src/wavelibrarian/runner/calibrer.py` : orchestration (`calibrer`), qui construit le Contexte hors Exécution (`execution=False`, traces dans `WL_HOME/hors-execution/<id>/`), appelle le Juge `llm` au Poste `judging`, écrit `calibration_verdicts.jsonl` (dans le dossier de l'Exécution) et `calibration.json` ; `avertissements_closed_book`.
-- `src/wavelibrarian/scoring/calibration.py` : calcul pur `fiches_du_juge` (kappa passe 0 contre chaque annotateur, instabilité, items), `kappa_inter_annotateurs`, `doublement_annotees`, `decider_exclusion`.
-- `src/wavelibrarian/report/generer.py` : la ligne « Juges exclus par la calibration » ajoute la date du fichier (`created_at`, sinon date de modification).
+- `src/librarian_bench/cli.py` : commande `librarian-bench calibrer <experience.yaml> --annotations <dossier> --run <run_id> [--sortie <calibration.json>]`. Codes : 0, 1, 2 (Expérience invalide, Exécution inconnue, dossier sans annotation valide, aucune annotation sur une Réponse de l'Exécution), 3 (Plafond), 4 (préflight du réservoir de Juges et de `calibration_judge`, ou fournisseur injoignable).
+- `src/librarian_bench/runner/calibrer.py` : orchestration (`calibrer`), qui construit le Contexte hors Exécution (`execution=False`, traces dans `LIBRARIAN_BENCH_HOME/hors-execution/<id>/`), appelle le Juge `llm` au Poste `judging`, écrit `calibration_verdicts.jsonl` (dans le dossier de l'Exécution) et `calibration.json` ; `avertissements_closed_book`.
+- `src/librarian_bench/scoring/calibration.py` : calcul pur `fiches_du_juge` (kappa passe 0 contre chaque annotateur, instabilité, items), `kappa_inter_annotateurs`, `doublement_annotees`, `decider_exclusion`.
+- `src/librarian_bench/report/generer.py` : la ligne « Juges exclus par la calibration » ajoute la date du fichier (`created_at`, sinon date de modification).
 - Tests : `tests/unit/scoring/test_calibration_calcul.py`, `tests/unit/runner/test_story_5_2.py`.
 
 ## Design Notes
@@ -23,7 +23,7 @@ status: review
 - `calibration_judge` : ne note que les Réponses doublement annotées, résultats sous `calibration_judge` (`model`, `criteria`), jamais exclu. Il peut aussi être dans `pool` : il y est alors calibré normalement.
 - Format `calibration.json` : `run_id`, `experiment_id`, `created_at`, `kappa_threshold`, `passes`, `annotators`, `judges.<modèle>` (`excluded` booléen strict, `reason`, `warnings`, `criteria.<critère>` : `kappa`, `instability`, `n_items`), `inter_annotator` (liste de couples d'annotateurs, kappa et nombre de Réponses par Critère), `calibration_judge` si déclaré. Relu tel quel par `excluded_judges` (story 1.6).
 - Textes de référence : Corpus de la Configuration (parser du `corpus.yaml`), Corpus du Scénario pour la phase `after_update` ; pas de sous-corpus de Palier (les Ancrages de référence y sont par construction). `context_texts` de la Réponse vont à `faithfulness`.
-- Avertissement closed-book : pour chaque Juge exclu qui est le `closed_book_judge` (réservoir du profil) d'un modèle testé (`closed_book_models` du profil ou `contaminated_by` du Jeu), et si le Jeu a des Questions libres, la commande demande de relancer `wl questions closed-book`.
+- Avertissement closed-book : pour chaque Juge exclu qui est le `closed_book_judge` (réservoir du profil) d'un modèle testé (`closed_book_models` du profil ou `contaminated_by` du Jeu), et si le Jeu a des Questions libres, la commande demande de relancer `librarian-bench questions closed-book`.
 - Coût : somme des `wl.cost` des spans `judging` de la commande, par devise. Rien n'est écrit si le Plafond est atteint (code 3).
 
 ## Tâches et critères
@@ -38,13 +38,13 @@ status: review
 ## Auto Run Result
 
 - Statut : review. Faux LLM seul ; aucun test `real_*`, aucun appel Ollama.
-- Reports vers 4.14 (conformité, vérifications réelles) : exécuter `wl calibrer` sur Ollama local avec de vrais Juges (cache de passes, instabilité réelle d'un modèle 4B, durée et mémoire GPU) ; vérifier la notation par lots et le seuil de 0,6 sur de vraies annotations.
+- Reports vers 4.14 (conformité, vérifications réelles) : exécuter `librarian-bench calibrer` sur Ollama local avec de vrais Juges (cache de passes, instabilité réelle d'un modèle 4B, durée et mémoire GPU) ; vérifier la notation par lots et le seuil de 0,6 sur de vraies annotations.
 - Reports vers 4.15 : affichage au Rapport des kappas et instabilités par Juge (ici seule l'exclusion et la date sont citées) ; choisir si la calibration d'un Palier ou d'une phase `after_update` doit avoir son propre Corpus de référence.
 - Hors périmètre, consigné : une Expérience qui change de `judges.pool` après la calibration garde un `calibration.json` pour d'autres Juges (ignorés) ; un Juge absent du fichier n'est pas exclu.
 
 ## Revue
 
-- high, second avis 1, corrigé : `complete_structured` lisait toujours le Cache, donc une seconde calibration servait les passes 1 à 4 depuis le Cache (instabilité nulle par construction). Ajout de `use_cache` à `complete_structured` (port, passerelle, contexte) et du Param `cache_later_passes` du Juge `llm` ; `wl calibrer` construit ses Juges avec `cache_later_passes=False`. Le Panel de `wl run` garde le Cache. Tests `test_seconde_calibration_rappelle_les_passes_1_a_4_hors_cache`, `test_le_panel_de_wl_run_garde_le_cache_des_passes_suivantes`.
+- high, second avis 1, corrigé : `complete_structured` lisait toujours le Cache, donc une seconde calibration servait les passes 1 à 4 depuis le Cache (instabilité nulle par construction). Ajout de `use_cache` à `complete_structured` (port, passerelle, contexte) et du Param `cache_later_passes` du Juge `llm` ; `librarian-bench calibrer` construit ses Juges avec `cache_later_passes=False`. Le Panel de `librarian-bench run` garde le Cache. Tests `test_seconde_calibration_rappelle_les_passes_1_a_4_hors_cache`, `test_le_panel_de_wl_run_garde_le_cache_des_passes_suivantes`.
 - medium, second avis 2, corrigé : le test « hors cache » d'origine ne le prouvait pas (une seule calibration) ; remplacé en pratique par le test des deux calibrations successives, qui échoue sans le correctif.
 - medium, second avis 3, corrigé : `except Exception` avalait `ProviderError` (fournisseur en panne, `calibration.json` écrit, code 0). Seul `NonConformantOutput` est consigné ; `ProviderError` sort en code 4 sans rien écrire (`test_fournisseur_injoignable_sort_en_code_4_sans_ecrire`).
 - medium, second avis 4, corrigé : `calibration_passes` borné à ≥ 2 (l'AC fixe 5 dans son scénario, pas un minimum de 5 ; l'instabilité exige deux passes) ; `kappa_threshold` borné à [-1, 1].

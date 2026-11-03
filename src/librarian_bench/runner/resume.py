@@ -1,0 +1,151 @@
+"""Reprise d'une Exécution (`librarian-bench run --reprendre <run_id>`, contracts.md §7, AD-9,
+AD-11).
+
+La reprise relit le dossier `runs/<run_id>/` : elle ne refait que les clés absentes de
+`answers.jsonl`, sans jamais réécrire `traces.jsonl`. Ce module contient les contrôles qui
+précèdent tout appel (code 2) et la lecture des traces d'une Question interrompue.
+"""
+
+import json
+from pathlib import Path
+
+import yaml
+
+from librarian_bench.config.catalog import load_catalog
+from librarian_bench.config.experiment import ResolvedExperiment
+from librarian_bench.config.resolve import fingerprint
+from librarian_bench.core.errors import ConfigError
+from librarian_bench.core.ids import canonical_json, sha16
+from librarian_bench.core.jsonl import lire_jsonl
+from librarian_bench.corpus.declare import declare
+from librarian_bench.corpus.ingest import ingest
+from librarian_bench.corpus.scenario import corpus_apres
+from librarian_bench.runner.rundir import RUN_ID, resolve_parsers
+
+# (config_id, condition, tier, phase, question_id) : la clé d'un `Answer` sans le run_id.
+Cle = tuple[str, str, int | None, str, str]
+
+
+# Libellés des empreintes d'entrée du manifeste (`inputs`), pour le message de refus.
+_ENTREES = {
+    "corpus_fingerprint": "le Corpus",
+    "scenario_fingerprint": "le Scénario",
+    "catalog_fingerprint": "le Catalogue de modèles",
+}
+
+
+def dossier_de(bench_home: Path, run_id: str) -> Path:
+    if not RUN_ID.fullmatch(run_id):  # `--reprendre ../x` : jamais hors de runs/
+        raise ConfigError("reprendre", f"run_id invalide : {run_id!r} (lettres, chiffres, - et _)")
+    return bench_home / "runs" / run_id
+
+
+def empreintes_entrees(experience: ResolvedExperiment, bench_home: Path) -> dict[str, str]:
+    """Empreintes du contenu que l'empreinte de l'Expérience ne couvre pas (elle ne porte que
+    les chemins) : Corpus ingéré, Corpus après Scénario, Catalogue de modèles (tarifs compris).
+    Écrites au manifeste (`inputs`) au départ, comparées à la reprise. `experience` a ses
+    parsers résolus (`resolve_parsers`)."""
+    parser = experience.configurations[0].parser.name
+    parse = ingest(declare(Path(experience.corpus)), parser, bench_home=bench_home)
+    catalogue = load_catalog(Path(experience.catalog) if experience.catalog else None)
+    entrees = {
+        "corpus_fingerprint": parse.fingerprint,
+        "catalog_fingerprint": sha16(canonical_json(catalogue.model_dump(mode="json"))),
+    }
+    if experience.scenario:
+        apres = corpus_apres(parse, Path(experience.scenario), parser=parser)
+        entrees["scenario_fingerprint"] = apres.fingerprint
+    return entrees
+
+
+def lire_manifeste(bench_home: Path, run_id: str) -> dict[str, object]:
+    dossier = dossier_de(bench_home, run_id)
+    try:
+        return json.loads((dossier / "manifest.json").read_text(encoding="utf-8"))
+    except (OSError, ValueError) as exc:
+        raise ConfigError("reprendre", f"Exécution {run_id} introuvable ou illisible") from exc
+
+
+def charger_resolue(dossier: Path) -> ResolvedExperiment:
+    """Relit `experiment.resolved.yaml` comme `ResolvedExperiment` (le parser composite
+    `markdown+pdf_text` y est un nom de `ComponentSpec` comme un autre)."""
+    chemin = dossier / "experiment.resolved.yaml"
+    try:
+        donnees = yaml.safe_load(chemin.read_text(encoding="utf-8"))
+        return ResolvedExperiment.model_validate(donnees)
+    except (OSError, yaml.YAMLError, ValueError) as exc:
+        raise ConfigError(str(chemin), f"Expérience résolue illisible : {exc}") from exc
+
+
+def verifier_reprise(
+    experience: ResolvedExperiment, bench_home: Path, run_id: str, freeze_sha256: str
+) -> Path:
+    """Contrôles d'une reprise, sans verrou ni appel ; `ConfigError` (code 2) sinon. Rend le
+    dossier de l'Exécution.
+
+    L'empreinte compare l'Expérience demandée à `experiment.sha256` **à plafonds égaux** : relever
+    un plafond est justement une raison de reprendre (`budget` après `budget_exceeded`, AC 2 de
+    la 4.8 ; `max_error_rate` après `completed_with_errors`, AC 3 de fix-arbitrages-8-3-8-8),
+    alors que les deux font partie de l'empreinte écrite au départ (config/resolve.py). Tout
+    autre écart (Configuration, graine, modèles, Corpus, Questions…) est refusé. L'empreinte du
+    Gel du Jeu doit aussi être celle du manifeste.
+    """
+    dossier = dossier_de(bench_home, run_id)
+    manifeste = lire_manifeste(bench_home, run_id)
+    if manifeste.get("freeze_sha256") != freeze_sha256:
+        raise ConfigError(
+            "reprendre", f"le Jeu de Questions n'est plus celui de l'Exécution {run_id} (Gel)"
+        )
+    stockee = charger_resolue(dossier)
+    try:
+        attendue = (dossier / "experiment.sha256").read_text(encoding="utf-8").strip()
+    except OSError as exc:
+        raise ConfigError("reprendre", f"experiment.sha256 illisible : {exc}") from exc
+    resolue = resolve_parsers(experience, declare(Path(experience.corpus)))
+    plafonds_egaux = resolue.model_copy(
+        update={"budget": stockee.budget, "max_error_rate": stockee.max_error_rate}
+    )
+    if fingerprint(plafonds_egaux) != attendue:
+        raise ConfigError(
+            "reprendre",
+            f"l'Expérience diffère de celle de l'Exécution {run_id} "
+            "(empreinte différente de experiment.sha256, plafonds exceptés)",
+        )
+    stockees = manifeste.get("inputs")
+    if isinstance(stockees, dict):  # contenu du Corpus, du Scénario et du Catalogue
+        actuelles = empreintes_entrees(resolue, bench_home)
+        for cle in sorted(set(stockees) | set(actuelles)):
+            if stockees.get(cle) != actuelles.get(cle):
+                quoi = _ENTREES.get(cle, cle)
+                raise ConfigError(
+                    "reprendre", f"{quoi} n'est plus celui de l'Exécution {run_id} ({cle})"
+                )
+    return dossier
+
+
+def deja_terminee(bench_home: Path, run_id: str) -> bool:
+    """Exécution `completed` sans Critère resté non jugé (`unjudged`, story 4.9) : une reprise
+    n'a rien à refaire (code 0 dans la CLI). Avec des Critères non jugés, la reprise rejuge.
+    `completed_with_errors` (story 8.3) n'est jamais terminée : la reprise repose les Questions
+    en `error` et rejuge les Critères sans verdict."""
+    manifeste = lire_manifeste(bench_home, run_id)
+    return manifeste.get("status") == "completed" and not manifeste.get("unjudged")
+
+
+def cles_tracees(dossier: Path) -> set[Cle]:
+    """Clés des Questions qui ont déjà au moins un span du Poste `query` dans `traces.jsonl`."""
+    cles: set[Cle] = set()
+    for span in lire_jsonl(dossier / "traces.jsonl"):
+        if span.get("wl.post") != "query" or not span.get("wl.question_id"):
+            continue
+        tier = span.get("wl.tier")
+        cles.add(
+            (
+                span["wl.config_id"],
+                span["wl.condition"],
+                tier if isinstance(tier, int) else None,
+                span["wl.phase"],
+                span["wl.question_id"],
+            )
+        )
+    return cles

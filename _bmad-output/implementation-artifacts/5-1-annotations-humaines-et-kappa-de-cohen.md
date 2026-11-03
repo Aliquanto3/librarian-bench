@@ -8,8 +8,8 @@ status: done
 
 ## Code Map
 
-- `src/wavelibrarian/stats/kappa.py` : `cohen_kappa(a, b) -> float | None` (fonction pure, sans dépendance).
-- `src/wavelibrarian/scoring/calibration.py` : `charger_fichier`, `charger_dossier -> Annotations` (verdicts indexés par (annotateur, `answer_id`, `criterion`)), `answer_ids_de_answers_jsonl`, `rapprocher -> Rapprochement(annotations, ignorees)`.
+- `src/librarian_bench/stats/kappa.py` : `cohen_kappa(a, b) -> float | None` (fonction pure, sans dépendance).
+- `src/librarian_bench/scoring/calibration.py` : `charger_fichier`, `charger_dossier -> Annotations` (verdicts indexés par (annotateur, `answer_id`, `criterion`)), `answer_ids_de_answers_jsonl`, `rapprocher -> Rapprochement(annotations, ignorees)`.
 - Tests : `tests/unit/stats/test_kappa.py`, `tests/unit/scoring/test_calibration.py`.
 
 ## Design Notes
@@ -32,7 +32,7 @@ status: done
 ## Auto Run Result
 
 - Statut : review. Voir le rapport de l'agent pour les comptes de tests, pyright et contrôle rapide.
-- Reports : calcul juge-humain, instabilité, kappa inter-annotateurs, `calibration.json`, commande `wl calibrer` et exclusion : story 5.2. `answer_ids_de_answers_jsonl` ne lit que la clé `answer_id` ; le chemin de `answers.jsonl` de l'Exécution est à fournir par la commande.
+- Reports : calcul juge-humain, instabilité, kappa inter-annotateurs, `calibration.json`, commande `librarian-bench calibrer` et exclusion : story 5.2. `answer_ids_de_answers_jsonl` ne lit que la clé `answer_id` ; le chemin de `answers.jsonl` de l'Exécution est à fournir par la commande.
 
 ## Revue
 

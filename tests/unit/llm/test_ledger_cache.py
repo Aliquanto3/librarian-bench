@@ -9,12 +9,12 @@ from pathlib import Path
 
 import pytest
 
-from wavelibrarian.config.experiment import Amount, Budget
-from wavelibrarian.core.errors import BudgetExceeded, ConfigError, WlError
-from wavelibrarian.core.types import Usage
-from wavelibrarian.llm.budget import Ledger
-from wavelibrarian.llm.cache import ResponseCache, cache_key, role_marker
-from wavelibrarian.ports.gateway import LLMRequest, Message
+from librarian_bench.config.experiment import Amount, Budget
+from librarian_bench.core.errors import BudgetExceeded, ConfigError, LibrarianBenchError
+from librarian_bench.core.types import Usage
+from librarian_bench.llm.budget import Ledger
+from librarian_bench.llm.cache import ResponseCache, cache_key, role_marker
+from librarian_bench.ports.gateway import LLMRequest, Message
 
 D = Decimal
 
@@ -31,8 +31,8 @@ def horloge(etat: dict[str, datetime]):  # type: ignore[no-untyped-def]
     return lambda: etat["now"]
 
 
-def test_reserver_regler_puis_refus(wl_home: Path) -> None:
-    with Ledger(budget(), "r1", wl_home) as lg:
+def test_reserver_regler_puis_refus(bench_home: Path) -> None:
+    with Ledger(budget(), "r1", bench_home) as lg:
         trace: list[str] = []
         lg._conn.set_trace_callback(trace.append)
         r = lg.reserve("anthropic", D("0.60"), "USD")
@@ -55,8 +55,8 @@ def test_reserver_regler_puis_refus(wl_home: Path) -> None:
                 assert dans_transaction, s
 
 
-def test_ecriture_toujours_dans_begin_immediate(wl_home: Path) -> None:
-    with Ledger(budget(), "r1", wl_home) as lg:
+def test_ecriture_toujours_dans_begin_immediate(bench_home: Path) -> None:
+    with Ledger(budget(), "r1", bench_home) as lg:
         trace: list[str] = []
         lg._conn.set_trace_callback(trace.append)
         lg.release(lg.reserve("anthropic", D("0.10"), "USD"))
@@ -67,14 +67,14 @@ def test_ecriture_toujours_dans_begin_immediate(wl_home: Path) -> None:
         assert trace[debut] == "BEGIN IMMEDIATE"
 
 
-def test_plafond_de_periode_deux_executions_de_0_90(wl_home: Path) -> None:
+def test_plafond_de_periode_deux_executions_de_0_90(bench_home: Path) -> None:
     # AC réécrit de la story 1.8 (arbitrage P2) : plafond de période de 2,00 USD.
     etat = {"now": datetime(2026, 10, 31, 23, 59, tzinfo=UTC)}
     b = budget(run="1.00", period="2.00")
     for run in ("a", "b"):
-        with Ledger(b, run, wl_home, clock=horloge(etat)) as lg:
+        with Ledger(b, run, bench_home, clock=horloge(etat)) as lg:
             lg.settle(lg.reserve("anthropic", D("0.90"), "USD"), D("0.90"))
-    with Ledger(b, "c", wl_home, clock=horloge(etat)) as lg:
+    with Ledger(b, "c", bench_home, clock=horloge(etat)) as lg:
         lg.reserve("anthropic", D("0.10"), "USD")  # 1,90 <= 2,00
         assert lg.balance("anthropic").period_remaining == D("0.10")
         with pytest.raises(BudgetExceeded, match="période"):
@@ -85,63 +85,63 @@ def test_plafond_de_periode_deux_executions_de_0_90(wl_home: Path) -> None:
         assert lg.balance("anthropic").period_remaining == D("1.70")
 
 
-def test_reservation_orpheline_reglee_a_l_estimation(wl_home: Path) -> None:
-    lg = Ledger(budget(), "r1", wl_home)
+def test_reservation_orpheline_reglee_a_l_estimation(bench_home: Path) -> None:
+    lg = Ledger(budget(), "r1", bench_home)
     r = lg.reserve("anthropic", D("0.30"), "USD")
     lg.close()  # arrêt brutal : jamais réglée
     # Réouverture par le runner, qui tient run.lock.
-    with Ledger(budget(), "r1", wl_home, recover_orphans=True) as lg2:
+    with Ledger(budget(), "r1", bench_home, recover_orphans=True) as lg2:
         assert lg2.balance("anthropic").run_remaining == D("0.70")
         assert lg2.recover_orphans() == 0  # idempotent
         assert lg2.balance("anthropic").run_remaining == D("0.70")
-        with pytest.raises(WlError):
+        with pytest.raises(LibrarianBenchError):
             lg2.settle(r, D("0.10"))  # réglée à l'estimation, donc close
 
 
-def test_ouverture_simple_ne_regle_pas_les_reservations_en_cours(wl_home: Path) -> None:
-    with Ledger(budget(), "r1", wl_home) as lg:
+def test_ouverture_simple_ne_regle_pas_les_reservations_en_cours(bench_home: Path) -> None:
+    with Ledger(budget(), "r1", bench_home) as lg:
         r = lg.reserve("anthropic", D("0.30"), "USD")
-        with Ledger(budget(), "r1", wl_home) as lecteur:  # ex. affichage du solde
+        with Ledger(budget(), "r1", bench_home) as lecteur:  # ex. affichage du solde
             assert lecteur.balance("anthropic").run_remaining == D("0.70")
         lg.settle(r, D("0.45"))  # coût réel conservé
         assert lg.balance("anthropic").run_remaining == D("0.55")
 
 
-def test_changement_de_devise_en_cours_de_mois_refuse(wl_home: Path) -> None:
-    with Ledger(budget(), "r1", wl_home) as lg:
+def test_changement_de_devise_en_cours_de_mois_refuse(bench_home: Path) -> None:
+    with Ledger(budget(), "r1", bench_home) as lg:
         lg.settle(lg.reserve("anthropic", D("0.50"), "USD"), D("0.50"))
     b = Budget(per_run={}, period={"anthropic": Amount(amount=D("1.00"), currency="EUR")})
-    with Ledger(b, "r2", wl_home) as lg:
+    with Ledger(b, "r2", bench_home) as lg:
         with pytest.raises(ConfigError, match="USD"):
             lg.reserve("anthropic", D("0.10"), "EUR")
         with pytest.raises(ConfigError, match="USD"):
             lg.balance("anthropic")
 
 
-def test_horloge_naive_refusee(wl_home: Path) -> None:
+def test_horloge_naive_refusee(bench_home: Path) -> None:
     naive = datetime(2026, 10, 1)  # noqa: DTZ001
-    with Ledger(budget(), "r1", wl_home, clock=lambda: naive) as lg:
+    with Ledger(budget(), "r1", bench_home, clock=lambda: naive) as lg:
         with pytest.raises(ValueError, match="naïve"):
             lg.reserve("anthropic", D("0.10"), "USD")
 
 
-def test_reservation_liberee_ne_compte_plus(wl_home: Path) -> None:
-    with Ledger(budget(), "r1", wl_home) as lg:
+def test_reservation_liberee_ne_compte_plus(bench_home: Path) -> None:
+    with Ledger(budget(), "r1", bench_home) as lg:
         r = lg.reserve("anthropic", D("0.90"), "USD")
         assert lg.balance("anthropic").run_remaining == D("0.10")
         lg.release(r)
         assert lg.balance("anthropic").run_remaining == D("1.00")
-        with pytest.raises(WlError):
+        with pytest.raises(LibrarianBenchError):
             lg.settle(r, D("0.10"))  # déjà close
         lg.reserve("anthropic", D("0.90"), "USD")
 
 
-def test_devises_et_plafonds_par_fournisseur(wl_home: Path) -> None:
+def test_devises_et_plafonds_par_fournisseur(bench_home: Path) -> None:
     b = Budget(
         per_run={"anthropic": usd("1.00"), "azure": Amount(amount=D("0.50"), currency="EUR")},
         period={},
     )
-    with Ledger(b, "r1", wl_home) as lg:
+    with Ledger(b, "r1", bench_home) as lg:
         lg.reserve("anthropic", D("1.00"), "USD")  # n'entame pas le plafond azure
         lg.reserve("azure", D("0.50"), "EUR")
         with pytest.raises(BudgetExceeded):
@@ -153,35 +153,35 @@ def test_devises_et_plafonds_par_fournisseur(wl_home: Path) -> None:
         lg.reserve("ollama", D("0"), "EUR")
 
 
-def test_plafond_par_execution_isole_les_executions(wl_home: Path) -> None:
+def test_plafond_par_execution_isole_les_executions(bench_home: Path) -> None:
     b = Budget(per_run={"anthropic": usd("1.00")}, period={})
-    with Ledger(b, "a", wl_home) as lg:
+    with Ledger(b, "a", bench_home) as lg:
         lg.settle(lg.reserve("anthropic", D("1.00"), "USD"), D("1.00"))
-    with Ledger(b, "b", wl_home) as lg:
+    with Ledger(b, "b", bench_home) as lg:
         lg.reserve("anthropic", D("1.00"), "USD")
 
 
-def test_montants_negatifs_refuses(wl_home: Path) -> None:
-    with Ledger(budget(), "r1", wl_home) as lg:
+def test_montants_negatifs_refuses(bench_home: Path) -> None:
+    with Ledger(budget(), "r1", bench_home) as lg:
         with pytest.raises(ValueError):
             lg.reserve("anthropic", D("-1"), "USD")
         with pytest.raises(ValueError):
             lg.settle(lg.reserve("anthropic", D("1"), "USD"), D("-1"))
 
 
-def test_wl_home_par_variable_d_environnement(wl_home: Path) -> None:
+def test_wl_home_par_variable_d_environnement(bench_home: Path) -> None:
     with Ledger(budget(), "r1"):
         pass
     ResponseCache().close()
-    assert (wl_home / "ledger.sqlite").exists() and (wl_home / "llm_cache.sqlite").exists()
+    assert (bench_home / "ledger.sqlite").exists() and (bench_home / "llm_cache.sqlite").exists()
 
 
-def test_concurrence_threads_jamais_au_dela_du_plafond(wl_home: Path) -> None:
+def test_concurrence_threads_jamais_au_dela_du_plafond(bench_home: Path) -> None:
     b = Budget(per_run={"anthropic": usd("1.00")}, period={})
-    Ledger(b, "r1", wl_home).close()  # crée le schéma
+    Ledger(b, "r1", bench_home).close()  # crée le schéma
 
     def travailleur(_: int) -> int:
-        with Ledger(b, "r1", wl_home, recover_orphans=False) as lg:
+        with Ledger(b, "r1", bench_home, recover_orphans=False) as lg:
             ok = 0
             for _i in range(5):
                 try:
@@ -194,7 +194,7 @@ def test_concurrence_threads_jamais_au_dela_du_plafond(wl_home: Path) -> None:
     with ThreadPoolExecutor(max_workers=4) as pool:
         acceptees = sum(pool.map(travailleur, range(4)))
     assert acceptees == 10
-    with Ledger(b, "r1", wl_home, recover_orphans=False) as lg:
+    with Ledger(b, "r1", bench_home, recover_orphans=False) as lg:
         assert lg.balance("anthropic").run_remaining == D("0.00")
 
 
@@ -202,9 +202,9 @@ _SCRIPT = """
 import sys
 from decimal import Decimal
 from pathlib import Path
-from wavelibrarian.config.experiment import Amount, Budget
-from wavelibrarian.core.errors import BudgetExceeded
-from wavelibrarian.llm.budget import Ledger
+from librarian_bench.config.experiment import Amount, Budget
+from librarian_bench.core.errors import BudgetExceeded
+from librarian_bench.llm.budget import Ledger
 b = Budget(per_run={"anthropic": Amount(amount=Decimal("1.00"), currency="USD")}, period={})
 ok = 0
 with Ledger(b, "r1", Path(sys.argv[1]), recover_orphans=False) as lg:
@@ -218,11 +218,11 @@ print(ok)
 """
 
 
-def test_concurrence_deux_processus(wl_home: Path) -> None:
-    Ledger(budget(), "r1", wl_home).close()
+def test_concurrence_deux_processus(bench_home: Path) -> None:
+    Ledger(budget(), "r1", bench_home).close()
     procs = [
         subprocess.Popen(
-            [sys.executable, "-c", _SCRIPT, str(wl_home)],
+            [sys.executable, "-c", _SCRIPT, str(bench_home)],
             stdout=subprocess.PIPE,
             text=True,
         )
@@ -247,15 +247,15 @@ def req(**kw: object) -> LLMRequest:
     return LLMRequest(**{**base, **kw})  # type: ignore[arg-type]
 
 
-def test_cache_relit_texte_et_usage(wl_home: Path) -> None:
+def test_cache_relit_texte_et_usage(bench_home: Path) -> None:
     usage = Usage(input_tokens=12, output_tokens=3, cache_read_tokens=5, cache_write_tokens=1)
-    cache = ResponseCache(wl_home)
+    cache = ResponseCache(bench_home)
     cle = cache_key(req(), "anthropic")
     assert cache.get(cle) is None
     cache.put(cle, "réponse é", usage)
     cache.put(cle, "autre", Usage())  # première réponse gardée
     cache.close()
-    rel = ResponseCache(wl_home).get(cle)  # persistant
+    rel = ResponseCache(bench_home).get(cle)  # persistant
     assert rel is not None and rel.text == "réponse é" and rel.usage == usage
 
 
@@ -299,27 +299,27 @@ def test_cle_refuse_un_system_sans_marqueur_de_role() -> None:
         cache_key(req(role="judge"), "fake")  # marqueur d'un autre rôle
 
 
-def test_cache_garde_la_latence_d_origine(wl_home: Path) -> None:
-    cache = ResponseCache(wl_home)
+def test_cache_garde_la_latence_d_origine(bench_home: Path) -> None:
+    cache = ResponseCache(bench_home)
     cle = cache_key(req(), "anthropic")
     cache.put(cle, "r", Usage(), latency_s=1.25)
     cache.close()
-    rel = ResponseCache(wl_home).get(cle)
+    rel = ResponseCache(bench_home).get(cle)
     assert rel is not None and rel.latency_s == 1.25
 
 
-def test_cache_d_avant_la_latence_migre(wl_home: Path) -> None:
+def test_cache_d_avant_la_latence_migre(bench_home: Path) -> None:
     """Un `llm_cache.sqlite` sans colonne `latency_s` est complété ; ses entrées valent 0."""
     import sqlite3
 
-    conn = sqlite3.connect(wl_home / "llm_cache.sqlite")
+    conn = sqlite3.connect(bench_home / "llm_cache.sqlite")
     conn.execute(
         "CREATE TABLE responses (key TEXT PRIMARY KEY, text TEXT NOT NULL, usage TEXT NOT NULL)"
     )
     conn.execute("INSERT INTO responses VALUES ('k', 'ancien', ?)", (Usage().model_dump_json(),))
     conn.commit()
     conn.close()
-    cache = ResponseCache(wl_home)
+    cache = ResponseCache(bench_home)
     rel = cache.get("k")
     assert rel is not None and rel.text == "ancien" and rel.latency_s == 0.0
     cache.put("k2", "neuf", Usage(), latency_s=0.5)

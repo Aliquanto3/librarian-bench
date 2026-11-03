@@ -21,10 +21,10 @@ from typing import Any
 import pytest
 from typer.testing import CliRunner
 
-from wavelibrarian.cli import app
-from wavelibrarian.config.catalog import load_catalog
-from wavelibrarian.config.defaults import charger_yaml, load_costs
-from wavelibrarian.core.types import Usage
+from librarian_bench.cli import app
+from librarian_bench.config.catalog import load_catalog
+from librarian_bench.config.defaults import charger_yaml, load_costs
+from librarian_bench.core.types import Usage
 
 RACINE = Path(__file__).resolve().parents[2]
 EXPERIENCE = RACINE / "experiments" / "mini-real-haiku.yaml"
@@ -53,15 +53,15 @@ def _usage(span: dict[str, Any]) -> Usage:
     )
 
 
-def _verifier_run(experience: Path, wl_home: Path) -> list[dict[str, Any]]:
-    """Lance `wl run`, vérifie les AC 2 à 6 et renvoie les spans payants."""
+def _verifier_run(experience: Path, bench_home: Path) -> list[dict[str, Any]]:
+    """Lance `librarian-bench run`, vérifie les AC 2 à 6 et renvoie les spans payants."""
     # Garde du plafond : l'Expérience doit porter un plafond Anthropic d'au plus 5 $.
     plafond = charger_yaml(experience)["budget"]["per_run"]["anthropic"]
     assert Decimal(plafond["amount"]) <= PLAFOND_USD and plafond["currency"] == "USD"
 
     res = CliRunner().invoke(app, ["run", str(experience)])
     assert res.exit_code == 0, res.output  # 3 = plafond atteint : le test échoue
-    (dossier,) = [d for d in (wl_home / "runs").iterdir() if d.is_dir()]
+    (dossier,) = [d for d in (bench_home / "runs").iterdir() if d.is_dir()]
     run_id = dossier.name
 
     # 1. Chaque span payant : `wl.cost` == catalog.cost(model, usage), au dernier chiffre.
@@ -81,7 +81,7 @@ def _verifier_run(experience: Path, wl_home: Path) -> list[dict[str, Any]]:
     print(f"SM-4 {experience.name} : {len(payants)} appels, coût tracé {total_spans} USD")
 
     # 2. Registre de dépense : somme réglée pour ce run_id == somme des spans, au centime près.
-    conn = sqlite3.connect(wl_home / "ledger.sqlite")
+    conn = sqlite3.connect(bench_home / "ledger.sqlite")
     try:
         (regle,) = conn.execute(
             "SELECT COALESCE(SUM(CAST(actual AS REAL)), 0) FROM reservations "
@@ -95,7 +95,7 @@ def _verifier_run(experience: Path, wl_home: Path) -> list[dict[str, Any]]:
 
     # 3. Rapport (story 8.2) : `cost_eur_real` (hors possession) == dépense du Registre Anthropic
     #    convertie en euros ; les Juges factices sont dans `cost_eur_fake`, hors du coût réel.
-    taux = load_costs(wl_home).fx.rates_to_eur
+    taux = load_costs(bench_home).fx.rates_to_eur
     with (dossier / "report" / "costs.csv").open(encoding="utf-8", newline="") as f:
         lignes_csv = list(csv.DictReader(f))
     total_rapport = sum(
@@ -116,15 +116,15 @@ def _verifier_run(experience: Path, wl_home: Path) -> list[dict[str, Any]]:
     return payants
 
 
-def test_sm4_cout_trace_egal_cout_recalcule(wl_home: Path) -> None:
-    payants = _verifier_run(EXPERIENCE, wl_home)
+def test_sm4_cout_trace_egal_cout_recalcule(bench_home: Path) -> None:
+    payants = _verifier_run(EXPERIENCE, bench_home)
     assert len(payants) >= 5  # des Réponses servies par le Cache de réponses sont exclues
 
 
-def test_sm4_plafond_couvre_les_juges(wl_home: Path) -> None:
+def test_sm4_plafond_couvre_les_juges(bench_home: Path) -> None:
     """Generator factice, Juge Haiku réel : les seuls appels payants sont ceux du Juge, qui passent
     par le même Registre et le même plafond que le Generator."""
-    payants = _verifier_run(EXPERIENCE_JUGES, wl_home)
+    payants = _verifier_run(EXPERIENCE_JUGES, bench_home)
     assert len(payants) >= 2  # un appel de Juge par Réponse
 
 
@@ -132,10 +132,10 @@ def test_sm4_temperature_et_outil_impose_acceptes() -> None:
     """L'outil `emit_output` imposé est accepté, et `accepts_temperature` du Catalogue dit vrai :
     `false` (Haiku 5.5) si l'API refuse `temperature` (HTTP 400, envoyée par `extra_body`, SDK
     1.15), `true` si elle l'accepte. La requête effective suit la capacité, comme la passerelle."""
-    from wavelibrarian.core.errors import ProviderError
-    from wavelibrarian.llm.providers.anthropic import AnthropicProvider
-    from wavelibrarian.llm.roles import GradeRelevanceOutput
-    from wavelibrarian.ports.gateway import LLMRequest, Message
+    from librarian_bench.core.errors import ProviderError
+    from librarian_bench.llm.providers.anthropic import AnthropicProvider
+    from librarian_bench.llm.roles import GradeRelevanceOutput
+    from librarian_bench.ports.gateway import LLMRequest, Message
 
     requete = LLMRequest(
         model_id="claude-haiku-5-5",
@@ -165,10 +165,10 @@ def test_sm4_majorant_schema_couvre_count_tokens() -> None:
     import anthropic
     from anthropic.types import MessageParam
 
-    from wavelibrarian.llm.providers.anthropic import OUTIL_SORTIE, AnthropicProvider
-    from wavelibrarian.llm.providers.secrets import load_secret
-    from wavelibrarian.llm.roles import GradeRelevanceOutput
-    from wavelibrarian.measure.tokenizers import ReferenceTokenizer
+    from librarian_bench.llm.providers.anthropic import OUTIL_SORTIE, AnthropicProvider
+    from librarian_bench.llm.providers.secrets import load_secret
+    from librarian_bench.llm.roles import GradeRelevanceOutput
+    from librarian_bench.measure.tokenizers import ReferenceTokenizer
 
     cle = load_secret("ANTHROPIC_API_KEY")
     assert cle is not None

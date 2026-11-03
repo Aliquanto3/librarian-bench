@@ -10,12 +10,12 @@ Scores de qualité jugés par `claude-opus-5-5`, Juge unique calibré ; modalit�
 
 | Story | Lignes `epics.md` | Réseau | Dev |
 |---|---|---|---|
-| 9.1 Verdicts de `wl calibrer` au fil de l'eau | 2286-2312 | non | Sonnet |
+| 9.1 Verdicts de `librarian-bench calibrer` au fil de l'eau | 2286-2312 | non | Sonnet |
 | 9.2 Justification courte des Juges | 2313-2338 | non | Sonnet |
 | 9.3 Modalité « sans objet » | 2339-2376 | non | Opus |
 | 9.4 Paquet et page d'annotation | 2377-2407 | non | Sonnet |
 | 9.5 Juge unique calibré, Opus dans les Expériences | 2408-2435 | non | Sonnet |
-| 9.6 `wl rejuger` | 2436-2463 | non | Opus |
+| 9.6 `librarian-bench rejuger` | 2436-2463 | non | Opus |
 | 9.7 Decider LazyGraphRAG, Cache isolé | 2464-2486 | non | Sonnet |
 | 9.8 Énergie mixed, judging, GPU | 2487-2513 | non | Sonnet |
 | 9.9 Calibration réelle d'Opus | 2514-2531 | API (~2,5 $) | orchestrateur |
@@ -27,12 +27,12 @@ Scores de qualité jugés par `claude-opus-5-5`, Juge unique calibré ; modalit�
 
 - Verdict : `Literal["yes", "no", "na"]` ; `na` = sans objet. Constante `VERDICTS` du chargeur d'annotations étendue (9.3).
 - Justification : constante `JUSTIFICATION_MAX = 200` (caractères) dans `llm/roles.py` (9.2) ; troncature avec « … ».
-- Calibration au fil de l'eau (9.1) : `<sortie>_verdicts.jsonl`, une ligne JSON par (Juge, `answer_id`, `pass_id`), écrite et vidée (`flush` + `os.fsync`) à réception ; options `wl calibrer --reprendre` et `--ecraser`.
+- Calibration au fil de l'eau (9.1) : `<sortie>_verdicts.jsonl`, une ligne JSON par (Juge, `answer_id`, `pass_id`), écrite et vidée (`flush` + `os.fsync`) à réception ; options `librarian-bench calibrer --reprendre` et `--ecraser`.
 - Juge unique (9.5) : `judges.panel_size: 1` admis seulement avec `judges.excluded_from` (fichier de calibration) où le Juge passe `kappa_threshold` sur chaque Critère. Fichier versionné : `corpora/minicorpus/calibration/opus.json` (produit par 9.9 ; 9.5 le référence, et ses tests utilisent un fichier de calibration factice).
-- Rejugement (9.6) : `wl rejuger <run_id> <experience.yaml>` ; manifeste `rejudged_from: <run_id>`.
+- Rejugement (9.6) : `librarian-bench rejuger <run_id> <experience.yaml>` ; manifeste `rejudged_from: <run_id>`.
 - Cache (9.7) : champ d'Expérience `llm_cache: {isoler_configurations: bool}` (défaut `false`, clés inchangées).
 - Énergie (9.8) : `EnergyMethod = Literal["measured", "mixed", "estimated", "unknown"]` ; phase d'énergie `judging` ; champ de profil `energy: {gpu: bool}` (défaut `false`, `true` dans `gpu.yaml`).
-- Annotations (9.4) : `wl annotations page <paquet.yaml> --vers <page.html>`, `wl annotations importer <paquet.yaml> <verdicts.json>`, `wl annotations exporter ... --depuis <paquet annoté>`.
+- Annotations (9.4) : `librarian-bench annotations page <paquet.yaml> --vers <page.html>`, `librarian-bench annotations importer <paquet.yaml> <verdicts.json>`, `librarian-bench annotations exporter ... --depuis <paquet annoté>`.
 
 ## Règles du run
 

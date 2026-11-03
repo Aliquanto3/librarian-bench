@@ -8,19 +8,19 @@ from typing import Any
 import pytest
 from pydantic import BaseModel
 
-from wavelibrarian.config.catalog import load_catalog
-from wavelibrarian.config.experiment import Budget
-from wavelibrarian.core.errors import NonConformantOutput, WlError
-from wavelibrarian.core.types import Condition, CostPost, Phase
-from wavelibrarian.llm.budget import Ledger
-from wavelibrarian.llm.cache import ResponseCache
-from wavelibrarian.llm.gateway import MeteredGateway
-from wavelibrarian.llm.providers.fake import FakeProvider
-from wavelibrarian.llm.roles import ROLES
-from wavelibrarian.measure.energy import FakeEstimator
-from wavelibrarian.measure.tokenizers import ApproxTokenizer
-from wavelibrarian.measure.tracing import Tracer
-from wavelibrarian.ports.gateway import LLMRequest, LLMRole, Message
+from librarian_bench.config.catalog import load_catalog
+from librarian_bench.config.experiment import Budget
+from librarian_bench.core.errors import LibrarianBenchError, NonConformantOutput
+from librarian_bench.core.types import Condition, CostPost, Phase
+from librarian_bench.llm.budget import Ledger
+from librarian_bench.llm.cache import ResponseCache
+from librarian_bench.llm.gateway import MeteredGateway
+from librarian_bench.llm.providers.fake import FakeProvider
+from librarian_bench.llm.roles import ROLES
+from librarian_bench.measure.energy import FakeEstimator
+from librarian_bench.measure.tokenizers import ApproxTokenizer
+from librarian_bench.measure.tracing import Tracer
+from librarian_bench.ports.gateway import LLMRequest, LLMRole, Message
 
 
 class _Ctx:
@@ -34,10 +34,10 @@ class _Ctx:
 
 
 class Env:
-    def __init__(self, wl_home: Path, tmp: Path) -> None:
+    def __init__(self, bench_home: Path, tmp: Path) -> None:
         self.fake = FakeProvider()
-        self.ledger = Ledger(Budget(per_run={}, period={}), "run-1", wl_home)
-        self.cache = ResponseCache(wl_home)
+        self.ledger = Ledger(Budget(per_run={}, period={}), "run-1", bench_home)
+        self.cache = ResponseCache(bench_home)
         self.path = tmp / "traces.jsonl"
         self.gw = MeteredGateway(
             catalog=load_catalog(),
@@ -57,8 +57,8 @@ class Env:
 
 
 @pytest.fixture
-def env(wl_home: Path, tmp_path: Path) -> Iterator[Env]:
-    e = Env(wl_home, tmp_path)
+def env(bench_home: Path, tmp_path: Path) -> Iterator[Env]:
+    e = Env(bench_home, tmp_path)
     yield e
     e.ledger.close()
     e.cache.close()
@@ -211,9 +211,9 @@ def test_cle_manquante_refusee_avant_tout_appel(env: Env, role: LLMRole) -> None
     inputs, _ = CAS[role]
     for cle in ROLES[role].required_inputs:
         incomplet = {k: v for k, v in inputs.items() if k != cle}
-        with pytest.raises(WlError, match=cle):
+        with pytest.raises(LibrarianBenchError, match=cle):
             env.gw.complete(_req(role, incomplet))
-        with pytest.raises(WlError, match=cle):
+        with pytest.raises(LibrarianBenchError, match=cle):
             env.gw.complete_structured(_req(role, incomplet), BaseModel)
     assert env.spans() == []  # ni réservation, ni appel, ni span
 
@@ -317,7 +317,7 @@ def test_script_prime_sur_le_defaut(env: Env) -> None:
 def test_script_callable_et_role_inconnu(env: Env) -> None:
     env.fake.script("rewrite", "*", lambda r: r.inputs["text"].upper())
     assert env.gw.complete(_req("rewrite", {"text": "abc"})).text == "ABC"
-    with pytest.raises(WlError, match="rôle inconnu"):
+    with pytest.raises(LibrarianBenchError, match="rôle inconnu"):
         env.fake.script("inconnu", "*", "x")
 
 

@@ -8,9 +8,9 @@ status: review
 
 ## Code Map
 
-- `src/wavelibrarian/architectures/graphrag.py` : `GraphRag`, enregistrée `("architecture", "graphrag")`. Assemble `EntityExtractor`, `NetworkxGraphStore`, `detect_communities` / `louvain_seed(ctx.seed)` et `CommunityReporter` (story 7.5), un store `numpy_exact` pour les entités, le Generator `llm`.
+- `src/librarian_bench/architectures/graphrag.py` : `GraphRag`, enregistrée `("architecture", "graphrag")`. Assemble `EntityExtractor`, `NetworkxGraphStore`, `detect_communities` / `louvain_seed(ctx.seed)` et `CommunityReporter` (story 7.5), un store `numpy_exact` pour les entités, le Generator `llm`.
 - Dossier d'index : `passages.jsonl` (feuilles et rapports de `level` 1), `vectors/` (entités), `graph/graph.json`, `communities.json` (id, membres, signature, `report_id`), `entities.json` (empreinte du texte embarqué de chaque entité), `extractions.json` (cache d'extraction, clé `sha16` du texte du Passage).
-- `src/wavelibrarian/components/graph_stores/networkx_store.py` (revue) : journal des apports, rejoué par `remove_passages`, sauvegardé trié dans `graph.json`.
+- `src/librarian_bench/components/graph_stores/networkx_store.py` (revue) : journal des apports, rejoué par `remove_passages`, sauvegardé trié dans `graph.json`.
 - `tests/unit/architectures/test_story_7_6.py` (23 tests). Aucun changement de `roles.py`, `fake.py`, du runner ni du Rapport.
 
 ## Design Notes

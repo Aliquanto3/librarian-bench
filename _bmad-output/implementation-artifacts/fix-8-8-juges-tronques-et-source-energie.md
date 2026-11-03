@@ -33,7 +33,7 @@ Tous sont des spans `judge` du Poste `judging` ; ce n'est pas un défaut du comp
 ## Reports
 
 - Énergie des Juges locaux (Poste `judging`) non mesurée : à arbitrer par Anaël (phase `judging` dans `energie_de_phase`, ou mention au Rapport).
-- Relancer `wl run --reprendre` du run 8.8 pour rejuger les 55 Critères avec le nouveau budget.
+- Relancer `librarian-bench run --reprendre` du run 8.8 pour rejuger les 55 Critères avec le nouveau budget.
 
 ## Revue
 

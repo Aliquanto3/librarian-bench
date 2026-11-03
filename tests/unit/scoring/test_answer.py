@@ -2,7 +2,7 @@
 
 import pytest
 
-from wavelibrarian.scoring.answer import exact_match, is_short_form
+from librarian_bench.scoring.answer import exact_match, is_short_form
 
 
 @pytest.mark.parametrize(
@@ -85,7 +85,7 @@ def test_exact_match_faux(reference: str, reponse: str) -> None:
 
 
 def test_citation_correctness() -> None:
-    from wavelibrarian.scoring.answer import citation_correctness as cc
+    from librarian_bench.scoring.answer import citation_correctness as cc
 
     ref, corpus = {"d#a"}, {"d#a", "d#b"}
     assert cc(["d#a"], ref, corpus, unanswerable=False)
@@ -98,14 +98,14 @@ def test_citation_correctness() -> None:
 
 
 def test_abstention_correctness() -> None:
-    from wavelibrarian.scoring.answer import abstention_correctness as ac
+    from librarian_bench.scoring.answer import abstention_correctness as ac
 
     assert ac(True, unanswerable=True) and ac(False, unanswerable=False)
     assert not ac(False, unanswerable=True) and not ac(True, unanswerable=False)
 
 
 def test_citation_correctness_citation_invalide_hors_corpus() -> None:
-    from wavelibrarian.scoring.answer import citation_correctness
+    from librarian_bench.scoring.answer import citation_correctness
 
     ref, corpus = {"d#a1"}, {"d#a1", "d#a2"}
     assert citation_correctness(["d#a1"], ref, corpus, unanswerable=False)

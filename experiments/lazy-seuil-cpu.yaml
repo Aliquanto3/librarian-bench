@@ -2,7 +2,7 @@
 # profil `cpu`, mêmes modèles que `mini-cpu.yaml`. Les trois Configurations ne diffèrent que par
 # un paramètre de requête : l'index est construit une fois. La valeur par défaut (0,1) ne change
 # que sur décision d'Anaël. Depuis la v0.3.0 : Juge unique `claude-opus-5-5` (plafond de 2,00 USD).
-# Prérequis : `uv sync --extra local` et `wl installer --profil cpu`.
+# Prérequis : `uv sync --extra local` et `librarian-bench installer --profil cpu`.
 experiment_id: lazy-seuil-cpu
 seed: 42
 profile: cpu

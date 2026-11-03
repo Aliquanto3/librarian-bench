@@ -1,4 +1,5 @@
-"""Story 8.11 : `wl calibrer` avec des Juges `provider: anthropic` (SDK factice, aucun réseau)."""
+"""Story 8.11 : `librarian-bench calibrer` avec des Juges `provider: anthropic` (SDK factice, aucun
+réseau)."""
 
 import json
 from decimal import Decimal
@@ -12,20 +13,20 @@ import pytest
 import yaml
 from typer.testing import CliRunner
 
-from wavelibrarian.cli import app
-from wavelibrarian.config.catalog import load_catalog
-from wavelibrarian.config.validate import validate_file
-from wavelibrarian.core.errors import BudgetExceeded
-from wavelibrarian.evalset import io
-from wavelibrarian.evalset.freeze import select_questions
-from wavelibrarian.llm.providers.anthropic import (
+from librarian_bench.cli import app
+from librarian_bench.config.catalog import load_catalog
+from librarian_bench.config.validate import validate_file
+from librarian_bench.core.errors import BudgetExceeded
+from librarian_bench.evalset import io
+from librarian_bench.evalset.freeze import select_questions
+from librarian_bench.llm.providers.anthropic import (
     CONSIGNE_OUTIL,
     OUTIL_SORTIE,
     AnthropicProvider,
 )
-from wavelibrarian.runner.calibrer import calibrer, fichier_verdicts
-from wavelibrarian.runner.rundir import read_answers
-from wavelibrarian.scoring.panel import criteres_juges
+from librarian_bench.runner.calibrer import calibrer, fichier_verdicts
+from librarian_bench.runner.rundir import read_answers
+from librarian_bench.scoring.panel import criteres_juges
 
 RACINE = Path(__file__).resolve().parents[3]
 MINI = RACINE / "corpora" / "minicorpus"
@@ -104,11 +105,11 @@ class _SdkFactice:
 
 
 @pytest.fixture
-def execution(tmp_path: Path, wl_home: Path) -> tuple[Path, Path]:
+def execution(tmp_path: Path, bench_home: Path) -> tuple[Path, Path]:
     exp = _experience(tmp_path)
     res = CliRunner().invoke(app, ["run", str(exp)])
     assert res.exit_code == 0, res.output
-    (dossier,) = [d for d in (wl_home / "runs").iterdir() if d.is_dir()]
+    (dossier,) = [d for d in (bench_home / "runs").iterdir() if d.is_dir()]
     return exp, dossier
 
 
@@ -141,7 +142,7 @@ def test_catalogue_opus_5_5_tarifs_et_absence_de_palier() -> None:
 
 
 def test_calibration_claude_sortie_structuree_cout_par_appel_et_pas_de_temperature(
-    execution: tuple[Path, Path], tmp_path: Path, wl_home: Path
+    execution: tuple[Path, Path], tmp_path: Path, bench_home: Path
 ) -> None:
     _, dossier = execution
     _annoter(dossier, tmp_path / "ann")
@@ -151,7 +152,7 @@ def test_calibration_claude_sortie_structuree_cout_par_appel_et_pas_de_temperatu
         exp,
         tmp_path / "ann",
         dossier.name,
-        wl_home=wl_home,
+        bench_home=bench_home,
         providers={"anthropic": AnthropicProvider(client=sdk)},  # type: ignore[arg-type]
     )
     n_reponses = len({a for a in read_answers(dossier)})
@@ -181,7 +182,7 @@ def test_calibration_claude_sortie_structuree_cout_par_appel_et_pas_de_temperatu
     assert res.cout == {"USD": attendu}
     spans = [
         json.loads(ligne)
-        for d in (wl_home / "hors-execution").iterdir()
+        for d in (bench_home / "hors-execution").iterdir()
         for ligne in (d / "traces.jsonl").read_text(encoding="utf-8").splitlines()
     ]
     juges = [s for s in spans if s.get("wl.post") == "judging" and not s["wl.llm_cache_hit"]]
@@ -193,7 +194,7 @@ def test_calibration_claude_sortie_structuree_cout_par_appel_et_pas_de_temperatu
 
 
 def test_plafond_anthropic_atteint_leve_budget_exceeded_et_n_ecrit_rien(
-    execution: tuple[Path, Path], tmp_path: Path, wl_home: Path
+    execution: tuple[Path, Path], tmp_path: Path, bench_home: Path
 ) -> None:
     _, dossier = execution
     _annoter(dossier, tmp_path / "ann")
@@ -204,7 +205,7 @@ def test_plafond_anthropic_atteint_leve_budget_exceeded_et_n_ecrit_rien(
             exp,
             tmp_path / "ann",
             dossier.name,
-            wl_home=wl_home,
+            bench_home=bench_home,
             providers={"anthropic": AnthropicProvider(client=sdk)},  # type: ignore[arg-type]
         )
     assert not (dossier / "calibration.json").exists()
@@ -227,7 +228,7 @@ def test_experience_livree_calibration_claude() -> None:
 
 
 def test_reponse_opus_sans_outil_verdict_manquant_cout_trace_calibration_ecrite(
-    execution: tuple[Path, Path], tmp_path: Path, wl_home: Path
+    execution: tuple[Path, Path], tmp_path: Path, bench_home: Path
 ) -> None:
     """Troncature ou refus (aucun bloc d'outil) : nouvel essai puis verdict manquant et
     avertissement pour cette Réponse ; les appels payés sont tracés ; le reste est écrit."""
@@ -241,7 +242,7 @@ def test_reponse_opus_sans_outil_verdict_manquant_cout_trace_calibration_ecrite(
         exp,
         tmp_path / "ann",
         dossier.name,
-        wl_home=wl_home,
+        bench_home=bench_home,
         providers={"anthropic": AnthropicProvider(client=sdk)},  # type: ignore[arg-type]
     )
     assert chemin.is_file() and fichier_verdicts(chemin).is_file()
@@ -263,7 +264,7 @@ def test_reponse_opus_sans_outil_verdict_manquant_cout_trace_calibration_ecrite(
 
 
 def test_sorties_distinctes_ne_s_ecrasent_pas_et_dossier_cree(
-    execution: tuple[Path, Path], tmp_path: Path, wl_home: Path
+    execution: tuple[Path, Path], tmp_path: Path, bench_home: Path
 ) -> None:
     """Deux calibrations de la même Exécution (Ollama par défaut, Claude avec `--sortie`) :
     chacune garde ses verdicts ; un dossier de sortie absent est créé avant les appels."""
@@ -271,12 +272,19 @@ def test_sorties_distinctes_ne_s_ecrasent_pas_et_dossier_cree(
     _annoter(dossier, tmp_path / "ann")
     exp = validate_file(_exp_claude(tmp_path, "10.00")).resolved
     providers = {"anthropic": AnthropicProvider(client=_SdkFactice())}  # type: ignore[arg-type]
-    _, defaut = calibrer(exp, tmp_path / "ann", dossier.name, wl_home=wl_home, providers=providers)
+    _, defaut = calibrer(
+        exp, tmp_path / "ann", dossier.name, bench_home=bench_home, providers=providers
+    )
     assert fichier_verdicts(defaut) == dossier / "calibration_verdicts.jsonl"
     avant = (dossier / "calibration_verdicts.jsonl").read_bytes()
     sortie = tmp_path / "absent" / "calibration-claude.json"
     _, chemin = calibrer(
-        exp, tmp_path / "ann", dossier.name, wl_home=wl_home, sortie=sortie, providers=providers
+        exp,
+        tmp_path / "ann",
+        dossier.name,
+        bench_home=bench_home,
+        sortie=sortie,
+        providers=providers,
     )
     assert chemin == sortie and sortie.is_file()
     assert (sortie.parent / "calibration-claude_verdicts.jsonl").is_file()

@@ -8,8 +8,8 @@ status: done
 
 ## Code Map
 
-- `src/wavelibrarian/corpus/declare.py` : `declare(chemin) -> DeclaredCorpus`, schémas `CorpusSpec`, `DocOverride`, `TiersSpec`, type `Document` (source_path, doc_id, format, lang, `DocMeta`), table `EXTENSIONS`.
-- `src/wavelibrarian/core/ids.py` : ajout de `sha16_bytes` (doc_id = sha256(octets)[:16]).
+- `src/librarian_bench/corpus/declare.py` : `declare(chemin) -> DeclaredCorpus`, schémas `CorpusSpec`, `DocOverride`, `TiersSpec`, type `Document` (source_path, doc_id, format, lang, `DocMeta`), table `EXTENSIONS`.
+- `src/librarian_bench/core/ids.py` : ajout de `sha16_bytes` (doc_id = sha256(octets)[:16]).
 - Tests : `tests/unit/corpus/test_declare.py`.
 
 ## Design Notes

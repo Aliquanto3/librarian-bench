@@ -1,16 +1,16 @@
-# Cadrage — WaveLibrarian, banc de comparaison de recherche documentaire IA
+# Cadrage — LibrarianBench, banc de comparaison de recherche documentaire IA
 
 Oct 17, 2026 · @Anaël Yahi
 
 ## Objectifs et livrables
 
-WaveLibrarian livre une conviction mesurée, un outil de mission et une plateforme pédagogique ; la publication est un bonus.
+LibrarianBench livre une conviction mesurée, un outil de mission et une plateforme pédagogique ; la publication est un bonus.
 
 | Livrable | Contenu | Critère de réussite |
 | --- | --- | --- |
 | 1. Conviction | Matrice « profil de corpus × type de question → architecture et modèles recommandés », avec qualité, coût, empreinte environnementale et lecture conformité-sécurité ; refonte des slides de conviction à partir des résultats | Chaque branche de l'arbre de décision confirmée ou corrigée par des mesures |
 | 2. Outil de mission | Profilage d'un corpus client, génération du jeu d'évaluation, recherche optimisée de la configuration (parcours exhaustif en option), rapport comparatif avec une fiche conformité-sécurité par architecture, lisible par une direction de DSI | Configuration très fonctionnelle trouvée sous un budget borné en euros et en heures |
-| 3. Plateforme pédagogique | Interface no code pour assembler une architecture, ajouter ou retirer un composant, observer chaque étape et apprendre à évaluer modèles et architectures, dans l'esprit de WaveStack | Utilisable en formation sans écrire de code |
+| 3. Plateforme pédagogique | Interface no code pour assembler une architecture, ajouter ou retirer un composant, observer chaque étape et apprendre à évaluer modèles et architectures, dans l'esprit de HarnessLab | Utilisable en formation sans écrire de code |
 | 4. Publication (optionnelle) | Protocole reproductible et résultats sur corpus diffusables | Code et corpus publiables sans contrainte de droits |
 
 ## Hypothèses à tester
@@ -154,7 +154,7 @@ Chaque architecture reçoit une fiche conformité-sécurité, au même rang que 
 
 Les architectures à contenu dérivé (GraphRAG, LLM Wiki) méritent une attention particulière : la synthèse peut mélanger des sources de niveaux de droits différents et compliquer l'effacement.
 
-**Reprise du harnais WaveStack** ([dépôt](https://github.com/Aliquanto3/agentic-harness-training-demo))
+**Reprise du harnais HarnessLab** ([dépôt](https://github.com/Aliquanto3/harness-lab))
 
 - **FinOps** : prix déclarés et datés par modèle, plafond de dépense par séance, décomposition « sans optimisation / coût réel / part du cache ». À étendre au coût d'indexation et au coût par requête réussie.
 - **GreenOps** : EcoLogits pour le cloud et CodeCarbon en local, avec l'avertissement que les deux périmètres ne se comparent pas terme à terme. À compléter par l'embedding, le reranking et le GPU, non comptés dans le harnais.
@@ -237,7 +237,7 @@ La plateforme réutilise le registre de composants et les traces du banc ; elle 
 - **Fiche par composant** : à quoi il sert, quand l'utiliser, ce qu'il coûte, ce que dit la littérature, ce qu'a mesuré le banc.
 - **Mode attaque** : document piégé, suppression d'un document, deux profils de droits, pour montrer les risques de la section Conformité.
 
-WaveStack couvre déjà trois RAG (dense, hybride, reranking), les garde-fous, le FinOps et le GreenOps. Étendre WaveStack avec un atelier « recherche documentaire » coûte moins cher que créer une deuxième application, au prix d'un couplage entre les deux projets : c'est l'option retenue le 17 octobre 2026, avec un brief de développement dédié.
+HarnessLab couvre déjà trois RAG (dense, hybride, reranking), les garde-fous, le FinOps et le GreenOps. Étendre HarnessLab avec un atelier « recherche documentaire » coûte moins cher que créer une deuxième application, au prix d'un couplage entre les deux projets : c'est l'option retenue le 17 octobre 2026, avec un brief de développement dédié.
 
 ## Phasage et points de contrôle
 
@@ -273,21 +273,21 @@ Classées par échéance. D1 à D5 sont tranchées (17 octobre 2026) : plus rien
 | # | Décision | Options | Ce que ça change | Recommandation | Échéance |
 | --- | --- | --- | --- | --- | --- |
 | D1 | Taille et annotation du jeu d'évaluation | 100, 150 ou 200 questions par corpus ; annotation par toi seul ou avec un second annotateur | Plus de questions = écarts plus fins détectables, mais des jours d'annotation ; sans second annotateur, pas de plafond d'accord humain | Décidé : 150 questions par corpus, dont 50 annotées aussi par un collègue | Avant la phase 1 |
-| D2 | Budget cloud | Plafond mensuel ; clés personnelles, budget Wavestone ou crédits fournisseurs | Fixe la profondeur des niveaux 1 à 3 et le nombre de juges | Décidé : 50 €/mois sur Azure AI Foundry (Wavestone) et 50 $/mois sur l'API Anthropic (personnel). Conséquences : modèles serverless seulement, pas de VM GPU ; juges peu coûteux en masse, juge frontière réservé à la calibration ; API batch et cache de prompt ; génération et embeddings en local quand possible ; arrêt automatique au plafond | Avant la phase 1 |
+| D2 | Budget cloud | Plafond mensuel ; clés personnelles ou crédits fournisseurs | Fixe la profondeur des niveaux 1 à 3 et le nombre de juges | Décidé : 50 €/mois sur Azure AI Foundry et 50 $/mois sur l'API Anthropic. Conséquences : modèles serverless seulement, pas de VM GPU ; juges peu coûteux en masse, juge frontière réservé à la calibration ; API batch et cache de prompt ; génération et embeddings en local quand possible ; arrêt automatique au plafond | Avant la phase 1 |
 | D3 | Hyperscaler de départ | AWS, Azure AI Foundry ou GCP Vertex, selon les accès confirmés | Un seul au départ divise l'effort d'infrastructure ; les autres arrivent par la passerelle de modèles | Décidé : Azure (AI Foundry) | Avant la phase 1 |
 | D4 | Socle logiciel | LlamaIndex, Haystack, ou code minimal maison autour d'interfaces + Optuna | Un framework accélère le départ mais impose ses abstractions ; le maison garantit la flexibilité des composants | Décidé : code minimal maison et Optuna ; les frameworks entrent comme composants comparés | Avant la phase 1 |
 | D5 | Corpus sous droits et cloud | Envoyer ou non les PDF CO et tes notes personnelles à des API cloud | Droits d'auteur et confidentialité contre puissance des modèles frontière | Décidé : aucune contrainte de droits à prévoir, tous les corpus peuvent passer par des API cloud | Avant la phase 1 |
 | D6 | Fournisseur IaaS souverain (profil 4) | S3NS (qualifié, technologie Google), OVHcloud ou Outscale (qualifiés, capital français), Scaleway (en cours) | Disponibilité de GPU dans le périmètre qualifié, coût, argument de souveraineté | La qualification n'est pas un critère : choisir sur le prix et la disponibilité des GPU ; non couvert par le budget actuel, donc après la phase 3 | Avant le profil 4 |
 | D7 | Règle de sensibilité du profil hybride | Métadonnées du document, classifieur, ou les deux | Déterministe et auditable contre plus souple mais faillible | Métadonnées obligatoires, classifieur en complément pour alerter | Avant le profil 5 |
-| D8 | Plateforme WaveStack : métriques agrégées | Lever l'interdiction de la spec V2 sur la seule vue évaluation, ou rester aux verdicts par question | Enseigner l'évaluation sans scores agrégés est difficile | Lever sur la vue évaluation, toujours avec intervalle de confiance et accord humain affichés | Avant la spec du lot |
-| D9 | Plateforme WaveStack : comparaison A/B | Rétablir deux exécutions côte à côte, ou non | « Retirer un composant et voir l'effet » en dépend | Rétablir, limité à deux exécutions | Avant la spec du lot |
-| D10 | Plateforme WaveStack : articulation avec la V2 | Fusionner CAP-1 à CAP-4 et CAP-7/8 dans le lot, ou les livrer d'abord | CAP-1 (jeu de questions) est un prérequis de la vue évaluation | Livrer CAP-1 d'abord, fusionner le reste | Avant la spec du lot |
-| D11 | Plateforme WaveStack : corpus et GraphRAG | Enrichir Exemplia ou nouveau corpus ; GraphRAG et LLM Wiki maison ou via bibliothèque | Cohérence et traductions existantes ; lisibilité pédagogique contre fidélité | Enrichir Exemplia (multi-sauts, versions, interlingue, document piégé) ; implémentations maison simplifiées | Avant la spec du lot |
+| D8 | Plateforme HarnessLab : métriques agrégées | Lever l'interdiction de la spec V2 sur la seule vue évaluation, ou rester aux verdicts par question | Enseigner l'évaluation sans scores agrégés est difficile | Lever sur la vue évaluation, toujours avec intervalle de confiance et accord humain affichés | Avant la spec du lot |
+| D9 | Plateforme HarnessLab : comparaison A/B | Rétablir deux exécutions côte à côte, ou non | « Retirer un composant et voir l'effet » en dépend | Rétablir, limité à deux exécutions | Avant la spec du lot |
+| D10 | Plateforme HarnessLab : articulation avec la V2 | Fusionner CAP-1 à CAP-4 et CAP-7/8 dans le lot, ou les livrer d'abord | CAP-1 (jeu de questions) est un prérequis de la vue évaluation | Livrer CAP-1 d'abord, fusionner le reste | Avant la spec du lot |
+| D11 | Plateforme HarnessLab : corpus et GraphRAG | Enrichir Exemplia ou nouveau corpus ; GraphRAG et LLM Wiki maison ou via bibliothèque | Cohérence et traductions existantes ; lisibilité pédagogique contre fidélité | Enrichir Exemplia (multi-sauts, versions, interlingue, document piégé) ; implémentations maison simplifiées | Avant la spec du lot |
 | D12 | Budget par défaut du mode mission | Forfaits en euros et en heures | Ce que l'outil promet à un client | Fixer après la phase 7, sur mesures réelles | Phase 7 |
-| D13 | Publication | Corpus publiables (notes MTG ?), cible (arXiv, atelier, blog Wavestone) | Les corpus sous droits ne peuvent pas être publiés | arXiv et blog Wavestone ; atelier si les résultats H3, H7, H12 ou H13 sont nets | Phase 8 |
+| D13 | Publication | Corpus publiables (notes MTG ?), cible (arXiv, atelier, blog) | Les corpus sous droits ne peuvent pas être publiés | arXiv et blog ; atelier si les résultats H3, H7, H12 ou H13 sont nets | Phase 8 |
 | D14 | Mutualisation avec le moteur local et le banc SLM | Partager le harnais d'évaluation, la mesure d'énergie, le code applicatif | Gain de temps contre couplage entre projets | Partager l'évaluation et la mesure d'énergie, pas le code applicatif | Phase 1 |
 
-Décidé : plateforme pédagogique en extension de WaveStack (17 octobre 2026) ; optimisation bayésienne avec évaluation progressive plutôt que recuit simulé.
+Décidé : plateforme pédagogique en extension de HarnessLab (17 octobre 2026) ; optimisation bayésienne avec évaluation progressive plutôt que recuit simulé.
 
 ## Sources
 
@@ -340,7 +340,7 @@ Toutes les pages ci-dessous ont été ouvertes lors des recherches du 17 octobre
 | H10 | [Pandey](https://arxiv.org/html/2603.11513) | mars 2026 | Un auteur, quantification 4 bits |
 | H11 | [Long Context vs. RAG: An Evaluation and Revisits](https://arxiv.org/html/2501.01880v1) | janv. 2025 | — |
 | H11 | [LaRA](https://arxiv.org/html/2502.09977v1) | fév. 2025 | — |
-| Conformité, FinOps, GreenOps | [agentic-harness-training-demo (WaveStack)](https://github.com/Aliquanto3/agentic-harness-training-demo) | 2026 | Travaux personnels, démonstrateur pédagogique |
+| Conformité, FinOps, GreenOps | [harness-lab (HarnessLab)](https://github.com/Aliquanto3/harness-lab) | 2026 | Travaux personnels, démonstrateur pédagogique |
 
 **Sources complémentaires (H12 à H16, outils d'évaluation)**
 

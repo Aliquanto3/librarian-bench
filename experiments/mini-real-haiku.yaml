@@ -1,6 +1,6 @@
 # Expérience réelle d'API (story 4.14, exécutée par SM-4 en story 4.15) : Generator
 # `claude-haiku-5-5`, 5 Questions, plafond de 5,00 USD. Aucun modèle local : Juges factices
-# `[fake-llm-b, fake-llm-c]`, embedder `fake`, pas de Filtre closed-book (`wl run` ne le lance
+# `[fake-llm-b, fake-llm-c]`, embedder `fake`, pas de Filtre closed-book (`librarian-bench run` ne le lance
 # pas). Seule l'API Anthropic est sollicitée, ce qui laisse l'Ollama local à un autre banc.
 # AD-14 : Opus (Juge principal des autres Expériences livrées) ne juge pas un Generator Claude ;
 # les Juges restent donc factices, et le Rapport l'affiche : « qualité non interprétable : Juges

@@ -1,4 +1,5 @@
-"""Story 9.5 (revue) : Juge unique calibré dans `panels_de` et `wl rejuger` (Faux LLM)."""
+"""Story 9.5 (revue) : Juge unique calibré dans `panels_de` et `librarian-bench rejuger` (Faux
+LLM)."""
 
 import json
 import shutil
@@ -9,13 +10,13 @@ import pytest
 import yaml
 from typer.testing import CliRunner
 
-from wavelibrarian.cli import app
-from wavelibrarian.config.validate import validate_file
-from wavelibrarian.core.errors import ConfigError
-from wavelibrarian.evalset import io
-from wavelibrarian.evalset.freeze import empreinte
-from wavelibrarian.runner.execute import panels_de
-from wavelibrarian.runner.rundir import read_panel, read_verdicts
+from librarian_bench.cli import app
+from librarian_bench.config.validate import validate_file
+from librarian_bench.core.errors import ConfigError
+from librarian_bench.evalset import io
+from librarian_bench.evalset.freeze import empreinte
+from librarian_bench.runner.execute import panels_de
+from librarian_bench.runner.rundir import read_panel, read_verdicts
 
 RACINE = Path(__file__).resolve().parents[3] / "corpora" / "minicorpus"
 TROIS = ("correctness", "completeness", "faithfulness")
@@ -65,24 +66,24 @@ def _wl(*args: str, code: int = 0) -> Any:
     return res
 
 
-def test_panels_de_juge_unique_saute_l_exclu(tmp_path: Path, wl_home: Path) -> None:
+def test_panels_de_juge_unique_saute_l_exclu(tmp_path: Path, bench_home: Path) -> None:
     shutil.copyfile(RACINE / "questions.yaml", tmp_path / "questions.yaml")
     _calibration(tmp_path)
-    resolue = validate_file(_experience(tmp_path, "exp.yaml", UNIQUE), wl_home).resolved
+    resolue = validate_file(_experience(tmp_path, "exp.yaml", UNIQUE), bench_home).resolved
     assert panels_de(resolue) == {"bm25": ("fake-llm-c",)}
     _calibration(tmp_path, ("completeness", "faithfulness"))  # calibration changée après coup
     with pytest.raises(ConfigError, match="'fake-llm-c'.*'correctness'"):
         panels_de(resolue)
 
 
-def test_rejuger_avec_juge_unique_questions_courtes(tmp_path: Path, wl_home: Path) -> None:
+def test_rejuger_avec_juge_unique_questions_courtes(tmp_path: Path, bench_home: Path) -> None:
     shutil.copyfile(RACINE / "questions.yaml", tmp_path / "questions.yaml")
     _toutes_courtes(tmp_path / "questions.yaml")
     _calibration(tmp_path)
     _wl("run", str(_experience(tmp_path, "source.yaml", {})))
-    (source,) = [d for d in (wl_home / "runs").iterdir() if d.is_dir()]
+    (source,) = [d for d in (bench_home / "runs").iterdir() if d.is_dir()]
     _wl("rejuger", source.name, str(_experience(tmp_path, "rejuge.yaml", UNIQUE)))
-    (cible,) = [d for d in (wl_home / "runs").iterdir() if d.is_dir() and d != source]
+    (cible,) = [d for d in (bench_home / "runs").iterdir() if d.is_dir() and d != source]
 
     verdicts = read_verdicts(cible)
     juges = {m for (_, m, _, _) in verdicts} - {"auto"}

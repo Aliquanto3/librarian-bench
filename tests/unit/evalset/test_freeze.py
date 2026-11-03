@@ -1,4 +1,4 @@
-"""Gel, `verify_frozen`, `select_questions` et `wl questions geler` (story 3.6)."""
+"""Gel, `verify_frozen`, `select_questions` et `librarian-bench questions geler` (story 3.6)."""
 
 import hashlib
 from pathlib import Path
@@ -8,10 +8,10 @@ import pytest
 import yaml
 from typer.testing import CliRunner
 
-from wavelibrarian.cli import app
-from wavelibrarian.core.errors import ConfigError, ValidationFailed
-from wavelibrarian.core.ids import canonical_json
-from wavelibrarian.evalset import freeze, io
+from librarian_bench.cli import app
+from librarian_bench.core.errors import ConfigError, ValidationFailed
+from librarian_bench.core.ids import canonical_json
+from librarian_bench.evalset import freeze, io
 
 TYPES = ("factual", "multi_hop", "comparison", "temporal", "unanswerable")
 

@@ -8,10 +8,10 @@ status: done
 
 ## Code Map
 
-- `src/wavelibrarian/components/chunkers/fixed_tokens.py` : `FixedTokenChunker` (`("chunker", "fixed_tokens")`, `size: 300`, `overlap: 50`).
-- `src/wavelibrarian/components/context/labeled.py` : `LabeledContextBuilder` (`("context_builder", "labeled")`).
-- `src/wavelibrarian/components/context/arch_answer.py` (réexporté par `components/context/__init__.py`) : `build_arch_answer`.
-- `src/wavelibrarian/components/generators/llm.py` : `LLMGenerator` (`("generator", "llm")`, `model` en `answer_producer`, `max_tokens`).
+- `src/librarian_bench/components/chunkers/fixed_tokens.py` : `FixedTokenChunker` (`("chunker", "fixed_tokens")`, `size: 300`, `overlap: 50`).
+- `src/librarian_bench/components/context/labeled.py` : `LabeledContextBuilder` (`("context_builder", "labeled")`).
+- `src/librarian_bench/components/context/arch_answer.py` (réexporté par `components/context/__init__.py`) : `build_arch_answer`.
+- `src/librarian_bench/components/generators/llm.py` : `LLMGenerator` (`("generator", "llm")`, `model` en `answer_producer`, `max_tokens`).
 - Tests : `tests/unit/components/test_story_4_1.py` (Faux LLM, profil `test`).
 
 ## Design Notes

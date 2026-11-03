@@ -1,15 +1,15 @@
 ---
 story: "1.3"
-title: Registre de Composants et commande `wl registre`
+title: Registre de Composants et commande `librarian-bench registre`
 status: done
 ---
 
-# Story 1.3 : Registre de Composants et commande `wl registre`
+# Story 1.3 : Registre de Composants et commande `librarian-bench registre`
 
 ## Code Map
 
-- `src/wavelibrarian/registry.py` : `register(kind, name)`, `get`, `names`, `list_components(kind=None)` (`ComponentInfo`, `ParamInfo`), `discover()`.
-- `src/wavelibrarian/cli.py` : commande `wl registre [--kind K]`.
+- `src/librarian_bench/registry.py` : `register(kind, name)`, `get`, `names`, `list_components(kind=None)` (`ComponentInfo`, `ParamInfo`), `discover()`.
+- `src/librarian_bench/cli.py` : commande `librarian-bench registre [--kind K]`.
 - `tests/unit/test_registry.py`.
 
 ## Design Notes
@@ -17,9 +17,9 @@ status: done
 - Les `kind` valides viennent de `ports.components.KINDS` (liste fermée de `contracts.md` §2) ; un `kind` hors liste lève `ConfigError` à la décoration, à `get` et à `list_components`.
 - Le registre est un dictionnaire de module `(kind, name) -> classe`. `register` refuse une classe sans `Params` pydantic en `extra="forbid"` et `frozen=True` (AD-2). Les tests isolent le registre par une fixture qui le sauvegarde et le restaure, et qui retire de `sys.modules` les modules importés par `discover()` pendant le test.
 - `list_components` lit `Params.model_fields` : type affiché (`int`, ou la forme `str(annotation)`), défaut en `repr`, « calculé » pour une `default_factory` qui lit les données, ou « obligatoire ». La description est la docstring propre à la classe (`cls.__dict__`), sans héritage.
-- `discover()` parcourt `wavelibrarian.components` et `wavelibrarian.architectures` par `pkgutil.walk_packages` ; un drapeau de module rend le second appel sans effet.
-- `wl registre --kind inconnu` sort en 2 (validation) avec un message français.
-- Aucun Composant réel n'existe encore : hors tests, `wl registre` affiche seulement « Aucun Composant enregistré. » et sort en 0.
+- `discover()` parcourt `librarian-bench.components` et `librarian-bench.architectures` par `pkgutil.walk_packages` ; un drapeau de module rend le second appel sans effet.
+- `librarian-bench registre --kind inconnu` sort en 2 (validation) avec un message français.
+- Aucun Composant réel n'existe encore : hors tests, `librarian-bench registre` affiche seulement « Aucun Composant enregistré. » et sort en 0.
 
 ## Tâches et critères
 
@@ -28,7 +28,7 @@ status: done
 - [x] Nom inconnu : `ConfigError` listant `toy` et `toy2` du seul `kind` : `test_nom_inconnu_liste_le_meme_kind`.
 - [x] `discover()` récursif par `pkgutil` sous `components` et sous `architectures`, second appel sans effet : `test_discover_recursif_et_idempotent` (paramétré).
 - [x] `Params` en `extra="forbid"` et `frozen=True` exigé (AD-2) : `test_params_exige_forbid_et_frozen`.
-- [x] `wl registre` et `--kind`, en français, code 0 : `test_cli_registre` ; `kind` invalide : `test_cli_kind_invalide`.
+- [x] `librarian-bench registre` et `--kind`, en français, code 0 : `test_cli_registre` ; `kind` invalide : `test_cli_kind_invalide`.
 
 ## Auto Run Result
 
@@ -49,6 +49,6 @@ Revue Opus du 2026-10-17, sur le commit 2de29d5 et la liste du second avis (Haik
 | 4 | low | second avis | corrigé | Une `default_factory` qui lit les données levait `TypeError` dans `list_components` ; elle s'affiche « calculé ». |
 | 5 | low | second avis | corrigé | `test_cli_kind_invalide` vérifie aussi le message. |
 | 6 | low | second avis | corrigé | Couvert par le correctif 1 : les modules de `tmp_path` sont retirés de `sys.modules`. |
-| 7 | low | second avis | corrigé | Le critère cite aussi `wavelibrarian.architectures` : le test de découverte est paramétré sur les deux paquets. |
+| 7 | low | second avis | corrigé | Le critère cite aussi `librarian-bench.architectures` : le test de découverte est paramétré sur les deux paquets. |
 | 8 | low | second avis | corrigé | Contradiction des Design Notes sur la sortie vide levée : hors tests, la sortie est « Aucun Composant enregistré. », code 0. |
 | 12 | low | second avis | rejeté | Un module qui échoue à l'import est un défaut de code, pas de configuration : le convertir en `ConfigError` masquerait la trace utile. |

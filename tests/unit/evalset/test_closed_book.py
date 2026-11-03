@@ -1,4 +1,4 @@
-"""Filtre closed-book et `wl questions closed-book` (story 3.5), Faux LLM seul."""
+"""Filtre closed-book et `librarian-bench questions closed-book` (story 3.5), Faux LLM seul."""
 
 import json
 from collections.abc import Callable
@@ -10,13 +10,13 @@ import pytest
 import yaml
 from typer.testing import CliRunner
 
-import wavelibrarian.cli as cli
-from wavelibrarian.cli import app
-from wavelibrarian.config.experiment import Amount, Budget
-from wavelibrarian.evalset import io
-from wavelibrarian.llm.providers.fake import FakeProvider, default_output
-from wavelibrarian.ports.gateway import LLMRequest
-from wavelibrarian.runner.context import Context
+import librarian_bench.cli as cli
+from librarian_bench.cli import app
+from librarian_bench.config.experiment import Amount, Budget
+from librarian_bench.evalset import io
+from librarian_bench.llm.providers.fake import FakeProvider, default_output
+from librarian_bench.ports.gateway import LLMRequest
+from librarian_bench.runner.context import Context
 
 FREEZE = {"sha256": "ab" * 32, "at": "2026-10-18T00:00:00Z", "seed": 1, "dev_ratio": 0.4}
 
@@ -77,13 +77,13 @@ class Env:
 
 
 @pytest.fixture
-def env(wl_home: Path, monkeypatch: pytest.MonkeyPatch) -> Env:
+def env(bench_home: Path, monkeypatch: pytest.MonkeyPatch) -> Env:
     e = Env()
 
     def _contexte(profil: str, seed: int) -> Context:
         return Context.from_profile(
             "test",
-            wl_home=wl_home,
+            bench_home=bench_home,
             run_id="hors-1",
             seed=seed,
             providers={"fake": e.provider},
@@ -194,7 +194,7 @@ def test_verdict_non_du_juge_ne_contamine_pas(tmp_path: Path, env: Env) -> None:
 def test_pool_sans_autre_famille_code_2_avant_appel(
     tmp_path: Path, env: Env, monkeypatch: pytest.MonkeyPatch
 ) -> None:
-    from wavelibrarian.runner import context as module
+    from librarian_bench.runner import context as module
 
     reel = module.load_profile
 
@@ -248,7 +248,7 @@ def test_faux_llm_par_defaut_question_qui_contient_la_reference(tmp_path: Path, 
 
 
 def test_sans_question_garde_la_partie_nouvelle() -> None:
-    from wavelibrarian.evalset.closed_book import sans_question
+    from librarian_bench.evalset.closed_book import sans_question
 
     q = "Qui a fondé la guilde d'Orvane ?"
     assert sans_question(q, q) == ""
@@ -260,7 +260,7 @@ def test_sans_question_garde_la_partie_nouvelle() -> None:
 
 
 def test_jeu_gele_seul_contaminated_by_change_et_relance_remplace(
-    tmp_path: Path, env: Env, wl_home: Path
+    tmp_path: Path, env: Env, bench_home: Path
 ) -> None:
     env.reponse = lambda r: "Orvane" if r.model_id == "fake-llm-a" else "rien"
     f = _ecrire(
@@ -282,7 +282,7 @@ def test_jeu_gele_seul_contaminated_by_change_et_relance_remplace(
         }
 
     assert sans(apres) == sans(avant)
-    traces = wl_home / "hors-execution" / "hors-1" / "traces.jsonl"
+    traces = bench_home / "hors-execution" / "hors-1" / "traces.jsonl"
     spans = [json.loads(x) for x in traces.read_text(encoding="utf-8").splitlines()]
     assert len(spans) == 2
     assert {s["wl.post"] for s in spans} == {"judging"}
@@ -297,7 +297,7 @@ def test_relance_garde_l_ordre_de_contaminated_by(tmp_path: Path, env: Env) -> N
 
 
 def test_span_du_juge_porte_judging_sur_reponse_libre(
-    tmp_path: Path, env: Env, wl_home: Path
+    tmp_path: Path, env: Env, bench_home: Path
 ) -> None:
     env.reponse = lambda r: "Orvane fonda la guilde"
     f = _ecrire(
@@ -305,7 +305,7 @@ def test_span_du_juge_porte_judging_sur_reponse_libre(
         [_q(1, answer_form="free", reference_answer="Orvane fonda la guilde")],
     )
     assert _lancer(f, "--modeles", "fake-llm-a").exit_code == 0
-    traces = wl_home / "hors-execution" / "hors-1" / "traces.jsonl"
+    traces = bench_home / "hors-execution" / "hors-1" / "traces.jsonl"
     spans = [json.loads(x) for x in traces.read_text(encoding="utf-8").splitlines()]
     assert len(spans) == 2 and len(env.juge) == 1  # question posée, puis Juge
     assert {s["wl.post"] for s in spans} == {"judging"}

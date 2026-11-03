@@ -15,19 +15,19 @@ import yaml
 from conftest import CONFORMANCE_QUESTION_ID  # type: ignore[import-not-found]
 from pydantic import ValidationError
 
-from wavelibrarian import registry
-from wavelibrarian.config.experiment import Amount
-from wavelibrarian.core.errors import ConfigError
-from wavelibrarian.core.types import ArchAnswer, ParsedCorpus, Question, QuestionInput
-from wavelibrarian.corpus.ingest import nom_parser_resolu, parsers_par_format
-from wavelibrarian.corpus.scenario import appliquer_fichier
-from wavelibrarian.evalset.io import load as charger_questions
-from wavelibrarian.llm.providers.fake import FakeProvider
-from wavelibrarian.ports.architecture import ArchitectureBase
-from wavelibrarian.ports.components import ComponentSpec
-from wavelibrarian.runner.context import Context
-from wavelibrarian.runner.execute import passages_de_reference
-from wavelibrarian.runner.index_cache import IndexCache, index_key
+from librarian_bench import registry
+from librarian_bench.config.experiment import Amount
+from librarian_bench.core.errors import ConfigError
+from librarian_bench.core.types import ArchAnswer, ParsedCorpus, Question, QuestionInput
+from librarian_bench.corpus.ingest import nom_parser_resolu, parsers_par_format
+from librarian_bench.corpus.scenario import appliquer_fichier
+from librarian_bench.evalset.io import load as charger_questions
+from librarian_bench.llm.providers.fake import FakeProvider
+from librarian_bench.ports.architecture import ArchitectureBase
+from librarian_bench.ports.components import ComponentSpec
+from librarian_bench.runner.context import Context
+from librarian_bench.runner.execute import passages_de_reference
+from librarian_bench.runner.index_cache import IndexCache, index_key
 
 RACINE = Path(__file__).resolve().parents[2]
 MINI_TEST = RACINE / "experiments" / "mini-test.yaml"
@@ -62,7 +62,7 @@ def questions() -> dict[str, Question]:
 def ctx(tmp_path: Path, minicorpus: ParsedCorpus) -> Iterator[Context]:
     c = Context.from_profile(
         "test",
-        wl_home=tmp_path / "wl",
+        bench_home=tmp_path / "wl",
         run_id="conformite",
         seed=42,
         providers={"fake": FakeProvider()},
@@ -102,7 +102,7 @@ class _Banc:
     def __init__(self, ctx: Context, nom: str, params: dict[str, Any] | None) -> None:
         assert params is not None, f"{nom} : aucune Configuration dans experiments/mini-test.yaml"
         self.ctx, self.nom, self.params = ctx, nom, params
-        self.cache = IndexCache(ctx.wl_home)
+        self.cache = IndexCache(ctx.bench_home)
 
     def fabrique(self, params: dict[str, Any] | None = None) -> ArchitectureBase:
         spec = ComponentSpec(name=self.nom, params=self.params if params is None else params)

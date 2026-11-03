@@ -1,4 +1,5 @@
-"""Story 9.1 : `wl calibrer` écrit ses verdicts au fil de l'eau (SDK factice, aucun réseau)."""
+"""Story 9.1 : `librarian-bench calibrer` écrit ses verdicts au fil de l'eau (SDK factice, aucun
+réseau)."""
 
 import json
 import os
@@ -12,17 +13,17 @@ import pytest
 import yaml
 from typer.testing import CliRunner
 
-import wavelibrarian.runner.calibrer as module_calibrer
-from wavelibrarian.cli import app
-from wavelibrarian.components.judges import llm as juge_llm
-from wavelibrarian.config.validate import validate_file
-from wavelibrarian.core.errors import ConfigError, ProviderError
-from wavelibrarian.evalset import io
-from wavelibrarian.evalset.freeze import select_questions
-from wavelibrarian.llm.providers.anthropic import AnthropicProvider
-from wavelibrarian.runner.calibrer import calibrer, fichier_verdicts
-from wavelibrarian.runner.rundir import read_answers
-from wavelibrarian.scoring.panel import criteres_juges
+import librarian_bench.runner.calibrer as module_calibrer
+from librarian_bench.cli import app
+from librarian_bench.components.judges import llm as juge_llm
+from librarian_bench.config.validate import validate_file
+from librarian_bench.core.errors import ConfigError, ProviderError
+from librarian_bench.evalset import io
+from librarian_bench.evalset.freeze import select_questions
+from librarian_bench.llm.providers.anthropic import AnthropicProvider
+from librarian_bench.runner.calibrer import calibrer, fichier_verdicts
+from librarian_bench.runner.rundir import read_answers
+from librarian_bench.scoring.panel import criteres_juges
 
 RACINE = Path(__file__).resolve().parents[3]
 MINI = RACINE / "corpora" / "minicorpus"
@@ -95,10 +96,10 @@ class _Sdk:
 
 
 @pytest.fixture
-def execution(tmp_path: Path, wl_home: Path) -> tuple[Path, Path]:
+def execution(tmp_path: Path, bench_home: Path) -> tuple[Path, Path]:
     res = CliRunner().invoke(app, ["run", str(_experience(tmp_path, claude=False))])
     assert res.exit_code == 0, res.output
-    (dossier,) = [d for d in (wl_home / "runs").iterdir() if d.is_dir()]
+    (dossier,) = [d for d in (bench_home / "runs").iterdir() if d.is_dir()]
     _annoter(dossier, tmp_path / "ann")
     return _experience(tmp_path), dossier
 
@@ -131,7 +132,7 @@ def _sans_date(chemin: Path) -> dict[str, Any]:
 def test_verdicts_ecrits_et_vides_a_chaque_appel(
     execution: tuple[Path, Path],
     tmp_path: Path,
-    wl_home: Path,
+    bench_home: Path,
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     """À chaque `fsync`, le fichier contient déjà la ligne de l'appel qui vient de rendre."""
@@ -152,7 +153,7 @@ def test_verdicts_ecrits_et_vides_a_chaque_appel(
         exp,
         tmp_path / "ann",
         dossier.name,
-        wl_home=wl_home,
+        bench_home=bench_home,
         providers={"anthropic": AnthropicProvider(client=sdk)},  # type: ignore[arg-type]
     )
     n = len(read_answers(dossier)) * len(JUGES) * PASSES
@@ -177,7 +178,7 @@ def test_verdicts_ecrits_et_vides_a_chaque_appel(
 
 
 def test_erreur_fournisseur_au_5e_appel_garde_4_verdicts_et_la_reprise_n_appelle_que_le_reste(
-    execution: tuple[Path, Path], tmp_path: Path, wl_home: Path, monkeypatch: pytest.MonkeyPatch
+    execution: tuple[Path, Path], tmp_path: Path, bench_home: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:
     exp, dossier = execution
     fichier = dossier / "calibration_verdicts.jsonl"
@@ -209,7 +210,7 @@ def test_erreur_fournisseur_au_5e_appel_garde_4_verdicts_et_la_reprise_n_appelle
 
 
 def test_plafond_atteint_code_3_message_nombre_et_commande_de_reprise(
-    execution: tuple[Path, Path], tmp_path: Path, wl_home: Path, monkeypatch: pytest.MonkeyPatch
+    execution: tuple[Path, Path], tmp_path: Path, bench_home: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:
     exp, dossier = execution
     donnees = yaml.safe_load(exp.read_text("utf-8"))
@@ -226,7 +227,7 @@ def test_plafond_atteint_code_3_message_nombre_et_commande_de_reprise(
 
 
 def test_fichier_existant_refuse_sans_reprendre_ni_ecraser(
-    execution: tuple[Path, Path], tmp_path: Path, wl_home: Path, monkeypatch: pytest.MonkeyPatch
+    execution: tuple[Path, Path], tmp_path: Path, bench_home: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:
     exp, dossier = execution
     fichier = dossier / "calibration_verdicts.jsonl"
@@ -250,7 +251,7 @@ def test_fichier_existant_refuse_sans_reprendre_ni_ecraser(
 
 
 def test_reprise_refusee_si_les_annotations_ont_change(
-    execution: tuple[Path, Path], tmp_path: Path, wl_home: Path, monkeypatch: pytest.MonkeyPatch
+    execution: tuple[Path, Path], tmp_path: Path, bench_home: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:
     exp, dossier = execution
     res = _cli(monkeypatch, _Sdk(echec_au=3), exp, tmp_path, dossier.name)
@@ -263,7 +264,7 @@ def test_reprise_refusee_si_les_annotations_ont_change(
 
 
 def test_reprise_refusee_pour_une_autre_experience(
-    execution: tuple[Path, Path], tmp_path: Path, wl_home: Path, monkeypatch: pytest.MonkeyPatch
+    execution: tuple[Path, Path], tmp_path: Path, bench_home: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:
     exp, dossier = execution
     res = _cli(monkeypatch, _Sdk(echec_au=3), exp, tmp_path, dossier.name)
@@ -277,7 +278,7 @@ def test_reprise_refusee_pour_une_autre_experience(
 
 
 def test_reprise_ecarte_une_derniere_ligne_tronquee_et_rappelle_les_verdicts_manquants(
-    execution: tuple[Path, Path], tmp_path: Path, wl_home: Path, monkeypatch: pytest.MonkeyPatch
+    execution: tuple[Path, Path], tmp_path: Path, bench_home: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:
     exp, dossier = execution
     fichier = dossier / "calibration_verdicts.jsonl"
@@ -301,17 +302,17 @@ def test_reprise_ecarte_une_derniere_ligne_tronquee_et_rappelle_les_verdicts_man
 
 
 def test_ligne_illisible_au_milieu_est_une_erreur_de_configuration(
-    execution: tuple[Path, Path], tmp_path: Path, wl_home: Path
+    execution: tuple[Path, Path], tmp_path: Path, bench_home: Path
 ) -> None:
     _, dossier = execution
     (dossier / "calibration_verdicts.jsonl").write_text("pas du json\n{}\n", encoding="utf-8")
     exp = validate_file(_experience(tmp_path)).resolved
     with pytest.raises(ConfigError, match="ligne 1 illisible"):
-        calibrer(exp, tmp_path / "ann", dossier.name, wl_home=wl_home, reprendre=True)
+        calibrer(exp, tmp_path / "ann", dossier.name, bench_home=bench_home, reprendre=True)
 
 
 def test_exception_porte_le_nombre_de_verdicts_recus(
-    execution: tuple[Path, Path], tmp_path: Path, wl_home: Path
+    execution: tuple[Path, Path], tmp_path: Path, bench_home: Path
 ) -> None:
     _, dossier = execution
     exp = validate_file(_experience(tmp_path)).resolved
@@ -320,7 +321,7 @@ def test_exception_porte_le_nombre_de_verdicts_recus(
             exp,
             tmp_path / "ann",
             dossier.name,
-            wl_home=wl_home,
+            bench_home=bench_home,
             providers={"anthropic": AnthropicProvider(client=_Sdk(echec_au=6))},  # type: ignore[arg-type]
         )
     assert getattr(e.value, "verdicts_recus") == 5  # noqa: B009
@@ -328,7 +329,7 @@ def test_exception_porte_le_nombre_de_verdicts_recus(
 
 
 def test_reprise_refusee_si_le_prompt_des_juges_a_change(
-    execution: tuple[Path, Path], tmp_path: Path, wl_home: Path, monkeypatch: pytest.MonkeyPatch
+    execution: tuple[Path, Path], tmp_path: Path, bench_home: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:
     """Un prompt modifié entre deux tentatives mêlerait deux prompts : reprise refusée (code 2)."""
     exp, dossier = execution
@@ -344,7 +345,7 @@ def test_reprise_refusee_si_le_prompt_des_juges_a_change(
 
 
 def test_reprise_comptee_dans_le_meme_plafond_par_execution(
-    execution: tuple[Path, Path], tmp_path: Path, wl_home: Path, monkeypatch: pytest.MonkeyPatch
+    execution: tuple[Path, Path], tmp_path: Path, bench_home: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:
     """La reprise garde l'identifiant de Registre : le plafond `per_run` déjà consommé compte."""
     exp, dossier = execution
@@ -371,7 +372,7 @@ def test_reprise_comptee_dans_le_meme_plafond_par_execution(
 
 
 def test_derniere_ligne_complete_sans_saut_de_ligne_est_rappelee(
-    execution: tuple[Path, Path], tmp_path: Path, wl_home: Path, monkeypatch: pytest.MonkeyPatch
+    execution: tuple[Path, Path], tmp_path: Path, bench_home: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:
     """Une ligne sans saut de ligne final (arrêt pendant l'écriture) est retirée, son triplet
     rappelé : l'ajout suivant ne se colle pas à elle."""
@@ -407,19 +408,19 @@ def test_derniere_ligne_complete_sans_saut_de_ligne_est_rappelee(
     ],
 )
 def test_ligne_complete_invalide_refusee_sans_suppression(
-    execution: tuple[Path, Path], tmp_path: Path, wl_home: Path, contenu: str, message: str
+    execution: tuple[Path, Path], tmp_path: Path, bench_home: Path, contenu: str, message: str
 ) -> None:
     _, dossier = execution
     fichier = dossier / "calibration_verdicts.jsonl"
     fichier.write_text(contenu, encoding="utf-8", newline="\n")
     exp = validate_file(_experience(tmp_path)).resolved
     with pytest.raises(ConfigError, match=message):
-        calibrer(exp, tmp_path / "ann", dossier.name, wl_home=wl_home, reprendre=True)
+        calibrer(exp, tmp_path / "ann", dossier.name, bench_home=bench_home, reprendre=True)
     assert fichier.read_text("utf-8") == contenu
 
 
 def test_ecraser_ne_supprime_rien_si_la_preparation_echoue(
-    execution: tuple[Path, Path], tmp_path: Path, wl_home: Path, monkeypatch: pytest.MonkeyPatch
+    execution: tuple[Path, Path], tmp_path: Path, bench_home: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:
     _, dossier = execution
     fichier = dossier / "calibration_verdicts.jsonl"
@@ -431,12 +432,12 @@ def test_ecraser_ne_supprime_rien_si_la_preparation_echoue(
 
     monkeypatch.setattr(module_calibrer, "construire_juges", panne)
     with pytest.raises(ConfigError, match="impossible"):
-        calibrer(exp, tmp_path / "ann", dossier.name, wl_home=wl_home, ecraser=True)
+        calibrer(exp, tmp_path / "ann", dossier.name, bench_home=bench_home, ecraser=True)
     assert fichier.read_text("utf-8") == "{}\n"
 
 
 def test_interruption_clavier_donne_la_commande_de_reprise(
-    execution: tuple[Path, Path], tmp_path: Path, wl_home: Path, monkeypatch: pytest.MonkeyPatch
+    execution: tuple[Path, Path], tmp_path: Path, bench_home: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:
     exp, dossier = execution
     res = _cli(monkeypatch, _Sdk(echec_au=3, interrompre=True), exp, tmp_path, dossier.name)

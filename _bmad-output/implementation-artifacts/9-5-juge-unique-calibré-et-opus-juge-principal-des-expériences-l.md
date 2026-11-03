@@ -11,7 +11,7 @@ Exigences : FR-37, FR-33 ; AD-14 (amendé) ; `contracts.md` §4.4. Arbitrages A1
 ## Réalisé
 
 - **Juge unique** (`config/panel.py`) : `form_panel(..., calibration, kappa_threshold)` ; `panel_size: 1` passe par `_juge_unique`. Sans `judges.excluded_from` : `ConfigError` (code 2, chemin `judges.panel_size`). Sinon le premier modèle du réservoir d'une autre Famille que les `answer_producers` est retenu (règle de famille inchangée) ; aucun candidat : message « demander un Juge d'une autre Famille » (chemin `judges.pool`). `verifier_juge_unique` lit la calibration : le Juge doit y figurer, non exclu, avec un kappa ≥ `judges.kappa_threshold` (celui de l'Expérience, pas celui du fichier) sur `correctness`, `completeness` et `faithfulness` ; un kappa absent ou `null` compte comme sous le seuil. Les messages nomment le Juge et le Critère. `panel_size` ≥ 2 : code et messages inchangés (test `test_panel_de_deux_inchange_avec_calibration`).
-- **Appelants** (`config/validate.py`, `runner/execute.py` `panels_de`) : passent `excluded_from` et `kappa_threshold`. Le refus tombe donc à `wl validate` et au lancement (code 2).
+- **Appelants** (`config/validate.py`, `runner/execute.py` `panels_de`) : passent `excluded_from` et `kappa_threshold`. Le refus tombe donc à `librarian-bench validate` et au lancement (code 2).
 - **Verdict du Panel** (`scoring/panel.py`) : non modifié, `majorite` avec une seule voix rend déjà le verdict du Juge (`na` compris, sans égalité) ; verrouillé par `test_juge_unique_verdict_du_panel_est_celui_du_juge_na_compris`.
 - **Rapport** (`report/generer.py`) : section « Juges », si `panel_size` vaut 1 et un seul Juge a voté : « Juge unique calibré : `<juge>` … sans règle de majorité ni égalité. Kappas juge-humain : … », kappas lus dans `calibration.json` de l'Exécution, sinon `judges.excluded_from`. Si tous les Juges admissibles ont `provider: fake` et qu'un `answer_producer` est réel : « **Qualité non interprétable : Juges factices.** ». `_donnees_calibration` factorise le choix de la source avec la section « Calibration des Juges ».
 - **`experiments/mini-real-haiku.yaml`** : Juges factices gardés ; commentaire AD-14 (Opus ne juge pas un Generator Claude). `calibration-claude.yaml`, `mini-test.yaml`, `mini-cpu.yaml`, `lazy-seuil-cpu.yaml` non modifiés.
@@ -34,7 +34,7 @@ Exigences : FR-37, FR-33 ; AD-14 (amendé) ; `contracts.md` §4.4. Arbitrages A1
 +  per_run: {anthropic: {amount: "3.00", currency: USD}}   # mini-cpu ; lazy-seuil-cpu : "2.00"
 ```
 
-Vérifier ensuite `uv run pytest -q --tb=short tests/e2e` (Expériences livrées) et `uv run wl validate experiments/mini-cpu.yaml`. Mettre à jour les commentaires d'en-tête (plus de Juges locaux : le préambule « sans aucun appel d'API » de `mini-cpu.yaml` devient faux). `opus.json` doit contenir `claude-opus-5-5` non exclu, kappa ≥ 0,6 sur les trois Critères, sinon `wl validate` refuse (code 2).
+Vérifier ensuite `uv run pytest -q --tb=short tests/e2e` (Expériences livrées) et `uv run librarian-bench validate experiments/mini-cpu.yaml`. Mettre à jour les commentaires d'en-tête (plus de Juges locaux : le préambule « sans aucun appel d'API » de `mini-cpu.yaml` devient faux). `opus.json` doit contenir `claude-opus-5-5` non exclu, kappa ≥ 0,6 sur les trois Critères, sinon `librarian-bench validate` refuse (code 2).
 
 ## Reports
 
@@ -59,7 +59,7 @@ Base `story/9-3` 920da8f : à jour (ni `story/9-3` ni `main` n'ont avancé). Bas
 - Important · low · second avis 2 · corrigé · `_juge_unique` prenait `candidats[0]` même exclu : premier Juge d'une autre Famille non exclu, puis contrôle des kappas ; seul candidat exclu, refus qui le nomme (`test_juge_unique_saute_le_juge_exclu_en_tete`).
 - Important · low · second avis 5 · corrigé · Rapport : une ligne « Juge unique calibré » par Juge, avec les Configurations nommées quand elles ont des Juges différents (avant : mention omise).
 - Nit · low · second avis 8 · corrigé · `contracts.md` §4.4 amendé (`panel_size: 1`, `excluded_from`, kappas) ; phrase « déjà amendés » de la spec corrigée.
-- Nit · low · second avis 9 · corrigé · tests `panels_de` et `wl rejuger` avec `panel_size: 1` (Faux LLM, calibration factice, Questions toutes `short`, Juge exclu en tête) : `tests/unit/runner/test_juge_unique_rejuger.py`.
+- Nit · low · second avis 9 · corrigé · tests `panels_de` et `librarian-bench rejuger` avec `panel_size: 1` (Faux LLM, calibration factice, Questions toutes `short`, Juge exclu en tête) : `tests/unit/runner/test_juge_unique_rejuger.py`.
 - Nit · low · second avis 10 · corrigé · fiche du Juge sans `criteria` : « aucun kappa par Critère dans la calibration » au lieu de « calibration absente » ; `criteria` non dict toléré.
 - Nit · low · revue · corrigé · docstring de `panels_de` (refus du Juge unique).
 - Nit · low · revue · non corrigé · calibration illisible avec `panel_size: 1` : l'erreur sort deux fois (lecture des exclus, puis par Configuration).

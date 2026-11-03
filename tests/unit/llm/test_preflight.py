@@ -6,12 +6,12 @@ from typing import Any
 import httpx
 import pytest
 
-from wavelibrarian.config.catalog import load_catalog
-from wavelibrarian.config.defaults import load_profile
-from wavelibrarian.core.errors import ProviderError
-from wavelibrarian.llm.local_models import embedder_installe, hf_cache_dir
-from wavelibrarian.llm.preflight import preflight
-from wavelibrarian.llm.providers.ollama import list_models
+from librarian_bench.config.catalog import load_catalog
+from librarian_bench.config.defaults import load_profile
+from librarian_bench.core.errors import ProviderError
+from librarian_bench.llm.local_models import embedder_installe, hf_cache_dir
+from librarian_bench.llm.preflight import preflight
+from librarian_bench.llm.providers.ollama import list_models
 
 URL = "http://localhost:11434"
 CPU = load_profile("cpu")
@@ -185,6 +185,6 @@ def test_list_models_ferme_son_client(monkeypatch: pytest.MonkeyPatch) -> None:
             fermes.append(True)
             super().close()
 
-    monkeypatch.setattr("wavelibrarian.llm.providers.ollama.httpx.Client", Client)
+    monkeypatch.setattr("librarian_bench.llm.providers.ollama.httpx.Client", Client)
     assert list_models(URL) == set()
     assert fermes == [True]

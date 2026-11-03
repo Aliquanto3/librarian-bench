@@ -9,12 +9,12 @@ from typing import Any, cast
 
 import pytest
 
-from wavelibrarian.config.defaults import load_profile
-from wavelibrarian.core.types import Usage
-from wavelibrarian.measure import energy
-from wavelibrarian.measure.energy import CodecarbonMeter, FakeMeter, energy_method, make_meter
-from wavelibrarian.runner.context import Context
-from wavelibrarian.runner.execute import _Runner
+from librarian_bench.config.defaults import load_profile
+from librarian_bench.core.types import Usage
+from librarian_bench.measure import energy
+from librarian_bench.measure.energy import CodecarbonMeter, FakeMeter, energy_method, make_meter
+from librarian_bench.runner.context import Context
+from librarian_bench.runner.execute import _Runner
 
 RAM = type("RAM", (), {})()
 GPU_SUIVI = type("GPU", (), {"gpu_ids": [0]})()
@@ -159,7 +159,7 @@ def _lancer(
     tmp_path: Path, membres: tuple[str, ...], panne: bool = False, hits: bool = False
 ) -> list[dict[str, Any]]:
     _Meter.demarrages = []
-    with Context.from_profile("test", wl_home=tmp_path / "wl", run_id="r-j") as ctx:
+    with Context.from_profile("test", bench_home=tmp_path / "wl", run_id="r-j") as ctx:
         runner: Any = SimpleNamespace(ctx=ctx, meter=_Meter(0.01))
         essais = {"n": 0}
 

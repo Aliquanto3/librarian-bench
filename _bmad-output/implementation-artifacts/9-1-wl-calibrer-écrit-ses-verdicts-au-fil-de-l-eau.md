@@ -1,10 +1,10 @@
 ---
 story: "9.1"
-title: "`wl calibrer` écrit ses verdicts au fil de l'eau"
+title: "`librarian-bench calibrer` écrit ses verdicts au fil de l'eau"
 status: review
 ---
 
-# Story 9.1 : `wl calibrer` écrit ses verdicts au fil de l'eau
+# Story 9.1 : `librarian-bench calibrer` écrit ses verdicts au fil de l'eau
 
 Exigences : FR-38, FR-33 ; AD-3 ; `contracts.md` §4.6 et §8. Corrige le report de la 8.11 : un plafond atteint ou une `ProviderError` non réessayable en cours de calibration perdait tous les verdicts payés.
 

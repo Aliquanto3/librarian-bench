@@ -8,15 +8,15 @@ status: done
 
 ## Code Map
 
-- `pyproject.toml` : dépendances épinglées, extras `local`/`energy`/`docling`, groupe dev, script `wl`, config pytest, ruff, pyright et contrats import-linter.
+- `pyproject.toml` : dépendances épinglées, extras `local`/`energy`/`docling`, groupe dev, script `librarian-bench`, config pytest, ruff, pyright et contrats import-linter.
 - `uv.lock` : verrou commité (aucun extra installé par `uv sync`).
-- `.gitignore` : ajoute `.wl/` et `results/` (`.env` déjà présent).
+- `.gitignore` : ajoute `.librarian-bench/` et `results/` (`.env` déjà présent).
 - `.claude/cost-kit/controle_rapide.py` : ajoute `pyright` et `lint-imports` aux `COMMANDES`.
-- `src/wavelibrarian/{core,ports,config,llm,llm/providers,measure,stats,corpus,scoring,evalset,components,architectures,runner,report}/__init__.py` : paquets vides du germe structurel.
-- `src/wavelibrarian/registry.py` : module vide (story 1.3).
-- `src/wavelibrarian/cli.py` : application typer `wl`, aide en français.
-- `src/wavelibrarian/core/errors.py` : hiérarchie d'exceptions sous `WlError`.
-- `src/wavelibrarian/core/ids.py` : `canonical_json`, `sha16`, `slug`, `new_run_id`.
+- `src/librarian_bench/{core,ports,config,llm,llm/providers,measure,stats,corpus,scoring,evalset,components,architectures,runner,report}/__init__.py` : paquets vides du germe structurel.
+- `src/librarian_bench/registry.py` : module vide (story 1.3).
+- `src/librarian_bench/cli.py` : application typer `librarian-bench`, aide en français.
+- `src/librarian_bench/core/errors.py` : hiérarchie d'exceptions sous `WlError`.
+- `src/librarian_bench/core/ids.py` : `canonical_json`, `sha16`, `slug`, `new_run_id`.
 - `tests/conftest.py` : fixture `wl_home`.
 - `tests/unit/test_garde_fous.py` : socket bloqué, marqueurs, CLI, `.gitignore`, `lint-imports`.
 - `tests/unit/core/test_errors.py`, `tests/unit/core/test_ids.py` : tests unitaires du noyau.
@@ -54,7 +54,7 @@ status: done
 
 Revue Opus du 2026-10-17, une passe, sur `1cdd5e0`.
 
-- high, revue : le contrat AD-3 (`forbidden`, source `wavelibrarian`, interdit `wavelibrarian.llm.providers`) ne vérifiait rien, car import-linter saute les paires source/interdit qui se recouvrent (`_modules_overlap`). Prouvé : `llm.autre -> llm.providers.anthropic` passait. Corrigé : contrat `protected` (`as_packages = false`, jokers sur les sous-modules de `providers`). Sondé avec des modules temporaires : la passerelle, le preflight et les imports internes aux providers passent ; `runner.x` et `llm.autre` cassent le contrat. L'AC demandait un contrat `forbidden` ; on garde son intention, le type `forbidden` ne peut pas la tenir.
+- high, revue : le contrat AD-3 (`forbidden`, source `librarian-bench`, interdit `librarian-bench.llm.providers`) ne vérifiait rien, car import-linter saute les paires source/interdit qui se recouvrent (`_modules_overlap`). Prouvé : `llm.autre -> llm.providers.anthropic` passait. Corrigé : contrat `protected` (`as_packages = false`, jokers sur les sous-modules de `providers`). Sondé avec des modules temporaires : la passerelle, le preflight et les imports internes aux providers passent ; `runner.x` et `llm.autre` cassent le contrat. L'AC demandait un contrat `forbidden` ; on garde son intention, le type `forbidden` ne peut pas la tenir.
 - high, second avis n° 1 : confirmé. `python -m importlinter.cli` sort 0 sans rien analyser. Corrigé : le test appelle `lint_imports_command()`, vérifie `5 kept, 0 broken`, et un nouveau test (`test_lint_imports_detecte_une_rupture`) prouve qu'un contrat cassé fait échouer l'appel.
 - medium, revue : les `ignore_imports` en `pkg.** -> x` ne couvrent pas le paquet lui-même (`llm/providers/__init__.py` important `httpx` cassait le contrat). Corrigé : chaque exception porte aussi la forme sans `.**` (providers, embedders, measure).
 - low, second avis n° 2 : écarté pour l'essentiel. `>=0.19,<1` suit déjà le motif `>=x.y,<x+1` avec x = 0, comme `httpx`, `bm25s` et `tiktoken`. La borne basse passe à `>=0.26,<1`, version testée et retenue par le verrou (0.26.8). La 0.27.3 du spine reste bloquée par `docling` (`typer<0.27`, d'après le développeur ; pas revérifié, pour ne pas faire d'appel réseau).

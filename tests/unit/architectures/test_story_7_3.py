@@ -7,22 +7,22 @@ from typing import Any
 
 import pytest
 
-from wavelibrarian import registry
-from wavelibrarian.architectures.llm_wiki import LlmWiki
-from wavelibrarian.core.types import ParsedCorpus, QuestionInput
-from wavelibrarian.llm.providers.fake import FakeProvider
-from wavelibrarian.ports.architecture import CorpusChange
-from wavelibrarian.ports.components import ComponentSpec
-from wavelibrarian.report.wiki import section_fidelite, taux_fidelite
-from wavelibrarian.runner.context import Context as RunCtx
-from wavelibrarian.runner.index_cache import IndexCache
+from librarian_bench import registry
+from librarian_bench.architectures.llm_wiki import LlmWiki
+from librarian_bench.core.types import ParsedCorpus, QuestionInput
+from librarian_bench.llm.providers.fake import FakeProvider
+from librarian_bench.ports.architecture import CorpusChange
+from librarian_bench.ports.components import ComponentSpec
+from librarian_bench.report.wiki import section_fidelite, taux_fidelite
+from librarian_bench.runner.context import Context as RunCtx
+from librarian_bench.runner.index_cache import IndexCache
 
 
 @pytest.fixture
 def ctx(tmp_path: Path):  # type: ignore[no-untyped-def]
     provider = FakeProvider()
     c = RunCtx.from_profile(
-        "test", wl_home=tmp_path / "wl", run_id="r-1", seed=1, providers={"fake": provider}
+        "test", bench_home=tmp_path / "wl", run_id="r-1", seed=1, providers={"fake": provider}
     )
     c.parser = "markdown"
     c.provider = provider  # type: ignore[attr-defined]
@@ -100,7 +100,7 @@ def test_page_sans_ancrage_valide_ecartee_et_comptee(
         "wiki.compile",
         json.dumps({"pages": [{"title": "X", "body": "b", "anchor_ids": ["nope#1"]}]}),
     )
-    with caplog.at_level(logging.WARNING, logger="wavelibrarian.architectures.llm_wiki"):
+    with caplog.at_level(logging.WARNING, logger="librarian_bench.architectures.llm_wiki"):
         _indexer(ctx, minicorpus, tmp_path / "i")
     assert (tmp_path / "i/passages.jsonl").read_text(encoding="utf-8") == ""
     assert _json(tmp_path / "i", "wiki.json")["discarded_pages"] == len(minicorpus.documents)
@@ -162,7 +162,7 @@ def test_fidelite_depend_de_la_graine(minicorpus: ParsedCorpus, tmp_path: Path) 
         provider = FakeProvider()
         with RunCtx.from_profile(
             "test",
-            wl_home=tmp_path / f"wl{graine}",
+            bench_home=tmp_path / f"wl{graine}",
             run_id="r-1",
             seed=graine,
             providers={"fake": provider},
@@ -237,7 +237,7 @@ def test_update_ne_recompile_que_les_documents_changes_et_remesure(
 def test_update_scenario_reel_document_modifie(
     ctx: RunCtx, minicorpus: ParsedCorpus, tmp_path: Path
 ) -> None:
-    from wavelibrarian.corpus.scenario import appliquer_fichier
+    from librarian_bench.corpus.scenario import appliquer_fichier
 
     scenario = Path(__file__).resolve().parents[3] / "corpora/minicorpus/scenario/scenario.yaml"
     change, apres = appliquer_fichier(minicorpus, scenario, parser="markdown")
@@ -307,7 +307,7 @@ def test_fidelite_tient_dans_la_fenetre_avec_avertissement(
     arch = _arch(ctx)
     arch._fenetre = lambda modele: 300
     sources = ["alpha " * 40, "beta " * 40, "gamma " * 40]
-    with caplog.at_level(logging.WARNING, logger="wavelibrarian.architectures.llm_wiki"):
+    with caplog.at_level(logging.WARNING, logger="librarian_bench.architectures.llm_wiki"):
         page, gardees = arch._tenir("page courte", sources)
     tokenizer = ctx.tokenizer_for(arch._fidelity_model)
     assert 0 < len(gardees) < 3 and gardees == sources[: len(gardees)]
@@ -324,7 +324,7 @@ def test_copie_generique_au_runner_et_taux_dans_le_rapport(
     def fabrique() -> Any:
         return ctx.build("architecture", spec)
 
-    cache = IndexCache(ctx.wl_home)
+    cache = IndexCache(ctx.bench_home)
     _, cle = cache.build(ctx, fabrique, minicorpus)
     source = _json(cache.path(cle), "wiki_fidelity.json")
     assert _json(ctx.run_dir, "wiki_fidelity.json") == {"wiki-1": source}
@@ -342,7 +342,7 @@ def test_architecture_sans_fidelite_ne_copie_rien_et_rapport_vide(
 ) -> None:
     ctx.config_id = "bm25"
     spec = ComponentSpec(name="bm25_only", params={})
-    IndexCache(ctx.wl_home).build(ctx, lambda: ctx.build("architecture", spec), minicorpus)
+    IndexCache(ctx.bench_home).build(ctx, lambda: ctx.build("architecture", spec), minicorpus)
     assert not (ctx.run_dir / "wiki_fidelity.json").exists()
     assert taux_fidelite(ctx.run_dir) == {} and section_fidelite(ctx.run_dir) == ""
 
@@ -375,7 +375,7 @@ def test_juge_de_fidelite_par_defaut_d_une_autre_famille(
 
 
 def test_juge_de_fidelite_de_la_meme_famille_refuse(ctx: RunCtx) -> None:
-    from wavelibrarian.core.errors import ConfigError
+    from librarian_bench.core.errors import ConfigError
 
     with pytest.raises(ConfigError, match="Famille"):
         _arch(ctx, compile_model="fake-llm-a", fidelity_model="fake-llm-a")
@@ -390,7 +390,7 @@ def test_graine_dans_la_cle_un_hit_de_cache_ne_sert_pas_l_echantillon_d_une_autr
     def fabrique() -> Any:
         return ctx.build("architecture", spec)
 
-    cache = IndexCache(ctx.wl_home)
+    cache = IndexCache(ctx.bench_home)
     cles, tirages = set(), {}
     for graine in range(1, 7):
         ctx.seed = graine

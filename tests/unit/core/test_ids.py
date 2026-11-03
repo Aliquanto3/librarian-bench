@@ -1,7 +1,7 @@
 import re
 from decimal import Decimal
 
-from wavelibrarian.core.ids import canonical_json, new_run_id, sha16, slug
+from librarian_bench.core.ids import canonical_json, new_run_id, sha16, slug
 
 
 def test_canonical_json() -> None:

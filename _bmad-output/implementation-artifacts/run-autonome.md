@@ -90,7 +90,7 @@ Fichiers par vague : V0 `scoring/calibration.py` + `cli.py` (calibrer) / `compon
 - 2026-10-26 09:52 · 9.5 · dev · lancé (Sonnet, depuis story/9-3) · 
 - 2026-10-26 09:52 · 9.5 · décision · bascule de mini-cpu et lazy-seuil-cpu sur Opus commitée par l'orchestrateur après la 9.9 (opus.json absent avant), pour garder main vert · 
 - 2026-10-26 09:56 · 9.3 · second-avis · 2 medium (majorité sur les passes ; Exécutions v0.2.0 non corrigées sans rejugement), 3 low ; rien de high · 
-- 2026-10-26 09:56 · 9.3 · décision · règle de majorité « voix confondues » gardée (passes: 1 livré), consignée ; anciennes Exécutions corrigées par wl rejuger seulement · 
+- 2026-10-26 09:56 · 9.3 · décision · règle de majorité « voix confondues » gardée (passes: 1 livré), consignée ; anciennes Exécutions corrigées par librarian-bench rejuger seulement · 
 - 2026-10-26 09:56 · 9.3 · review · lancé (Opus) · 
 - 2026-10-26 10:00 · 9.5 · dev · fini (code ; bascule YAML après 9.9) · 6b88688
 - 2026-10-26 10:00 · 9.5 · second-avis · lancé · 
@@ -104,7 +104,7 @@ Fichiers par vague : V0 `scoring/calibration.py` + `cli.py` (calibrer) / `compon
 - 2026-10-26 10:11 · 9.4 · review · lancé (Opus) · 
 - 2026-10-26 10:11 · 9.5 · review · 2 low corrigés (exclu en tête sauté, mention par Configuration), 3 Critères toujours exigés (validation sans Questions), contrats §4.4 · 251ff1b
 - 2026-10-26 10:19 · 9.3 · fusion · suite complète 1348 passed (7 min 55), fast-forward · 2ed872c
-- 2026-10-26 10:19 · 9.9 · décision · calibration-opus.yaml : Opus + Haiku (wl calibrer exige 2 Juges ; Haiku ~0,05 $), 5 passes, plafond 5 $ au lieu de 4 $ (A2) d'après le coût mesuré en 8.11 · 
+- 2026-10-26 10:19 · 9.9 · décision · calibration-opus.yaml : Opus + Haiku (librarian-bench calibrer exige 2 Juges ; Haiku ~0,05 $), 5 passes, plafond 5 $ au lieu de 4 $ (A2) d'après le coût mesuré en 8.11 · 
 - 2026-10-26 10:19 · 9.9 · dev · calibration réelle lancée (Opus + Haiku, 5 passes, run 20261018-115941-a2a512, sortie calibration-opus.json) · 
 - 2026-10-26 10:25 · 9.4 · review · 3 Important corrigés (table de Passages : -56,2 % sur le run réel, cible atteinte ; verdict vidé signalé ; importer qui reportait sur la mauvaise ligne) · 4f3e029
 - 2026-10-26 10:25 · 9.4 · review · passe 2 lancée (format du paquet changé) · 
@@ -113,7 +113,7 @@ Fichiers par vague : V0 `scoring/calibration.py` + `cli.py` (calibrer) / `compon
 - 2026-10-26 10:37 · 9.9 · décision · relancée avec uv run --extra energy (1er lancement arrêté au démarrage, sans appel : extra energy absent) · 
 - 2026-10-26 10:37 · 9.9 · dev · fini : Opus 1,00 / 0,72 / 0,76 au-dessus du seuil ; 354 appels ; 3,32 $ · 
 - 2026-10-26 10:37 · 9.5 · décision · bascule appliquée : mini-cpu et lazy-seuil-cpu en Juge unique Opus (opus.json), tests e2e et 8.7 réalignés · 
-- 2026-10-26 10:38 · 9.10 · dev · rejugement réel lancé (wl rejuger 20261018-115941-a2a512, mini-cpu, Opus seul, plafond 3 $) · 
+- 2026-10-26 10:38 · 9.10 · dev · rejugement réel lancé (librarian-bench rejuger 20261018-115941-a2a512, mini-cpu, Opus seul, plafond 3 $) · 
 - 2026-10-26 10:38 · 9.11 · attente humaine · feu vert Ollama CPU demandé à Anaël (notification) · 
 - 2026-10-26 10:41 · 9.10 · dev · fini : rejugement 20261026-093758-1afc6b completed, 72 Réponses, 0,43 $ (47 verdicts du Cache) ; IC recouvrants · 
 - 2026-10-26 10:51 · 9.4 · fusion · suite complète 1406 passed (7 min 53) après rebase sur 9.9 et 9.10, fast-forward · 5d375a0

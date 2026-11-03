@@ -9,20 +9,20 @@ from typing import Any
 
 import pytest
 
-from wavelibrarian import registry
-from wavelibrarian.architectures.agentic import Agentic
-from wavelibrarian.core.errors import ConfigError, NonConformantOutput
-from wavelibrarian.core.types import ParsedCorpus, QuestionInput
-from wavelibrarian.llm.providers.fake import FakeProvider
-from wavelibrarian.ports.components import ComponentSpec
-from wavelibrarian.runner.context import Context as RunCtx
+from librarian_bench import registry
+from librarian_bench.architectures.agentic import Agentic
+from librarian_bench.core.errors import ConfigError, NonConformantOutput
+from librarian_bench.core.types import ParsedCorpus, QuestionInput
+from librarian_bench.llm.providers.fake import FakeProvider
+from librarian_bench.ports.components import ComponentSpec
+from librarian_bench.runner.context import Context as RunCtx
 
 
 @pytest.fixture
 def ctx(tmp_path: Path):  # type: ignore[no-untyped-def]
     provider = FakeProvider()
     c = RunCtx.from_profile(
-        "test", wl_home=tmp_path / "wl", run_id="r-1", seed=1, providers={"fake": provider}
+        "test", bench_home=tmp_path / "wl", run_id="r-1", seed=1, providers={"fake": provider}
     )
     c.parser = "markdown"
     c.provider = provider  # type: ignore[attr-defined]
@@ -268,7 +268,7 @@ def test_fenetre_reduit_les_resultats_avec_avertissement(
     arch.load(index)
     gros = [{"id": "a", "text": "mot " * 2000}]
     monkeypatch.setattr(arch, "_fenetre", lambda: 1000)
-    with caplog.at_level(logging.WARNING, logger="wavelibrarian.architectures.agentic"):
+    with caplog.at_level(logging.WARNING, logger="librarian_bench.architectures.agentic"):
         h, r = arch._tenir(_question(), 3, ["étape 1 : search {} -> 1 résultat(s)"], gros)
     assert any("réduit" in m.getMessage() for m in caplog.records)
     tok = ctx.tokenizer_for(arch._modele)
@@ -306,7 +306,7 @@ def test_index_key_ne_depend_pas_des_bornes(ctx: RunCtx) -> None:
 
 def _fautif_puis_defaut() -> Any:
     """Première tentative de l'étape 1 non conforme, puis sortie par défaut du Faux."""
-    from wavelibrarian.llm.providers.fake import default_output
+    from librarian_bench.llm.providers.fake import default_output
 
     appels: list[str] = []
 
@@ -332,7 +332,7 @@ def test_borne_de_cout_compte_la_tentative_non_conforme(
     borne = {"amount": str(c1 + faute / 2), "currency": "USD"}
     provider = FakeProvider()
     autre = RunCtx.from_profile(
-        "test", wl_home=tmp_path / "wl2", run_id="r-2", seed=1, providers={"fake": provider}
+        "test", bench_home=tmp_path / "wl2", run_id="r-2", seed=1, providers={"fake": provider}
     )
     autre.parser = "markdown"
     autre.provider = provider  # type: ignore[attr-defined]
@@ -362,8 +362,8 @@ def test_fenetre_identifiants_trop_longs_erreur_de_configuration(
 
 
 def test_index_agentic_json_malforme_erreur(ctx: RunCtx, index: Path) -> None:
-    from wavelibrarian.core.errors import WlError
+    from librarian_bench.core.errors import LibrarianBenchError
 
     (index / "agentic.json").write_text('{"anchors": {}}', encoding="utf-8")
-    with pytest.raises(WlError, match="malformé"):
+    with pytest.raises(LibrarianBenchError, match="malformé"):
         _arch(ctx).load(index)

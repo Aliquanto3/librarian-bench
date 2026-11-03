@@ -7,23 +7,23 @@ from typing import Any
 import networkx as nx
 import pytest
 
-from wavelibrarian import registry
-from wavelibrarian.components.graph.communities import detect_communities, louvain_seed
-from wavelibrarian.components.graph.extraction import EntityExtractor
-from wavelibrarian.components.graph.reports import CommunityReporter
-from wavelibrarian.components.graph_stores.networkx_store import NetworkxGraphStore
-from wavelibrarian.core.errors import ConfigError, NonConformantOutput
-from wavelibrarian.core.types import ParsedCorpus, Passage
-from wavelibrarian.llm.providers.fake import FakeProvider
-from wavelibrarian.ports.components import ComponentSpec
-from wavelibrarian.runner.context import Context as RunCtx
+from librarian_bench import registry
+from librarian_bench.components.graph.communities import detect_communities, louvain_seed
+from librarian_bench.components.graph.extraction import EntityExtractor
+from librarian_bench.components.graph.reports import CommunityReporter
+from librarian_bench.components.graph_stores.networkx_store import NetworkxGraphStore
+from librarian_bench.core.errors import ConfigError, NonConformantOutput
+from librarian_bench.core.types import ParsedCorpus, Passage
+from librarian_bench.llm.providers.fake import FakeProvider
+from librarian_bench.ports.components import ComponentSpec
+from librarian_bench.runner.context import Context as RunCtx
 
 
 @pytest.fixture
 def ctx(tmp_path: Path):  # type: ignore[no-untyped-def]
     provider = FakeProvider()
     c = RunCtx.from_profile(
-        "test", wl_home=tmp_path / "wl", run_id="r-1", seed=1, providers={"fake": provider}
+        "test", bench_home=tmp_path / "wl", run_id="r-1", seed=1, providers={"fake": provider}
     )
     c.provider = provider  # type: ignore[attr-defined]
     with c:
@@ -382,7 +382,7 @@ def test_nom_canonique_le_plus_frequent(ctx: RunCtx) -> None:
 
 
 def test_slug_entite_apostrophes_et_ligatures() -> None:
-    from wavelibrarian.core.ids import slug, slug_entite
+    from librarian_bench.core.ids import slug, slug_entite
 
     assert slug_entite("L’Oréal") == slug_entite("L'Oréal") == "l-oreal"
     assert slug_entite("Œuvre et Æther") == "oeuvre-et-aether"
@@ -401,8 +401,8 @@ def test_save_load_garde_les_noms(ctx: RunCtx, tmp_path: Path) -> None:
 
 
 def test_borner_reserve_le_schema(ctx: RunCtx) -> None:
-    from wavelibrarian.components.graph._texte import SURCOUT_SCHEMA, borner, reserve_schema
-    from wavelibrarian.llm.roles import ExtractEntitiesOutput
+    from librarian_bench.components.graph._texte import SURCOUT_SCHEMA, borner, reserve_schema
+    from librarian_bench.llm.roles import ExtractEntitiesOutput
 
     modele = EntityExtractor(ctx).model_id
     fenetre = ctx.catalog.get(modele).context_window
@@ -437,7 +437,7 @@ def test_communautes_identiques_entre_processus() -> None:
 
     script = (
         "import random, networkx as nx\n"
-        "from wavelibrarian.components.graph.communities import detect_communities\n"
+        "from librarian_bench.components.graph.communities import detect_communities\n"
         "r = random.Random(3); g = nx.Graph()\n"
         "noms = [f'e{i}' for i in range(40)]\n"
         "for _ in range(120):\n"

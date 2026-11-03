@@ -14,12 +14,12 @@ import pytest
 import yaml
 from typer.testing import CliRunner
 
-from wavelibrarian.cli import app
-from wavelibrarian.components.judges.llm import LLMJudge
-from wavelibrarian.core.types import Criterion
-from wavelibrarian.ports.components import JudgeInput
-from wavelibrarian.runner.execute import _Runner
-from wavelibrarian.runner.rundir import read_answers, read_panel, read_verdicts
+from librarian_bench.cli import app
+from librarian_bench.components.judges.llm import LLMJudge
+from librarian_bench.core.types import Criterion
+from librarian_bench.ports.components import JudgeInput
+from librarian_bench.runner.execute import _Runner
+from librarian_bench.runner.rundir import read_answers, read_panel, read_verdicts
 
 RACINE = Path(__file__).resolve().parents[3] / "corpora" / "minicorpus"
 BM25 = {"id": "bm25", "architecture": "bm25_only"}
@@ -64,12 +64,12 @@ def _espion(monkeypatch: pytest.MonkeyPatch) -> list[tuple[str, tuple[str, ...]]
 
 @pytest.fixture
 def run(
-    tmp_path: Path, wl_home: Path, monkeypatch: pytest.MonkeyPatch
+    tmp_path: Path, bench_home: Path, monkeypatch: pytest.MonkeyPatch
 ) -> tuple[Path, Path, list[tuple[str, tuple[str, ...]]]]:
     appels = _espion(monkeypatch)
     exp = _experience(tmp_path)
     _wl("run", str(exp))
-    (dossier,) = [d for d in (wl_home / "runs").iterdir() if d.is_dir()]
+    (dossier,) = [d for d in (bench_home / "runs").iterdir() if d.is_dir()]
     return exp, dossier, appels
 
 
@@ -220,13 +220,14 @@ def test_calibration_fidelite_na_sans_appel_et_accords_na_comptes(
 
 
 def test_rejugement_produit_les_na_de_fidelite(
-    run: tuple[Path, Path, list[tuple[str, tuple[str, ...]]]], wl_home: Path
+    run: tuple[Path, Path, list[tuple[str, tuple[str, ...]]]], bench_home: Path
 ) -> None:
-    """`wl rejuger` (story 9.6) passe par `juger` : une abstention y reçoit aussi `na` sans Juge."""
+    """`librarian-bench rejuger` (story 9.6) passe par `juger` : une abstention y reçoit aussi `na`
+    sans Juge."""
     exp, source, appels = run
     appels.clear()
     _wl("rejuger", source.name, str(exp))
-    (cible,) = [d for d in (wl_home / "runs").iterdir() if d.is_dir() and d != source]
+    (cible,) = [d for d in (bench_home / "runs").iterdir() if d.is_dir() and d != source]
     reponses = read_answers(cible)
     muettes = {a.answer_id for a in reponses.values() if a.config_id == "sans-contexte"}
     textes_muets = {reponses[a].text for a in muettes}
@@ -239,7 +240,7 @@ def test_rejugement_produit_les_na_de_fidelite(
 
 def test_sans_corpus_de_phase_la_fidelite_d_une_abstention_n_est_pas_comptee_non_jugee(
     run: tuple[Path, Path, list[tuple[str, tuple[str, ...]]]],
-    wl_home: Path,
+    bench_home: Path,
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     """Revue 9.3 : Corpus de phase indisponible, les Critères comptés non jugés d'une abstention
@@ -247,7 +248,7 @@ def test_sans_corpus_de_phase_la_fidelite_d_une_abstention_n_est_pas_comptee_non
     exp, source, _ = run
     monkeypatch.setattr(_Runner, "_corpus_de_phase", lambda *_: None)
     CliRunner().invoke(app, ["rejuger", source.name, str(exp)])
-    (cible,) = [d for d in (wl_home / "runs").iterdir() if d.is_dir() and d != source]
+    (cible,) = [d for d in (bench_home / "runs").iterdir() if d.is_dir() and d != source]
     manifeste = json.loads((cible / "manifest.json").read_text(encoding="utf-8"))
     comptes = {c["config_id"]: c["count"] for c in manifeste["causes"] if c["cause"] == "unjudged"}
     reponses = read_answers(source)

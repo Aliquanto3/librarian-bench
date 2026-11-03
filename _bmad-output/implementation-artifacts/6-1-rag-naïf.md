@@ -8,9 +8,9 @@ status: done
 
 ## Code Map
 
-- `src/wavelibrarian/components/vector_stores/numpy_exact.py` : `NumpyExactStore` (`("vector_store", "numpy_exact")`, `hybrid = false`, Param `dim`).
-- `src/wavelibrarian/components/retrievers/dense.py` : `DenseRetriever` (`("retriever", "dense")`).
-- `src/wavelibrarian/architectures/naive_rag.py` : `NaiveRag` (`k: 5`, `query_params = {k}`, `incremental_update`, `embedder_dim()`).
+- `src/librarian_bench/components/vector_stores/numpy_exact.py` : `NumpyExactStore` (`("vector_store", "numpy_exact")`, `hybrid = false`, Param `dim`).
+- `src/librarian_bench/components/retrievers/dense.py` : `DenseRetriever` (`("retriever", "dense")`).
+- `src/librarian_bench/architectures/naive_rag.py` : `NaiveRag` (`k: 5`, `query_params = {k}`, `incremental_update`, `embedder_dim()`).
 - Tests : `tests/unit/architectures/test_story_6_1.py` (Faux LLM, faux embedder dim 64, profil `test`).
 
 ## Design Notes

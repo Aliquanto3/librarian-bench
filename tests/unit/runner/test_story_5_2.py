@@ -1,4 +1,5 @@
-"""Story 5.2 : `wl calibrer`, exclusion des Juges (profil `test`, Faux LLM, aucun réseau)."""
+"""Story 5.2 : `librarian-bench calibrer`, exclusion des Juges (profil `test`, Faux LLM, aucun
+réseau)."""
 
 import hashlib
 import json
@@ -11,16 +12,16 @@ import pytest
 import yaml
 from typer.testing import CliRunner
 
-from wavelibrarian.cli import app
-from wavelibrarian.components.judges.llm import LLMJudge
-from wavelibrarian.config.panel import excluded_judges
-from wavelibrarian.core.errors import NonConformantOutput, ProviderError
-from wavelibrarian.core.types import Criterion
-from wavelibrarian.evalset import io
-from wavelibrarian.evalset.freeze import select_questions
-from wavelibrarian.ports.components import JudgeInput
-from wavelibrarian.runner.rundir import read_answers
-from wavelibrarian.scoring.panel import criteres_juges
+from librarian_bench.cli import app
+from librarian_bench.components.judges.llm import LLMJudge
+from librarian_bench.config.panel import excluded_judges
+from librarian_bench.core.errors import NonConformantOutput, ProviderError
+from librarian_bench.core.types import Criterion
+from librarian_bench.evalset import io
+from librarian_bench.evalset.freeze import select_questions
+from librarian_bench.ports.components import JudgeInput
+from librarian_bench.runner.rundir import read_answers
+from librarian_bench.scoring.panel import criteres_juges
 
 RACINE = Path(__file__).resolve().parents[3] / "corpora" / "minicorpus"
 BM25 = {"id": "bm25", "architecture": "bm25_only"}
@@ -49,12 +50,12 @@ def _experience(tmp_path: Path, nom: str = "exp.yaml", **champs: Any) -> Path:
 
 
 @pytest.fixture
-def execution(tmp_path: Path, wl_home: Path) -> tuple[Path, Path]:
+def execution(tmp_path: Path, bench_home: Path) -> tuple[Path, Path]:
     """Une Exécution terminée au profil `test` : (experience.yaml, dossier de l'Exécution)."""
     exp = _experience(tmp_path)
     res = CliRunner().invoke(app, ["run", str(exp)])
     assert res.exit_code == 0, res.output
-    (dossier,) = [d for d in (wl_home / "runs").iterdir() if d.is_dir()]
+    (dossier,) = [d for d in (bench_home / "runs").iterdir() if d.is_dir()]
     return exp, dossier
 
 
@@ -138,7 +139,7 @@ def _b_bon_c_mauvais(juge: str, passe: int, critere: str, humain: bool) -> bool:
 
 
 def test_cinq_passes_par_juge_et_reponse_annotee_hors_cache(
-    execution: tuple[Path, Path], tmp_path: Path, monkeypatch: pytest.MonkeyPatch, wl_home: Path
+    execution: tuple[Path, Path], tmp_path: Path, monkeypatch: pytest.MonkeyPatch, bench_home: Path
 ) -> None:
     exp, dossier = execution
     ids = _annoter(dossier, tmp_path / "ann")
@@ -158,7 +159,7 @@ def test_cinq_passes_par_juge_et_reponse_annotee_hors_cache(
 
     traces = [
         json.loads(ligne)
-        for d in (wl_home / "hors-execution").iterdir()
+        for d in (bench_home / "hors-execution").iterdir()
         for ligne in (d / "traces.jsonl").read_text(encoding="utf-8").splitlines()
     ]
     juges = [s for s in traces if s["wl.post"] == "judging"]
@@ -270,7 +271,7 @@ def _calibration_a_la_main(chemin: Path, exclus: dict[str, bool]) -> None:
 
 
 def test_excluded_from_ecarte_le_juge_du_panel_et_le_rapport_le_mentionne(
-    execution: tuple[Path, Path], tmp_path: Path, wl_home: Path
+    execution: tuple[Path, Path], tmp_path: Path, bench_home: Path
 ) -> None:
     calibration = tmp_path / "calibration.json"
     # Exclure c ne laisse qu'un Juge admissible (a est de la Famille du Generator) : refus.
@@ -283,7 +284,7 @@ def test_excluded_from_ecarte_le_juge_du_panel_et_le_rapport_le_mentionne(
     ok = _experience(tmp_path, "ok.yaml", judges={"excluded_from": str(calibration)})
     res = CliRunner().invoke(app, ["run", str(ok)])
     assert res.exit_code == 0, res.output
-    rapports = [p for p in (wl_home / "runs").glob("*/report/*.md")]
+    rapports = [p for p in (bench_home / "runs").glob("*/report/*.md")]
     textes = [p.read_text(encoding="utf-8") for p in rapports]
     assert any(
         "Juges exclus par la calibration : `fake-llm-a` (calibration du 2026-10-18)." in t
@@ -300,7 +301,7 @@ def test_avertit_de_relancer_closed_book_si_le_juge_exclu_y_a_servi(
     res = _calibrer(exp, tmp_path / "ann", dossier.name)
     # Pool [c, b, a] : c juge le Filtre closed-book des modèles d'une autre Famille (a, b).
     assert "Le Juge fake-llm-c a servi au Filtre closed-book" in res.output
-    assert "wl questions closed-book" in res.output
+    assert "librarian-bench questions closed-book" in res.output
 
 
 # --- AC 6 : code 2 -----------------------------------------------------------------------------
@@ -341,15 +342,15 @@ def _spans_judging(dossier_hors_execution: Path) -> list[dict[str, Any]]:
 
 
 def test_seconde_calibration_rappelle_les_passes_1_a_4_hors_cache(
-    execution: tuple[Path, Path], tmp_path: Path, wl_home: Path
+    execution: tuple[Path, Path], tmp_path: Path, bench_home: Path
 ) -> None:
     """La seconde calibration trouve tout au Cache ; seule la passe 0 peut y être servie."""
     exp, dossier = execution
     _annoter(dossier, tmp_path / "ann")
     _calibrer(exp, tmp_path / "ann", dossier.name)
-    (premiere,) = list((wl_home / "hors-execution").iterdir())
+    (premiere,) = list((bench_home / "hors-execution").iterdir())
     _calibrer(exp, tmp_path / "ann", dossier.name, "--ecraser")
-    (seconde,) = [d for d in (wl_home / "hors-execution").iterdir() if d != premiere]
+    (seconde,) = [d for d in (bench_home / "hors-execution").iterdir() if d != premiere]
     spans = _spans_judging(seconde)
     assert spans and len(spans) % 5 == 0
     reels = [s for s in spans if not s["wl.llm_cache_hit"]]

@@ -1,4 +1,4 @@
-"""Garde-fous du socle : réseau interdit, marqueurs, CLI, fixture wl_home, couches."""
+"""Garde-fous du socle : réseau interdit, marqueurs, CLI, fixture bench_home, couches."""
 
 import os
 import socket
@@ -10,7 +10,7 @@ import pytest
 from pytest_socket import SocketBlockedError
 from typer.testing import CliRunner
 
-from wavelibrarian.cli import app
+from librarian_bench.cli import app
 
 RACINE = Path(__file__).resolve().parents[2]
 
@@ -36,14 +36,14 @@ def test_aide_cli_en_francais() -> None:
     assert "banc de comparaison" in resultat.output
 
 
-def test_wl_home(wl_home: Path) -> None:
-    assert os.environ["WL_HOME"] == str(wl_home)
-    assert wl_home.is_dir()
+def test_wl_home(bench_home: Path) -> None:
+    assert os.environ["LIBRARIAN_BENCH_HOME"] == str(bench_home)
+    assert bench_home.is_dir()
 
 
 def test_gitignore() -> None:
     lignes = (RACINE / ".gitignore").read_text(encoding="utf-8").splitlines()
-    for entree in (".wl/", "results/", ".env"):
+    for entree in (".librarian-bench/", "results/", ".env"):
         assert entree in lignes
 
 

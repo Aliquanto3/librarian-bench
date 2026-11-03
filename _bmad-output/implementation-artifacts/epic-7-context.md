@@ -21,7 +21,7 @@ Ajouter au comparatif les Architectures qui construisent une structure à l'inde
 
 - Aucun réseau ni API dans les tests : Faux LLM à rôles scénarisés (`fake-llm-a/b/c`), faux embedder (dim 64), profil `test`.
 - networkx seulement, tel que déclaré dans `pyproject.toml` (3.7) ; aucun extra lourd, aucun téléchargement de plus de 1 Go.
-- Ollama et GPU seulement après le go d'Anaël (pas de `pytest -m real_local`, pas de `wl run` sur `mini-cpu.yaml`) ; `OMP_NUM_THREADS=4`, RAM ≤ 6 Go, pas de pytest parallèle.
+- Ollama et GPU seulement après le go d'Anaël (pas de `pytest -m real_local`, pas de `librarian-bench run` sur `mini-cpu.yaml`) ; `OMP_NUM_THREADS=4`, RAM ≤ 6 Go, pas de pytest parallèle.
 
 ## Requirements & Constraints
 
@@ -32,7 +32,7 @@ Ajouter au comparatif les Architectures qui construisent une structure à l'inde
 - Agentique : outils `search` (BM25), `read` (par `anchor_id`, erreur renvoyée à l'agent pour un Ancrage inconnu), `list`, en lecture seule. `max_steps = 8`, `max_cost_per_question = 0.05 USD`, vérifiés avant chaque appel sur la somme des `cost_uncached` (comportement identique avec ou sans Cache de réponses). Spans `agent.step<n>`. Action inconnue ou `args` invalides : non conforme, un nouvel essai, puis `status: error`. Dépassement de borne : abstention.
 - Graphe (7.5) : GraphStore `networkx` (fusion des entités par `slug`, insensible casse et accents ; `remove_passages` retire les orphelins ; `save`/`load` identiques), extracteur LLM `extract_entities` réutilisable (entités et relations rattachées aux `passage_id`), communautés Louvain déterministes (graine de l'Expérience, ex æquo par id), rapports `community_report` = Passages de `level` 1 aux Ancrages unis.
 - GraphRAG : indexation (extraction, communautés, rapports) au poste `indexing`. Local : entités proches par embedding de leurs descriptions (`numpy_exact`), contexte = relations, Passages sources, rapports. Global : map (`global_map`, un appel par lot de rapports) puis reduce (`generate`), spans distincts. `search` dans `query_params`. Mise à jour incrémentale : extraction des seuls Passages changés, rapports régénérés pour les seules communautés modifiées (poste `update`).
-- LazyGraphRAG : zéro appel LLM à l'indexation (concepts par l'heuristique de `corpus/entities.py`, graphe de cooccurrence, communautés déterministes, aucun span `llm`). À la requête : classement des communautés, `grade_relevance` borné par `relevance_budget = 20` (vérifié avant chaque appel, dans `query_params`), puis `generate` ; scores tous nuls : abstention sans `generate`. Architecture distincte de `graphrag` dans `wl registre`.
+- LazyGraphRAG : zéro appel LLM à l'indexation (concepts par l'heuristique de `corpus/entities.py`, graphe de cooccurrence, communautés déterministes, aucun span `llm`). À la requête : classement des communautés, `grade_relevance` borné par `relevance_budget = 20` (vérifié avant chaque appel, dans `query_params`), puis `generate` ; scores tous nuls : abstention sans `generate`. Architecture distincte de `graphrag` dans `librarian-bench registre`.
 - LightRAG : deux index denses séparés (entités, relations), pas de rapports de communauté ; recherche bas niveau (entités) et haut niveau (relations), Passages sources dédoublonnés ; mot-clé = embedding direct de la Question (simplification documentée en docstring). Mise à jour par union de sous-graphes, aucun appel sur un Passage inchangé (compteur du Faux LLM).
 
 ## Technical Decisions
@@ -55,7 +55,7 @@ Ajouter au comparatif les Architectures qui construisent une structure à l'inde
 
 ## Reports hérités
 
-- Cache d'index (4.4) : une Architecture qui appelle le LLM à l'indexation (RAPTOR, PageIndex, LLM Wiki, GraphRAG, LightRAG), lancée avec un Faux LLM scénarisé, ne doit pas laisser dans `WL_HOME/index/` un index construit sur une sortie scénarisée (isoler `WL_HOME`/cache de réponses dans les tests scénarisés).
+- Cache d'index (4.4) : une Architecture qui appelle le LLM à l'indexation (RAPTOR, PageIndex, LLM Wiki, GraphRAG, LightRAG), lancée avec un Faux LLM scénarisé, ne doit pas laisser dans `LIBRARIAN_BENCH_HOME/index/` un index construit sur une sortie scénarisée (isoler `LIBRARIAN_BENCH_HOME`/cache de réponses dans les tests scénarisés).
 - Chaque Architecture à embeddings redéfinit `ArchitectureBase.embedder_dim()` (4.3, 6.1).
 - Extraction d'entités (2.4) : l'heuristique hors ligne rate les noms en début de phrase ; à garder en tête pour LazyGraphRAG et les questions multi-hop.
 - `IndexCache.build(post="update")` pour la phase après mise à jour ; un `update` incrémental retire les Passages des Documents supprimés ; un Document modifié garde ses `passage_id` d'ordinal égal (remplacer, pas dupliquer).
@@ -65,7 +65,7 @@ Ajouter au comparatif les Architectures qui construisent une structure à l'inde
 - Questions ancrées sur un Document du Scénario : inapplicables en phase base (4.6) ; toute Expérience à Paliers sur le Mini-corpus pose `max_questions` ou un `tier` adapté (4.6).
 - Rapport (4.12) : l'écriture du préchargement CAG revient à chaque Exécution au poste `indexing` (6.5) ; exclure les spans `wl.llm_cache_hit=true` de la durée locale (4.5).
 - Passerelle : `cache_write_1h` non facturé (1.4) ; arbitrages en attente sur AC 3 de 1.4 et AC 2 de 1.8.
-- Quand Ollama et le GPU seront libres : `uv sync --extra local`, `wl installer --profil cpu`, `pytest -m real_local` (1.12).
+- Quand Ollama et le GPU seront libres : `uv sync --extra local`, `librarian-bench installer --profil cpu`, `pytest -m real_local` (1.12).
 
 Leçons de l'epic 6 :
 

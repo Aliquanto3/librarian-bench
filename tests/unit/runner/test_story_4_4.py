@@ -1,4 +1,5 @@
-"""Story 4.4 : Exécution d'une Expérience par `wl run` (profil `test`, Faux LLM, Mini-corpus)."""
+"""Story 4.4 : Exécution d'une Expérience par `librarian-bench run` (profil `test`, Faux LLM,
+Mini-corpus)."""
 
 import json
 import shutil
@@ -10,17 +11,17 @@ import pytest
 import yaml
 from typer.testing import CliRunner
 
-from wavelibrarian.cli import app
-from wavelibrarian.config.validate import validate_file
-from wavelibrarian.core.errors import WlError
-from wavelibrarian.core.types import Answer
-from wavelibrarian.evalset import io
-from wavelibrarian.evalset.freeze import select_questions
-from wavelibrarian.llm.providers.fake import FakeProvider, default_output
-from wavelibrarian.ports.gateway import LLMRequest
-from wavelibrarian.runner.context import Context
-from wavelibrarian.runner.execute import load_questions, run_experiment
-from wavelibrarian.runner.lock import RunLock
+from librarian_bench.cli import app
+from librarian_bench.config.validate import validate_file
+from librarian_bench.core.errors import LibrarianBenchError
+from librarian_bench.core.types import Answer
+from librarian_bench.evalset import io
+from librarian_bench.evalset.freeze import select_questions
+from librarian_bench.llm.providers.fake import FakeProvider, default_output
+from librarian_bench.ports.gateway import LLMRequest
+from librarian_bench.runner.context import Context
+from librarian_bench.runner.execute import load_questions, run_experiment
+from librarian_bench.runner.lock import RunLock
 
 RACINE = Path(__file__).resolve().parents[3] / "corpora" / "minicorpus"
 BASELINES = [
@@ -51,8 +52,8 @@ def _ids_dev() -> list[str]:
     return sorted(q.id for q in select_questions(io.load(RACINE / "questions.yaml"), "dev"))
 
 
-def _un_run(wl_home: Path) -> Path:
-    runs = [d for d in (wl_home / "runs").iterdir() if d.is_dir()]
+def _un_run(bench_home: Path) -> Path:
+    runs = [d for d in (bench_home / "runs").iterdir() if d.is_dir()]
     assert len(runs) == 1
     return runs[0]
 
@@ -69,7 +70,7 @@ def _wl_run(chemin: Path) -> Any:
 # --- AC 1 : bout en bout -----------------------------------------------------------------------
 
 
-def test_wl_run_trois_baselines_de_bout_en_bout(tmp_path: Path, wl_home: Path) -> None:
+def test_wl_run_trois_baselines_de_bout_en_bout(tmp_path: Path, bench_home: Path) -> None:
     res = _wl_run(_experience(tmp_path))
     assert res.exit_code == 0, res.output
     sortie = res.output
@@ -78,7 +79,7 @@ def test_wl_run_trois_baselines_de_bout_en_bout(tmp_path: Path, wl_home: Path) -
         < sortie.index("Préflight réussi")
         < sortie.index("completed")
     )
-    dossier = _un_run(wl_home)
+    dossier = _un_run(bench_home)
     run_id = dossier.name
     manifest = json.loads((dossier / "manifest.json").read_text(encoding="utf-8"))
     assert manifest["status"] == "completed" and "finished_at" in manifest
@@ -139,7 +140,7 @@ def _questions_copiees(tmp_path: Path) -> Path:
 
 @pytest.mark.parametrize("cas", ["non_gele", "modifie"])
 def test_jeu_non_gele_ou_modifie_refuse_avant_tout_appel(
-    tmp_path: Path, wl_home: Path, cas: str
+    tmp_path: Path, bench_home: Path, cas: str
 ) -> None:
     chemin = _questions_copiees(tmp_path)
     doc = yaml.safe_load(chemin.read_text(encoding="utf-8"))
@@ -151,12 +152,12 @@ def test_jeu_non_gele_ou_modifie_refuse_avant_tout_appel(
     res = _wl_run(_experience(tmp_path, questions=str(chemin)))
     assert res.exit_code == 2, res.output
     assert ("non gelé" if cas == "non_gele" else "empreinte différente") in res.output
-    assert not (wl_home / "runs").exists()  # ni dossier d'Exécution, ni trace, ni appel
-    assert not (wl_home / "ledger.sqlite").exists()
+    assert not (bench_home / "runs").exists()  # ni dossier d'Exécution, ni trace, ni appel
+    assert not (bench_home / "ledger.sqlite").exists()
 
 
 def test_seules_les_questions_validees_ou_corrigees_de_la_partie_sont_posees(
-    tmp_path: Path, wl_home: Path
+    tmp_path: Path, bench_home: Path
 ) -> None:
     doc = io.load(RACINE / "questions.yaml")
     attendues = sorted(
@@ -164,14 +165,14 @@ def test_seules_les_questions_validees_ou_corrigees_de_la_partie_sont_posees(
     )
     res = _wl_run(_experience(tmp_path, split="test", configurations=BASELINES[2:]))
     assert res.exit_code == 0, res.output
-    assert [a.question_id for a in _answers(_un_run(wl_home))] == attendues
+    assert [a.question_id for a in _answers(_un_run(bench_home))] == attendues
     assert not set(attendues) & set(_ids_dev())
 
 
 # --- AC 3 : Configuration inapplicable -----------------------------------------------------------
 
 
-def test_long_context_inapplicable_les_autres_s_executent(tmp_path: Path, wl_home: Path) -> None:
+def test_long_context_inapplicable_les_autres_s_executent(tmp_path: Path, bench_home: Path) -> None:
     confs = [
         BASELINES[0],
         {
@@ -183,7 +184,7 @@ def test_long_context_inapplicable_les_autres_s_executent(tmp_path: Path, wl_hom
     ]
     res = _wl_run(_experience(tmp_path, configurations=confs, max_questions=4))
     assert res.exit_code == 0, res.output
-    dossier = _un_run(wl_home)
+    dossier = _un_run(bench_home)
     applicabilite = json.loads((dossier / "applicability.json").read_text(encoding="utf-8"))
     assert list(applicabilite) == ["contexte-long"]
     raison = applicabilite["contexte-long"]["reason"]
@@ -202,8 +203,10 @@ def test_long_context_inapplicable_les_autres_s_executent(tmp_path: Path, wl_hom
 # --- AC 4 : NonConformantOutput sur une Question -------------------------------------------------
 
 
-def test_sortie_non_conforme_status_error_et_l_execution_continue(wl_home: Path) -> None:
-    resolue = validate_file(_experience(wl_home.parent, configurations=BASELINES[2:]), wl_home)
+def test_sortie_non_conforme_status_error_et_l_execution_continue(bench_home: Path) -> None:
+    resolue = validate_file(
+        _experience(bench_home.parent, configurations=BASELINES[2:]), bench_home
+    )
     resolue_exp = resolue.resolved.model_copy(update={"max_questions": 3})
     questions = load_questions(resolue_exp)
     cible = questions.questions[0]
@@ -211,9 +214,9 @@ def test_sortie_non_conforme_status_error_et_l_execution_continue(wl_home: Path)
 
     def sortie(request: LLMRequest) -> str:
         try:  # le RunContext reste vivant : run.lock est tenu pendant `answer`
-            RunLock(wl_home, "intrus").acquire()
+            RunLock(bench_home, "intrus").acquire()
             verrou_tenu.append(False)
-        except WlError:
+        except LibrarianBenchError:
             verrou_tenu.append(True)
         if request.inputs["question"] == cible.text:
             return "pas du JSON"
@@ -221,7 +224,7 @@ def test_sortie_non_conforme_status_error_et_l_execution_continue(wl_home: Path)
 
     faux = FakeProvider()
     faux.script("generate", "*", sortie)
-    issue = run_experiment(resolue_exp, questions, wl_home=wl_home, providers={"fake": faux})
+    issue = run_experiment(resolue_exp, questions, bench_home=bench_home, providers={"fake": faux})
     # 1 `error` sur 3 : taux 1/3 > `max_error_rate` 0,2 (story 8.3)
     assert issue.status == "completed_with_errors"
     assert issue.causes == (
@@ -239,10 +242,10 @@ def test_sortie_non_conforme_status_error_et_l_execution_continue(wl_home: Path)
 # --- AC 5 : max_questions ----------------------------------------------------------------------
 
 
-def test_max_questions_trois_premieres_par_id(tmp_path: Path, wl_home: Path) -> None:
+def test_max_questions_trois_premieres_par_id(tmp_path: Path, bench_home: Path) -> None:
     res = _wl_run(_experience(tmp_path, max_questions=3))
     assert res.exit_code == 0, res.output
-    reponses = _answers(_un_run(wl_home))
+    reponses = _answers(_un_run(bench_home))
     assert len(reponses) == 9
     for conf in ("sans-contexte", "contexte-long", "bm25"):
         assert [a.question_id for a in reponses if a.config_id == conf] == _ids_dev()[:3]
@@ -252,29 +255,33 @@ def test_max_questions_trois_premieres_par_id(tmp_path: Path, wl_home: Path) -> 
 
 
 def test_second_wl_run_code_1_sans_regler_les_reservations_du_premier(
-    tmp_path: Path, wl_home: Path
+    tmp_path: Path, bench_home: Path
 ) -> None:
-    resolue = validate_file(_experience(tmp_path), wl_home).resolved
-    with Context.from_experiment(resolue, wl_home=wl_home, run_id="run-1") as premier:
+    resolue = validate_file(_experience(tmp_path), bench_home).resolved
+    with Context.from_experiment(resolue, bench_home=bench_home, run_id="run-1") as premier:
         reservation = premier._ledger.reserve("fake", Decimal("0.10"), "USD")  # pyright: ignore[reportPrivateUsage, reportOptionalMemberAccess]
         res = _wl_run(_experience(tmp_path))
         assert res.exit_code == 1, res.output
         assert "Exécution run-1 en cours" in res.output
         # la réservation du premier est toujours ouverte : pas « déjà close »
         premier._ledger.settle(reservation, Decimal("0.10"))  # pyright: ignore[reportPrivateUsage, reportOptionalMemberAccess]
-    assert [d.name for d in (wl_home / "runs").iterdir()] == ["run-1"]  # aucun second dossier
+    assert [d.name for d in (bench_home / "runs").iterdir()] == ["run-1"]  # aucun second dossier
 
 
-def test_sortie_scenarisee_ne_persiste_pas_dans_le_cache_de_wl_home(wl_home: Path) -> None:
-    resolue = validate_file(_experience(wl_home.parent, configurations=BASELINES[2:]), wl_home)
+def test_sortie_scenarisee_ne_persiste_pas_dans_le_cache_de_wl_home(bench_home: Path) -> None:
+    resolue = validate_file(
+        _experience(bench_home.parent, configurations=BASELINES[2:]), bench_home
+    )
     exp = resolue.resolved.model_copy(update={"max_questions": 2})
     questions = load_questions(exp)
     marque = '{"answer": "SORTIE SCENARISEE", "citations": [], "abstain": false}'
     faux = FakeProvider()
     faux.script("generate", "*", marque)
-    premier = run_experiment(exp, questions, wl_home=wl_home, providers={"fake": faux})
+    premier = run_experiment(exp, questions, bench_home=bench_home, providers={"fake": faux})
     assert all(a.text == "SORTIE SCENARISEE" for a in _answers(premier.run_dir))
-    second = run_experiment(exp, questions, wl_home=wl_home, providers={"fake": FakeProvider()})
+    second = run_experiment(
+        exp, questions, bench_home=bench_home, providers={"fake": FakeProvider()}
+    )
     reponses = _answers(second.run_dir)
     assert reponses and all(a.text != "SORTIE SCENARISEE" for a in reponses)
 
@@ -287,8 +294,9 @@ def _manifest(dossier: Path) -> dict[str, Any]:
 
 
 def _wl_run_scenarise(monkeypatch: pytest.MonkeyPatch, chemin: Path, sortie: Any) -> Any:
-    """`wl run` par la CLI, avec un Faux LLM scénarisé injecté dans `run_experiment`."""
-    from wavelibrarian import cli
+    """`librarian-bench run` par la CLI, avec un Faux LLM scénarisé injecté dans
+    `run_experiment`."""
+    from librarian_bench import cli
 
     def avec_faux(*a: Any, **k: Any) -> Any:
         faux = FakeProvider()
@@ -300,9 +308,9 @@ def _wl_run_scenarise(monkeypatch: pytest.MonkeyPatch, chemin: Path, sortie: Any
 
 
 def test_jeu_non_gele_refuse_en_2_avant_le_preflight(
-    tmp_path: Path, wl_home: Path, monkeypatch: pytest.MonkeyPatch
+    tmp_path: Path, bench_home: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:
-    from wavelibrarian import cli
+    from librarian_bench import cli
 
     chemin = _questions_copiees(tmp_path)
     doc = yaml.safe_load(chemin.read_text(encoding="utf-8"))
@@ -319,9 +327,9 @@ def test_jeu_non_gele_refuse_en_2_avant_le_preflight(
 
 
 def test_plafond_atteint_code_3_et_manifeste_budget_exceeded(
-    tmp_path: Path, wl_home: Path, monkeypatch: pytest.MonkeyPatch
+    tmp_path: Path, bench_home: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:
-    from wavelibrarian.core.errors import BudgetExceeded
+    from librarian_bench.core.errors import BudgetExceeded
 
     appels: list[str] = []
 
@@ -334,7 +342,7 @@ def test_plafond_atteint_code_3_et_manifeste_budget_exceeded(
     exp = _experience(tmp_path, configurations=BASELINES[2:], max_questions=3)
     res = _wl_run_scenarise(monkeypatch, exp, sortie)
     assert res.exit_code == 3, res.output
-    dossier = _un_run(wl_home)
+    dossier = _un_run(bench_home)
     manifest = _manifest(dossier)
     assert manifest["status"] == "budget_exceeded" and "finished_at" in manifest
     # Story 4.8 : les Questions non traitées sont écrites `budget_exceeded`.
@@ -345,22 +353,22 @@ def test_plafond_atteint_code_3_et_manifeste_budget_exceeded(
 
 
 def test_toutes_les_reponses_en_erreur_code_1_et_decompte_au_manifeste(
-    tmp_path: Path, wl_home: Path, monkeypatch: pytest.MonkeyPatch
+    tmp_path: Path, bench_home: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:
     exp = _experience(tmp_path, configurations=BASELINES[2:], max_questions=2)
     res = _wl_run_scenarise(monkeypatch, exp, "pas du JSON")
     assert res.exit_code == 1, res.output
     assert "Aucune Réponse valide" in res.output
-    dossier = _un_run(wl_home)
+    dossier = _un_run(bench_home)
     manifest = _manifest(dossier)
     assert manifest["status"] == "completed_with_errors"  # story 8.3
     assert manifest["answers"] == {"ok": 0, "error": 2, "inapplicable": 0}
 
 
 def test_configuration_en_echec_ses_questions_en_erreur_les_autres_s_executent(
-    tmp_path: Path, wl_home: Path, monkeypatch: pytest.MonkeyPatch
+    tmp_path: Path, bench_home: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:
-    from wavelibrarian.architectures.bm25_only import Bm25Only
+    from librarian_bench.architectures.bm25_only import Bm25Only
 
     def check_en_panne(self: Any, profile: Any) -> Any:
         raise RuntimeError("check en panne")
@@ -369,7 +377,7 @@ def test_configuration_en_echec_ses_questions_en_erreur_les_autres_s_executent(
     confs = [BASELINES[0], BASELINES[2]]
     res = _wl_run(_experience(tmp_path, configurations=confs, max_questions=2))
     assert res.exit_code == 1, res.output  # story 8.3 : `bm25` sans Réponse `ok`
-    dossier = _un_run(wl_home)
+    dossier = _un_run(bench_home)
     reponses = _answers(dossier)
     bm25 = [a for a in reponses if a.config_id == "bm25"]
     assert len(bm25) == 2
@@ -386,18 +394,20 @@ def test_configuration_en_echec_ses_questions_en_erreur_les_autres_s_executent(
 
 
 def test_exception_non_rattrapee_manifeste_failed(
-    tmp_path: Path, wl_home: Path, monkeypatch: pytest.MonkeyPatch
+    tmp_path: Path, bench_home: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:
-    from wavelibrarian.runner import execute
+    from librarian_bench.runner import execute
 
     def profil_en_panne(*_a: Any, **_k: Any) -> Any:
         raise RuntimeError("profilage en panne")
 
     monkeypatch.setattr(execute, "profil_corpus", profil_en_panne)
-    resolue = validate_file(_experience(tmp_path, configurations=BASELINES[2:]), wl_home).resolved
+    resolue = validate_file(
+        _experience(tmp_path, configurations=BASELINES[2:]), bench_home
+    ).resolved
     with pytest.raises(RuntimeError, match="profilage en panne"):
-        run_experiment(resolue, load_questions(resolue), wl_home=wl_home)
-    dossier = _un_run(wl_home)
+        run_experiment(resolue, load_questions(resolue), bench_home=bench_home)
+    dossier = _un_run(bench_home)
     assert _manifest(dossier)["status"] == "failed"
     assert "profilage en panne" in (dossier / "run.log").read_text(encoding="utf-8")
-    RunLock(wl_home, "suivant").acquire()  # le verrou est libéré
+    RunLock(bench_home, "suivant").acquire()  # le verrou est libéré

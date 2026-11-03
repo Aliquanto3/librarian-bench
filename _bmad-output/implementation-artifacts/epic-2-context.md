@@ -4,17 +4,17 @@
 
 ## Goal
 
-Permettre de déclarer un Corpus dans un `corpus.yaml`, de l'ingérer avec des Ancrages stables (chemin de titres pour Markdown, texte et HTML ; page pour PDF) et d'obtenir son Profil (`wl corpus profiler`). L'epic fournit aussi les Paliers de volume emboîtés, l'application d'un Scénario de mise à jour et le Mini-corpus fictif publiable (Documents, extras, scénario) sur lequel toute la chaîne se teste sans réseau.
+Permettre de déclarer un Corpus dans un `corpus.yaml`, de l'ingérer avec des Ancrages stables (chemin de titres pour Markdown, texte et HTML ; page pour PDF) et d'obtenir son Profil (`librarian-bench corpus profiler`). L'epic fournit aussi les Paliers de volume emboîtés, l'application d'un Scénario de mise à jour et le Mini-corpus fictif publiable (Documents, extras, scénario) sur lequel toute la chaîne se teste sans réseau.
 
 ## Stories
 
 - Story 2.1: Déclaration d'un Corpus
 - Story 2.2: Ingestion Markdown, texte et HTML avec Ancrages
 - Story 2.3: Ingestion PDF avec Ancrages par page
-- Story 2.4: Profil de corpus et commande `wl corpus profiler`
+- Story 2.4: Profil de corpus et commande `librarian-bench corpus profiler`
 - Story 2.5: Mini-corpus fictif
 - Story 2.6: Application d'un Scénario de mise à jour à un Corpus
-- Story 2.7: Paliers de volume et commande `wl corpus paliers`
+- Story 2.7: Paliers de volume et commande `librarian-bench corpus paliers`
 
 ## Requirements & Constraints
 
@@ -36,13 +36,13 @@ Permettre de déclarer un Corpus dans un `corpus.yaml`, de l'ingérer avec des A
 - Identités (AD-5) : `source_path`, `doc_id = sha256(octets)[:16]` via `core/ids.py` ; `anchor_id` = `<doc_id>#p<page>` (pages dès 1) ou `<doc_id>#h/<slug>/<slug>` ; texte avant le premier titre ou fichier sans titre : `<doc_id>#h/`. Titres frères identiques : suffixe ordinal documenté, déterministe. `heading_path` conserve les titres bruts.
 - Modules : `corpus/declare.py`, `ingest.py`, `profile.py`, `entities.py`, `scenario.py`, `tiers.py`. Parsers `markdown` (markdown-it-py), `text`, `html` (beautifulsoup4), `pdf_text` (pypdfium2), enregistrés au `kind` `parser` avec leurs `formats` ; `ingest.py` les obtient par le registre, sans importer `components` (AD-1).
 - Suite du suivi `parser: auto` : 2.1 et 2.2 doivent exposer les formats du Corpus et les parsers enregistrés par format, pour que le runner remplace `auto` par des noms concrets (`markdown`, `text`, `html`, `pdf_text`) avant d'écrire `RunContext.parser` et `index_key`. 2.2 résout `auto` dans `ingest.py` ; le runner (epic 4) doit disposer du même résultat.
-- Cache de parsing : `<WL_HOME>/parse_cache/<parser>/<doc_id>.json`. `ParsedCorpus` trié par `source_path`, `fingerprint = sha16` des couples `(source_path, doc_id)` triés.
-- Déjà posé par l'epic 1 et à réutiliser sans le redéfinir : registre `@register` avec `Params` forbid + frozen, types `Document`, `Anchor`, `Passage`, `CorpusProfile`, `ParsedCorpus` (`resolve`, `anchor_text`), `CorpusChange`, `ConfigError` avec chemin, `tokens_for` sans facteur (le facteur ne vient que de l'estimation de la Passerelle), fixtures `wl_home` et `fake_ctx`.
+- Cache de parsing : `<LIBRARIAN_BENCH_HOME>/parse_cache/<parser>/<doc_id>.json`. `ParsedCorpus` trié par `source_path`, `fingerprint = sha16` des couples `(source_path, doc_id)` triés.
+- Déjà posé par l'epic 1 et à réutiliser sans le redéfinir : registre `@register` avec `Params` forbid + frozen, types `Document`, `Anchor`, `Passage`, `CorpusProfile`, `ParsedCorpus` (`resolve`, `anchor_text`), `CorpusChange`, `ConfigError` avec chemin, `tokens_for` sans facteur (le facteur ne vient que de l'estimation de la Passerelle), fixtures `bench_home` et `fake_ctx`.
 - Droits (AD-19) : un Corpus `publishable: false` dont le chemin est dans le dépôt est refusé s'il n'est pas ignoré (`git check-ignore`) ; hors dépôt git, vérification sautée avec avertissement.
 - Scénario (`scenario.yaml`) : opérations `add`, `modify`, `delete` appliquées dans l'ordre ; `source` relatif au fichier du scénario, `target` = `source_path` du Corpus ; erreurs au chemin `operations[i]`. L'application est pure : `CorpusChange` + `corpus_after`, original inchangé, rien d'écrit dans `docs/`.
 - Paliers (AD-20) : tirage par `ctx.rng` ou `default_rng(sha16(...))`, listes triées ; sous-corpus = `ParsedCorpus` restreint avec sa propre `fingerprint`. Erreurs `ConfigError` si `required_paths` dépasse la plus petite taille, ou taille > nombre de Documents (`tiers.sizes[i]`).
 - PDF du Mini-corpus générés par `scripts/make_minicorpus_pdfs.py` (fpdf2) avec une police TTF libre commitée (ex. DejaVu Sans) pour « œ », « », tirets typographiques ; les PDF sont commités. Fixture `minicorpus` : `ParsedCorpus` du profil `test`, cache de session.
-- CLI : `wl corpus profiler <corpus.yaml> --parser auto` écrit `corpus_profile.json` (`model_dump(mode="json")`) ; `wl corpus paliers`. Messages en français, `corpus.yaml` invalide = code de sortie 2.
+- CLI : `librarian-bench corpus profiler <corpus.yaml> --parser auto` écrit `corpus_profile.json` (`model_dump(mode="json")`) ; `librarian-bench corpus paliers`. Messages en français, `corpus.yaml` invalide = code de sortie 2.
 
 ## Cross-Story Dependencies
 
