@@ -65,8 +65,8 @@ def _trace_index(ctx: "Context", *, hit: bool, latency_s: float, key: str) -> No
 class IndexCache:
     """Dossier `index/` d'un `LIBRARIAN_BENCH_HOME`."""
 
-    def __init__(self, wl_home: Path) -> None:
-        self.root = wl_home / "index"
+    def __init__(self, bench_home: Path) -> None:
+        self.root = bench_home / "index"
 
     def path(self, key: str) -> Path:
         return self.root / key

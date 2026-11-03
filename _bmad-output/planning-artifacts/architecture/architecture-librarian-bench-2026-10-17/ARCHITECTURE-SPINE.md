@@ -27,7 +27,7 @@ Le banc suit le modèle **ports et adaptateurs**, avec un **registre de plugins*
 
 ```mermaid
 flowchart TD
-    cli["cli (wl)"] --> runner
+    cli["cli (librarian-bench)"] --> runner
     cli --> report
     runner --> architectures
     runner --> evalset
@@ -241,7 +241,7 @@ flowchart LR
 | Langue de la CLI | Sous-commandes et options en français (PRD §5, contracts.md §8) |
 | Journalisation | `logging` standard, logger `librarian-bench.<module>` ; pas de `print` hors `cli.py` |
 | Sérialisation | `model_dump(mode="json")` ; JSONL en UTF-8, une ligne par objet, LF |
-| Tests | `tests/unit/<couche>/test_<module>.py`, `tests/conformance/`, `tests/e2e/`, `tests/real/` (marqués) ; fixtures communes dans `tests/conftest.py` (`fake_ctx`, `minicorpus`, `wl_home`) |
+| Tests | `tests/unit/<couche>/test_<module>.py`, `tests/conformance/`, `tests/e2e/`, `tests/real/` (marqués) ; fixtures communes dans `tests/conftest.py` (`fake_ctx`, `minicorpus`, `bench_home`) |
 | Prompts | Constantes en tête du module du Composant qui les utilise, au format `str.format` ; pas de moteur de gabarits |
 
 ## Pile technique
@@ -272,7 +272,7 @@ Versions relevées sur PyPI le 2026-10-17. Elles sont épinglées dans `pyprojec
 | extra `docling` : docling | 2.140.0 |
 | dev : pytest / pytest-socket / ruff / pyright / import-linter / fpdf2 | 9.1.1 / 0.8.1 / 0.17.1 / 1.1.414 / 2.15 / 2.8.9 |
 
-Les tests par défaut n'exigent aucun extra. Un module qui importe un extra le fait au premier usage et lève `WlError("installer l'extra …")` s'il est absent.
+Les tests par défaut n'exigent aucun extra. Un module qui importe un extra le fait au premier usage et lève `LibrarianBenchError("installer l'extra …")` s'il est absent.
 
 ## Germe structurel
 

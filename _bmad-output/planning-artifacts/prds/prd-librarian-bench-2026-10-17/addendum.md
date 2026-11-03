@@ -9,7 +9,7 @@ Choix techniques et contexte qui ne relèvent pas des exigences, à arbitrer dan
 - **Ingestion** : Docling pour le PDF, comparé plus tard à un VLM (niveau 4).
 - **Base vectorielle** : pgvector comme dénominateur commun en cloud. En local au MVP, une base embarquée sans serveur (sqlite-vec ou LanceDB) ; à trancher.
 - **Traces** : OpenTelemetry, avec un export fichier par défaut ; Langfuse, Phoenix et les autres outils viendront ensuite comme Composants comparés.
-- **Énergie** : CodeCarbon en local et EcoLogits pour les API, en reprenant la méthode du banc SLM et du harnais WaveStack (FinOps : prix datés, plafond par séance, décomposition « sans optimisation / coût réel / part du cache »).
+- **Énergie** : CodeCarbon en local et EcoLogits pour les API, en reprenant la méthode du banc SLM et du harnais HarnessLab (FinOps : prix datés, plafond par séance, décomposition « sans optimisation / coût réel / part du cache »).
 - **Infrastructure** : conteneurs et OpenTofu, un module par fournisseur `[Post-MVP]`.
 - **Mutualisation (D14)** : partager le harnais d'évaluation et la mesure d'énergie avec le moteur de recherche local et le banc SLM, pas le code applicatif.
 

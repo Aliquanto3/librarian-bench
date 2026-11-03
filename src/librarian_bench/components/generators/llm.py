@@ -5,7 +5,7 @@ from typing import Annotated, Any
 
 from pydantic import BaseModel, ConfigDict, Field
 
-from librarian_bench.core.errors import WlError
+from librarian_bench.core.errors import LibrarianBenchError
 from librarian_bench.core.types import Citation, ModelRefMeta, QuestionInput
 from librarian_bench.llm.roles import GenerateOutput
 from librarian_bench.ports.components import Context, GenerationResult
@@ -61,7 +61,7 @@ class LLMGenerator:
         comptée au Poste `indexing` ; un rejeu repaie donc le préchargement.
         """
         if not self._cache_system:
-            raise WlError("`preload` exige `cache_system: true`")
+            raise LibrarianBenchError("`preload` exige `cache_system: true`")
         requete = LLMRequest(
             model_id=self.model_id,
             role="generate",

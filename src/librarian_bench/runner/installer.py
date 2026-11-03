@@ -11,7 +11,7 @@ from dataclasses import dataclass
 
 from librarian_bench.config.catalog import load_catalog
 from librarian_bench.config.defaults import load_profile
-from librarian_bench.core.errors import ProviderError, WlError
+from librarian_bench.core.errors import LibrarianBenchError, ProviderError
 
 ENCODAGE = "o200k_base"
 
@@ -31,7 +31,9 @@ def telecharger_encodage(nom: str) -> None:
 
         tiktoken.get_encoding(nom)
     except Exception as exc:
-        raise WlError(f"encodage tiktoken {nom} non téléchargé ({type(exc).__name__})") from exc
+        raise LibrarianBenchError(
+            f"encodage tiktoken {nom} non téléchargé ({type(exc).__name__})"
+        ) from exc
 
 
 def telecharger_embedder(hf_repo: str) -> None:
@@ -39,11 +41,13 @@ def telecharger_embedder(hf_repo: str) -> None:
     try:
         from huggingface_hub import snapshot_download  # pyright: ignore[reportMissingImports]
     except ImportError:
-        raise WlError("installer l'extra local") from None
+        raise LibrarianBenchError("installer l'extra local") from None
     try:
         snapshot_download(hf_repo)
     except Exception as exc:
-        raise WlError(f"embedder {hf_repo} non téléchargé ({type(exc).__name__})") from exc
+        raise LibrarianBenchError(
+            f"embedder {hf_repo} non téléchargé ({type(exc).__name__})"
+        ) from exc
 
 
 def ollama_list() -> str:
@@ -73,12 +77,14 @@ def _noms(sortie: str) -> set[str]:
 def installer(profil: str) -> InstallResult:
     """Prépare le profil `cpu` ou `gpu` ; renvoie les modèles Ollama encore à tirer."""
     if profil not in ("cpu", "gpu"):
-        raise WlError(f"profil à installer inconnu : {profil!r} (attendu : cpu, gpu)")
+        raise LibrarianBenchError(f"profil à installer inconnu : {profil!r} (attendu : cpu, gpu)")
     reglages = load_profile(profil)
     catalogue = load_catalog()
     embedder = catalogue.get(reglages.defaults.embedder)
     if not embedder.hf_repo:
-        raise WlError(f"embedder {embedder.id} sans dépôt Hugging Face dans le Catalogue")
+        raise LibrarianBenchError(
+            f"embedder {embedder.id} sans dépôt Hugging Face dans le Catalogue"
+        )
     telecharger_encodage(ENCODAGE)
     telecharger_embedder(embedder.hf_repo)
     attendus = sorted(m for m in reglages.model_ids() if catalogue.get(m).provider == "ollama")

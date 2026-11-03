@@ -728,15 +728,15 @@ def construire_markdown(
 
 
 def generer_rapport(
-    run_dir: Path, *, wl_home: Path | None = None, resoudre: Resolveur | None = None
+    run_dir: Path, *, bench_home: Path | None = None, resoudre: Resolveur | None = None
 ) -> Path:
-    """Écrit `report/` de l'Exécution et rend son dossier. `wl_home` : cache de parsing pour
+    """Écrit `report/` de l'Exécution et rend son dossier. `bench_home` : cache de parsing pour
     résoudre les Ancrages de référence (défaut `LIBRARIAN_BENCH_HOME` ou `.librarian-bench`) ;
     `resoudre` : résolveur
     d'Ancrages injecté (tests). `ConfigError` si l'Expérience résolue ou le Jeu sont illisibles."""
     ex = charger(run_dir)
     if resoudre is None:
-        home = wl_home or dossier_home()
+        home = bench_home or dossier_home()
         entrees = ex.manifeste.get("inputs")
         resoudre = resolveur_de(ex.experience, home, entrees if isinstance(entrees, dict) else {})
     res = evaluer(ex, resoudre)

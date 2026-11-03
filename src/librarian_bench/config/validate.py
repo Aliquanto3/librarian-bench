@@ -32,8 +32,8 @@ class ValidationResult:
     panels: dict[str, tuple[str, ...]]  # config_id -> Juges, dans l'ordre du réservoir
 
 
-def _wl_home(wl_home: Path | None) -> Path:
-    return wl_home or dossier_home()
+def _bench_home(bench_home: Path | None) -> Path:
+    return bench_home or dossier_home()
 
 
 def _verifier_modeles(col: Collecte, catalog: ModelCatalog, erreurs: list[ConfigError]) -> set[str]:
@@ -82,13 +82,13 @@ def _verifier_capacites(
 
 
 def _verifier_index_reutilise(
-    col: Collecte, cle: str, wl_home: Path, catalog: ModelCatalog, erreurs: list[ConfigError]
+    col: Collecte, cle: str, bench_home: Path, catalog: ModelCatalog, erreurs: list[ConfigError]
 ) -> None:
     chemin = f"{col.chemin}.reuse_index"
     if not _CLE_INDEX.fullmatch(cle):
         erreurs.append(ConfigError(chemin, f"clé d'index invalide : {cle!r}"))
         return
-    manifeste = wl_home / "index" / cle / "manifest.json"
+    manifeste = bench_home / "index" / cle / "manifest.json"
     try:
         donnees = json.loads(manifeste.read_text(encoding="utf-8"))
     except (OSError, ValueError) as exc:
@@ -154,7 +154,7 @@ def _verifier_juges(
 
 
 def validate_experiment(
-    experience: Experiment, source: Path, wl_home: Path | None = None
+    experience: Experiment, source: Path, bench_home: Path | None = None
 ) -> ValidationResult:
     """Valide `experience` sans réseau ; lève un seul `ValidationFailed` regroupant les refus.
 
@@ -165,7 +165,7 @@ def validate_experiment(
     """
     erreurs: list[ConfigError] = []
     releves: list[Collecte] = []
-    home = _wl_home(wl_home)
+    home = _bench_home(bench_home)
     try:
         resolved = resolve_experiment(experience, source, home, erreurs=erreurs, releves=releves)
         catalog = load_catalog(Path(resolved.catalog) if resolved.catalog else None)
@@ -207,10 +207,10 @@ def validate_experiment(
     return ValidationResult(resolved=resolved, catalog=catalog, panels=panels)
 
 
-def validate_file(chemin: Path, wl_home: Path | None = None) -> ValidationResult:
+def validate_file(chemin: Path, bench_home: Path | None = None) -> ValidationResult:
     """Charge puis valide `chemin` ; toute erreur (schéma compris) devient `ValidationFailed`."""
     try:
         experience = load_experiment(chemin, verifier_params=False)
     except ConfigError as exc:
         raise ValidationFailed([exc]) from exc
-    return validate_experiment(experience, chemin, wl_home)
+    return validate_experiment(experience, chemin, bench_home)

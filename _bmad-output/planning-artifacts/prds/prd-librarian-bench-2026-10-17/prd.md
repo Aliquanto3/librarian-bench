@@ -9,7 +9,7 @@ updated: 2026-10-26
 
 ## 0. Objet du document
 
-Ce PRD s'adresse à Anaël (porteur et seul opérateur), à l'architecte et aux agents de développement qui implémenteront le banc en autonomie. Il couvre les livrables 1 (conviction mesurée) et 2 (outil de mission) du cadrage `docs/cadrage.md`, qui reste la source des hypothèses H1 à H17, des corpus, des sources et des décisions D1 à D14. La plateforme pédagogique (livrable 3) est une extension de WaveStack décrite dans un PRD séparé ; la publication (livrable 4) n'est traitée qu'au travers des exigences de reproductibilité.
+Ce PRD s'adresse à Anaël (porteur et seul opérateur), à l'architecte et aux agents de développement qui implémenteront le banc en autonomie. Il couvre les livrables 1 (conviction mesurée) et 2 (outil de mission) du cadrage `docs/cadrage.md`, qui reste la source des hypothèses H1 à H17, des corpus, des sources et des décisions D1 à D14. La plateforme pédagogique (livrable 3) est une extension de HarnessLab décrite dans un PRD séparé ; la publication (livrable 4) n'est traitée qu'au travers des exigences de reproductibilité.
 
 Structure : vocabulaire fixé par le Glossaire (§3), fonctionnalités regroupées avec exigences numérotées FR-1 à FR-N (§4), exigences transverses (§5), périmètre MVP (§7). Les choix techniques (bibliothèques, formats, modèles) sont dans `addendum.md`. Les déductions non confirmées portent la balise `[ASSUMPTION]` et sont indexées au §11.
 
@@ -35,7 +35,7 @@ Le banc est conçu pour être piloté par un seul opérateur, entièrement en li
 
 ### 2.2 Hors cible (v1)
 
-- Utilisateurs non techniques : la plateforme no code relève de WaveStack (livrable 3).
+- Utilisateurs non techniques : la plateforme no code relève de HarnessLab (livrable 3).
 - Production en ligne : le banc n'est pas un service de recherche documentaire à exploiter en continu, même si une architecture configurée peut être exposée en MCP `[Post-MVP]`.
 - Équipes multiples : pas de gestion de comptes, de droits applicatifs ni de travail concurrent.
 
@@ -560,7 +560,7 @@ Fonctionnalités décrites au niveau capacité ; elles seront détaillées avant
 
 ## 6. Non-objectifs
 
-- Pas de plateforme no code ni d'interface web dans ce produit (livrable 3, WaveStack).
+- Pas de plateforme no code ni d'interface web dans ce produit (livrable 3, HarnessLab).
 - Pas de service de recherche documentaire en production, pas de multi-utilisateur.
 - Pas d'interface d'annotation : l'annotation se fait dans des fichiers.
 - Pas de dépendance à un framework RAG comme socle (D4) : les frameworks n'entrent que comme Composants ou Architectures comparés.

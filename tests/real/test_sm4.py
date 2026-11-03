@@ -53,7 +53,7 @@ def _usage(span: dict[str, Any]) -> Usage:
     )
 
 
-def _verifier_run(experience: Path, wl_home: Path) -> list[dict[str, Any]]:
+def _verifier_run(experience: Path, bench_home: Path) -> list[dict[str, Any]]:
     """Lance `librarian-bench run`, vérifie les AC 2 à 6 et renvoie les spans payants."""
     # Garde du plafond : l'Expérience doit porter un plafond Anthropic d'au plus 5 $.
     plafond = charger_yaml(experience)["budget"]["per_run"]["anthropic"]
@@ -61,7 +61,7 @@ def _verifier_run(experience: Path, wl_home: Path) -> list[dict[str, Any]]:
 
     res = CliRunner().invoke(app, ["run", str(experience)])
     assert res.exit_code == 0, res.output  # 3 = plafond atteint : le test échoue
-    (dossier,) = [d for d in (wl_home / "runs").iterdir() if d.is_dir()]
+    (dossier,) = [d for d in (bench_home / "runs").iterdir() if d.is_dir()]
     run_id = dossier.name
 
     # 1. Chaque span payant : `wl.cost` == catalog.cost(model, usage), au dernier chiffre.
@@ -81,7 +81,7 @@ def _verifier_run(experience: Path, wl_home: Path) -> list[dict[str, Any]]:
     print(f"SM-4 {experience.name} : {len(payants)} appels, coût tracé {total_spans} USD")
 
     # 2. Registre de dépense : somme réglée pour ce run_id == somme des spans, au centime près.
-    conn = sqlite3.connect(wl_home / "ledger.sqlite")
+    conn = sqlite3.connect(bench_home / "ledger.sqlite")
     try:
         (regle,) = conn.execute(
             "SELECT COALESCE(SUM(CAST(actual AS REAL)), 0) FROM reservations "
@@ -95,7 +95,7 @@ def _verifier_run(experience: Path, wl_home: Path) -> list[dict[str, Any]]:
 
     # 3. Rapport (story 8.2) : `cost_eur_real` (hors possession) == dépense du Registre Anthropic
     #    convertie en euros ; les Juges factices sont dans `cost_eur_fake`, hors du coût réel.
-    taux = load_costs(wl_home).fx.rates_to_eur
+    taux = load_costs(bench_home).fx.rates_to_eur
     with (dossier / "report" / "costs.csv").open(encoding="utf-8", newline="") as f:
         lignes_csv = list(csv.DictReader(f))
     total_rapport = sum(
@@ -116,15 +116,15 @@ def _verifier_run(experience: Path, wl_home: Path) -> list[dict[str, Any]]:
     return payants
 
 
-def test_sm4_cout_trace_egal_cout_recalcule(wl_home: Path) -> None:
-    payants = _verifier_run(EXPERIENCE, wl_home)
+def test_sm4_cout_trace_egal_cout_recalcule(bench_home: Path) -> None:
+    payants = _verifier_run(EXPERIENCE, bench_home)
     assert len(payants) >= 5  # des Réponses servies par le Cache de réponses sont exclues
 
 
-def test_sm4_plafond_couvre_les_juges(wl_home: Path) -> None:
+def test_sm4_plafond_couvre_les_juges(bench_home: Path) -> None:
     """Generator factice, Juge Haiku réel : les seuls appels payants sont ceux du Juge, qui passent
     par le même Registre et le même plafond que le Generator."""
-    payants = _verifier_run(EXPERIENCE_JUGES, wl_home)
+    payants = _verifier_run(EXPERIENCE_JUGES, bench_home)
     assert len(payants) >= 2  # un appel de Juge par Réponse
 
 

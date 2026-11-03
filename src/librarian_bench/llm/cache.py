@@ -8,7 +8,7 @@ from typing import Any
 
 from librarian_bench.core.ids import canonical_json
 from librarian_bench.core.types import Usage
-from librarian_bench.llm._db import connect, resolve_wl_home, transaction
+from librarian_bench.llm._db import connect, resolve_bench_home, transaction
 from librarian_bench.ports.gateway import LLMRequest
 
 _SCHEMA = (
@@ -86,8 +86,8 @@ class CachedResponse:
 class ResponseCache:
     """Cache persistant des réponses déjà payées."""
 
-    def __init__(self, wl_home: Path | None = None) -> None:
-        self._conn = connect(resolve_wl_home(wl_home) / "llm_cache.sqlite")
+    def __init__(self, bench_home: Path | None = None) -> None:
+        self._conn = connect(resolve_bench_home(bench_home) / "llm_cache.sqlite")
         try:
             self._conn.execute(_SCHEMA)
             colonnes = {r[1] for r in self._conn.execute("PRAGMA table_info(responses)")}

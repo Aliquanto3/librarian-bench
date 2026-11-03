@@ -3,7 +3,7 @@
 from collections.abc import Iterable
 from pathlib import Path
 
-from librarian_bench.core.errors import WlError
+from librarian_bench.core.errors import LibrarianBenchError
 from librarian_bench.core.types import Passage
 
 FICHIER = "passages.jsonl"
@@ -21,5 +21,5 @@ def lire_passages(directory: Path) -> list[Passage]:
     try:
         texte = chemin.read_text(encoding="utf-8")
     except OSError as exc:
-        raise WlError(f"index illisible : {chemin} absent ou illisible") from exc
+        raise LibrarianBenchError(f"index illisible : {chemin} absent ou illisible") from exc
     return [Passage.model_validate_json(ligne) for ligne in texte.split("\n") if ligne]

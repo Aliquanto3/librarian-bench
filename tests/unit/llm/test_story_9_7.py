@@ -66,14 +66,14 @@ def test_cle_differe_selon_la_configuration() -> None:
 
 
 class _Env:
-    def __init__(self, wl_home: Path, isoler: bool) -> None:
+    def __init__(self, bench_home: Path, isoler: bool) -> None:
         self.appels: list[str] = []
         self.provider = FakeProvider()
         self.provider.script("generate", "*", self._appel)
         self.ctx = Context(
             profile=load_profile("test"),
             catalog=load_catalog(),
-            wl_home=wl_home,
+            bench_home=bench_home,
             run_id="r-1",
             providers={"fake": self.provider},
             isoler_configurations=isoler,
@@ -125,8 +125,8 @@ def test_llm_cache_defaut_faux_et_champ_strict() -> None:
         LlmCacheSettings(isoler=True)  # type: ignore[call-arg]
 
 
-def test_experience_lazy_seuil_cpu(wl_home: Path) -> None:
-    res = validate_file(EXPERIENCES / "lazy-seuil-cpu.yaml", wl_home)
+def test_experience_lazy_seuil_cpu(bench_home: Path) -> None:
+    res = validate_file(EXPERIENCES / "lazy-seuil-cpu.yaml", bench_home)
     r = res.resolved
     assert r.llm_cache.isoler_configurations is True
     seuils = {c.id: c.params["relevance_threshold"] for c in r.configurations}
@@ -152,10 +152,10 @@ def _mini_test(tmp_path: Path, **ajouts: object) -> Path:
     return chemin
 
 
-def test_empreinte_d_une_experience_pre_9_7_inchangee(tmp_path: Path, wl_home: Path) -> None:
+def test_empreinte_d_une_experience_pre_9_7_inchangee(tmp_path: Path, bench_home: Path) -> None:
     # Constat 1 du second avis : `llm_cache` par défaut ne doit pas changer l'empreinte, sans quoi
     # `--reprendre` refuse toute Exécution v0.2.0. Écrit comme en v0.2.0 : sans clé `llm_cache`.
-    r = validate_file(_mini_test(tmp_path), wl_home).resolved
+    r = validate_file(_mini_test(tmp_path), bench_home).resolved
     assert "llm_cache" not in yaml.safe_load(to_yaml(r))
     dossier = tmp_path / "run-v020"
     write_resolved(r, dossier)
@@ -165,18 +165,18 @@ def test_empreinte_d_une_experience_pre_9_7_inchangee(tmp_path: Path, wl_home: P
     assert fingerprint(relue) == fingerprint(r) == attendue
     # Activée, l'option entre dans la forme écrite et dans l'empreinte.
     isolee = validate_file(
-        _mini_test(tmp_path, llm_cache={"isoler_configurations": True}), wl_home
+        _mini_test(tmp_path, llm_cache={"isoler_configurations": True}), bench_home
     ).resolved
     assert yaml.safe_load(to_yaml(isolee))["llm_cache"] == {"isoler_configurations": True}
     assert fingerprint(isolee) != fingerprint(r)
 
 
 def test_isolation_cablee_depuis_le_yaml_et_limitee_au_poste_query(
-    tmp_path: Path, wl_home: Path
+    tmp_path: Path, bench_home: Path
 ) -> None:
     # Constats 3, 5 et 7 : YAML -> `from_experiment` -> passerelle ; Juges (`judging`, aussi en
     # calibration) et construction d'index (`indexing`) gardent un Cache commun.
-    res = validate_file(_mini_test(tmp_path, llm_cache={"isoler_configurations": True}), wl_home)
+    res = validate_file(_mini_test(tmp_path, llm_cache={"isoler_configurations": True}), bench_home)
     provider = FakeProvider()
     appels: list[tuple[str, str]] = []
 
@@ -186,7 +186,7 @@ def test_isolation_cablee_depuis_le_yaml_et_limitee_au_poste_query(
 
     provider.script("generate", "*", _appel)
     ctx = Context.from_experiment(
-        res.resolved, wl_home=wl_home, run_id="r-1", providers={"fake": provider}
+        res.resolved, bench_home=bench_home, run_id="r-1", providers={"fake": provider}
     )
     req = LLMRequest(
         model_id="fake-llm-a",

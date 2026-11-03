@@ -36,7 +36,7 @@ from pydantic import BaseModel, ConfigDict, Field
 
 from librarian_bench.architectures._fenetre import MARGE_GENERATE, borner_passages, couper
 from librarian_bench.components.context import build_arch_answer
-from librarian_bench.core.errors import ConfigError, WlError
+from librarian_bench.core.errors import ConfigError, LibrarianBenchError
 from librarian_bench.core.ids import sha16
 from librarian_bench.core.types import (
     ArchAnswer,
@@ -222,7 +222,7 @@ class PageIndex(ArchitectureBase):
         try:
             brut = json.loads(chemin.read_text(encoding="utf-8"))
         except (OSError, ValueError) as exc:
-            raise WlError(f"index illisible : {chemin} absent ou illisible") from exc
+            raise LibrarianBenchError(f"index illisible : {chemin} absent ou illisible") from exc
         return [_Noeud(**n) for n in brut["nodes"]]
 
     def index(self, corpus: ParsedCorpus, directory: Path) -> None:

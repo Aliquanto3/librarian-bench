@@ -14,8 +14,8 @@ from decimal import Decimal
 from pathlib import Path
 
 from librarian_bench.config.experiment import Amount, Budget
-from librarian_bench.core.errors import BudgetExceeded, ConfigError, WlError
-from librarian_bench.llm._db import connect, resolve_wl_home, transaction
+from librarian_bench.core.errors import BudgetExceeded, ConfigError, LibrarianBenchError
+from librarian_bench.llm._db import connect, resolve_bench_home, transaction
 
 _SCHEMA = """
 CREATE TABLE IF NOT EXISTS reservations (
@@ -60,7 +60,7 @@ class Ledger:
         self,
         budget: Budget,
         run_id: str,
-        wl_home: Path | None = None,
+        bench_home: Path | None = None,
         clock: Callable[[], datetime] = _maintenant,
         *,
         recover_orphans: bool = False,
@@ -79,7 +79,7 @@ class Ledger:
         self._run_id = run_id
         self._clock = clock
         self._hors_execution = hors_execution
-        self._conn = connect(resolve_wl_home(wl_home) / "ledger.sqlite")
+        self._conn = connect(resolve_bench_home(bench_home) / "ledger.sqlite")
         try:
             self._conn.execute(_SCHEMA)
             self._migrer()
@@ -205,7 +205,7 @@ class Ledger:
                 (statut, None if actual is None else str(actual), reservation),
             ).rowcount
             if n != 1:
-                raise WlError(f"réservation {reservation} inconnue ou déjà close")
+                raise LibrarianBenchError(f"réservation {reservation} inconnue ou déjà close")
 
     def settle(self, reservation: int, actual: Decimal) -> None:
         """Règle la réservation au coût réel (peut dépasser l'estimation : l'appel est payé)."""

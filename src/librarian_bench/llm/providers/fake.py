@@ -12,7 +12,7 @@ from typing import Any
 
 from pydantic import BaseModel
 
-from librarian_bench.core.errors import WlError
+from librarian_bench.core.errors import LibrarianBenchError
 from librarian_bench.core.types import Usage
 from librarian_bench.llm.providers.base import ProviderResponse
 from librarian_bench.llm.roles import (
@@ -217,7 +217,7 @@ class FakeProvider:
         Elle prime sur la sortie par défaut ; à égalité, le premier scénario déclaré l'emporte.
         """
         if role not in ROLES:
-            raise WlError(f"rôle inconnu {role!r} ; rôles : {', '.join(sorted(ROLES))}")
+            raise LibrarianBenchError(f"rôle inconnu {role!r} ; rôles : {', '.join(sorted(ROLES))}")
         self._scenarios.append(_Scenario(role, step_glob, output))
 
     def complete(

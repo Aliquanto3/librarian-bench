@@ -43,7 +43,7 @@ from librarian_bench.components.context import build_arch_answer
 from librarian_bench.components.deciders.llm import SYSTEM
 from librarian_bench.components.graph._texte import MARGE, borner, reserve_schema
 from librarian_bench.components.graph.communities import detect_communities, louvain_seed
-from librarian_bench.core.errors import WlError
+from librarian_bench.core.errors import LibrarianBenchError
 from librarian_bench.core.ids import slug_entite
 from librarian_bench.core.types import (
     ArchAnswer,
@@ -98,7 +98,7 @@ def _lire_json(chemin: Path) -> Any:
     try:
         return json.loads(chemin.read_text(encoding="utf-8"))
     except (OSError, ValueError) as exc:
-        raise WlError(f"index illisible : {chemin} absent ou illisible") from exc
+        raise LibrarianBenchError(f"index illisible : {chemin} absent ou illisible") from exc
 
 
 @register("architecture", "lazy_graphrag")

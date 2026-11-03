@@ -37,7 +37,7 @@ status: done
 
 ## Revue
 
-- medium, revue : `hybrid` annoncé accepté mais `WlError` à chaque Question (pas d'index lexical dans l'index de `naive_rag`), après l'appel `hyde` payé. Corrigé : `dense` seul accepté, test `test_retriever_autre_que_dense_refuse`.
+- medium, revue : `hybrid` annoncé accepté mais `LibrarianBenchError` à chaque Question (pas d'index lexical dans l'index de `naive_rag`), après l'appel `hyde` payé. Corrigé : `dense` seul accepté, test `test_retriever_autre_que_dense_refuse`.
 - medium, second avis 1-2 : `FakeEmbedder` identique pour `embed_queries` et `embed_passages`, une régression passait. Corrigé : espion sur les deux méthodes, `test_la_requete_passe_par_embed_queries_et_non_embed_passages`.
 - medium, second avis 3 : Configuration `mini-test.yaml`, conformité et `test_sm3.py` absents. Reporté vers 4.14 (décision de l'orchestrateur) : ajouter `hyde` et faire passer les deux suites sans réseau.
 - low, second avis 4 : `hyde_model` et `hyde_max_tokens` non testés. Corrigé : `test_hyde_model_et_hyde_max_tokens` (requête et `index_key`).

@@ -1,6 +1,6 @@
 # Guide de recette du lot v0.3.0 (epic 9)
 
-Durée : 20 à 30 min. Aucune dépense obligatoire ; un seul contrôle facultatif coûte ~0,70 USD (étape 6). Commandes depuis la racine du dépôt, `main` à jour. `LIBRARIAN_BENCH_HOME` désigne `C:/Users/Utilisateur/Documents/GitHub/wl-runs-v0.2.0`.
+Durée : 20 à 30 min. Aucune dépense obligatoire ; un seul contrôle facultatif coûte ~0,70 USD (étape 6). Commandes depuis la racine du dépôt, `main` à jour. `LIBRARIAN_BENCH_HOME` désigne `../wl-runs-v0.2.0`.
 
 ## 1. Suite et outillage
 

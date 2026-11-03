@@ -14,7 +14,7 @@ import librarian_bench.cli as cli
 from librarian_bench.cli import app
 from librarian_bench.config.catalog import load_catalog
 from librarian_bench.config.defaults import load_profile
-from librarian_bench.core.errors import ProviderError, WlError
+from librarian_bench.core.errors import LibrarianBenchError, ProviderError
 from librarian_bench.llm.preflight import PreflightResult
 from librarian_bench.runner import installer as inst
 
@@ -55,7 +55,7 @@ def test_ollama_list_tag_latest() -> None:
 
 
 def test_profil_inconnu() -> None:
-    with pytest.raises(WlError, match="profil"):
+    with pytest.raises(LibrarianBenchError, match="profil"):
         inst.installer("test")
 
 
@@ -77,7 +77,7 @@ def test_cli_installer_echec_telechargement(
     appels: dict[str, Any], monkeypatch: pytest.MonkeyPatch
 ) -> None:
     def echec(_repo: str) -> None:
-        raise WlError("installer l'extra local")
+        raise LibrarianBenchError("installer l'extra local")
 
     monkeypatch.setattr(inst, "telecharger_embedder", echec)
     res = CliRunner().invoke(app, ["installer", "--profil", "cpu"])
@@ -87,7 +87,7 @@ def test_cli_installer_echec_telechargement(
 
 def test_telecharger_embedder_sans_extra_local(monkeypatch: pytest.MonkeyPatch) -> None:
     monkeypatch.setitem(sys.modules, "huggingface_hub", None)
-    with pytest.raises(WlError, match="installer l'extra local"):
+    with pytest.raises(LibrarianBenchError, match="installer l'extra local"):
         inst.telecharger_embedder("intfloat/multilingual-e5-small")
 
 

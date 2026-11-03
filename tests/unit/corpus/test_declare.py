@@ -228,7 +228,7 @@ def test_fichiers_caches_et_liens_exclus(tmp_path: Path):
 
 
 def test_licence_restrictive_ignoree_ou_hors_depot_declaree_puis_ingeree(
-    tmp_path: Path, wl_home: Path
+    tmp_path: Path, bench_home: Path
 ):
     # AC 2 (story 8.1) : comme `publishable: false`, un Corpus `CC-BY-NC-4.0` hors du dépôt
     # ou dans un dossier ignoré reste déclarable puis ingérable.
@@ -237,14 +237,14 @@ def test_licence_restrictive_ignoree_ou_hors_depot_declaree_puis_ingeree(
     hors = tmp_path / "hors"
     hors.mkdir()
     corpus = declare(_corpus(hors, license="CC-BY-NC-4.0"))
-    assert ingest(corpus, wl_home=wl_home).documents
+    assert ingest(corpus, bench_home=bench_home).documents
 
     depot = tmp_path / "depot"
     depot.mkdir()
     _depot(depot)
     (depot / ".gitignore").write_text("docs/\n", encoding="utf-8")
     corpus = declare(_corpus(depot, license="CC-BY-NC-4.0"))
-    assert ingest(corpus, wl_home=wl_home).documents
+    assert ingest(corpus, bench_home=bench_home).documents
 
     # Ignoré mais déjà suivi par git : refusé, comme pour `publishable: false`.
     subprocess.run(["git", "-C", str(depot), "add", "-f", "docs"], check=True)  # noqa: S603, S607

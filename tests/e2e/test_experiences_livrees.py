@@ -10,8 +10,8 @@ from librarian_bench.config.validate import ValidationResult, validate_file
 EXPERIENCES = Path(__file__).resolve().parents[2] / "experiments"
 
 
-def _valider(nom: str, wl_home: Path) -> ValidationResult:
-    return validate_file(EXPERIENCES / f"{nom}.yaml", wl_home)
+def _valider(nom: str, bench_home: Path) -> ValidationResult:
+    return validate_file(EXPERIENCES / f"{nom}.yaml", bench_home)
 
 
 def _fournisseurs(res: ValidationResult) -> set[str]:
@@ -22,18 +22,18 @@ def _fournisseurs(res: ValidationResult) -> set[str]:
 
 
 @pytest.mark.parametrize("nom", sorted(p.stem for p in EXPERIENCES.glob("*.yaml")))
-def test_experience_livree_valide_sans_reseau(nom: str, wl_home: Path) -> None:
-    res = _valider(nom, wl_home)
+def test_experience_livree_valide_sans_reseau(nom: str, bench_home: Path) -> None:
+    res = _valider(nom, bench_home)
     assert res.panels  # Panel admissible pour chaque Configuration (AD-14)
     # Toute Expérience livrée sur le Mini-corpus borne ses Paliers (split dev : 12 Documents).
     if res.resolved.tier is not None and res.resolved.split == "dev":
         assert res.resolved.max_questions is not None
 
 
-def test_mini_cpu_profil_cpu_juge_unique_opus(wl_home: Path) -> None:
+def test_mini_cpu_profil_cpu_juge_unique_opus(bench_home: Path) -> None:
     # Story 9.5 (bascule après la calibration réelle 9.9) : génération locale, Juge unique calibré
     # `claude-opus-5-5`, seul appel d'API, sous un plafond Anthropic de 3,00 USD.
-    res = _valider("mini-cpu", wl_home)
+    res = _valider("mini-cpu", bench_home)
     r = res.resolved
     assert r.profile == "cpu"
     assert _fournisseurs(res) <= {"ollama", "sentence_transformers", "anthropic"}
@@ -44,8 +44,8 @@ def test_mini_cpu_profil_cpu_juge_unique_opus(wl_home: Path) -> None:
     assert {p for c in r.configurations for p in c.answer_producers} == {"minicpm5:1b-q4_k_m"}
 
 
-def test_mini_real_haiku_api_seule(wl_home: Path) -> None:
-    res = _valider("mini-real-haiku", wl_home)
+def test_mini_real_haiku_api_seule(bench_home: Path) -> None:
+    res = _valider("mini-real-haiku", bench_home)
     r = res.resolved
     assert r.max_questions == 5
     plafond = r.budget.per_run["anthropic"]

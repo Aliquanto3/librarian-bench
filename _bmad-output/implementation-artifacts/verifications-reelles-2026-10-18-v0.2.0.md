@@ -1,6 +1,6 @@
 # Vérifications réelles du 2026-10-18 (lot v0.2.0, story 8.8)
 
-Worktree `wl-wt-8-8`, branche `story/8-8`, depuis `main` à `3d67958`. Windows 11, profil `cpu` (Ollama sans couche GPU, `CUDA_VISIBLE_DEVICES=-1`). `LIBRARIAN_BENCH_HOME` = `C:/Users/Utilisateur/Documents/GitHub/wl-runs-v0.2.0` (hors dépôt, non commité). Cette synthèse ne fait aucun appel API ni Ollama : elle lit les fichiers des runs. Heures du `run.log` et de `ram.log` en heure locale (UTC+2) ; le manifeste est en UTC.
+Worktree `wl-wt-8-8`, branche `story/8-8`, depuis `main` à `3d67958`. Windows 11, profil `cpu` (Ollama sans couche GPU, `CUDA_VISIBLE_DEVICES=-1`). `LIBRARIAN_BENCH_HOME` = `../wl-runs-v0.2.0` (hors dépôt, non commité). Cette synthèse ne fait aucun appel API ni Ollama : elle lit les fichiers des runs. Heures du `run.log` et de `ram.log` en heure locale (UTC+2) ; le manifeste est en UTC.
 
 | # | Vérification | Résultat | Run |
 |---|---|---|---|

@@ -48,7 +48,7 @@ PASSAGES = ("context_passages", "reference_passages")
 @pytest.fixture(scope="module")
 def run_dir(tmp_path_factory: pytest.TempPathFactory) -> Path:
     base = tmp_path_factory.mktemp("run-9-4")
-    home = base / "wl_home"
+    home = base / "bench_home"
     home.mkdir()
     chemin = base / "exp.yaml"
     chemin.write_text(yaml.safe_dump(DONNEES, allow_unicode=True), encoding="utf-8")

@@ -21,7 +21,7 @@ Le PRD reprend fidèlement l'essentiel du cadrage (typologie des questions, gel,
 | E8 | Métriques de recherche non définies pour les architectures sans passages | FR-35 | moyenne |
 | E9 | Mini-corpus sans sentinelle, piège, profils de droits, ni langue seconde | FR-8, FR-13 | moyenne |
 | E10 | Aucune donnée de conformité-sécurité produite au MVP | FR-14, FR-40, FR-47 | moyenne |
-| E11 | Sécurité du harnais WaveStack (garde-fous, permissions d'outils) perdue | FR-26, §5 | moyenne |
+| E11 | Sécurité du harnais HarnessLab (garde-fous, permissions d'outils) perdue | FR-26, §5 | moyenne |
 | E12 | Volatilité déclarée au lieu de calculée | FR-7 | basse |
 | E13 | Autres métriques FinOps manquantes (appels LLM par requête, coût par requête réussie, décomposition) | FR-29, FR-31, FR-34 | basse |
 | E14 | Rôle des corpus (groupe témoin, contamination attendue) perdu | FR-5 | basse |
@@ -44,7 +44,7 @@ Le PRD reprend fidèlement l'essentiel du cadrage (typologie des questions, gel,
 
 ### E2. Coûts de possession absents (haute)
 
-- Cadrage, Métriques : « FinOps – possession : Coût d'indexation et de mise à jour, stockage, amortissement du matériel local | Traces et hypothèses explicites ». Reprise WaveStack : « À étendre au coût d'indexation et au coût par requête réussie. »
+- Cadrage, Métriques : « FinOps – possession : Coût d'indexation et de mise à jour, stockage, amortissement du matériel local | Traces et hypothèses explicites ». Reprise HarnessLab : « À étendre au coût d'indexation et au coût par requête réussie. »
 - PRD : FR-31 ne ventile que indexation, mise à jour, requête. FR-29 trace tokens, coût, latence, énergie. Aucune exigence sur le stockage (taille d'index, de graphe, de wiki) ni sur l'amortissement du matériel local (GPU de 8 Go). Un modèle local a un coût monétaire nul (FR-30) : le front qualité × coût total favorise donc mécaniquement le local.
 - Pourquoi c'est grave au MVP : le MVP compare des modèles locaux (Ollama) à Haiku 5.5. Sans coût de possession explicite, la comparaison de coût est biaisée.
 - Recommandation : un FR « coûts de possession » (taille de stockage par index, hypothèse d'amortissement déclarée dans la grille tarifaire, imputation par durée de GPU), avec des hypothèses explicites dans le Rapport.
@@ -99,7 +99,7 @@ Le PRD reprend fidèlement l'essentiel du cadrage (typologie des questions, gel,
 - PRD : la fiche est entièrement Post-MVP (FR-47) et le Rapport MVP (FR-40) ne contient aucune rubrique de conformité. Or les données nécessaires sont bon marché à saisir dès le MVP : métadonnée de localisation par Composant dans le Registre (FR-2), déclaration des stockages créés par chaque Architecture (index, graphe, wiki), inventaire dans la Trace. Si le contrat FR-14 ne les exige pas maintenant, chaque architecture livrée au MVP devra être reprise plus tard. Le livrable 1 (« lecture conformité-sécurité ») dépend de ces métadonnées.
 - Recommandation : ajouter à FR-2 et FR-14 la déclaration de localisation et de stockages, et la suppression d'un document comme opération testée sur tous les stockages d'une Architecture.
 
-### E11. Sécurité du harnais WaveStack (moyenne)
+### E11. Sécurité du harnais HarnessLab (moyenne)
 
 - Cadrage, Reprise du harnais : « garde-fous en entrée et en sortie (données personnelles, injection), règle Autoriser / Demander / Refuser par outil, liste blanche réseau, journal de sécurité exportable ». Conformité : « permissions des outils de la recherche agentique ; exfiltration ».
 - PRD : FR-26 garantit seulement des outils « en lecture seule et limités au Corpus ». Aucune règle par outil, aucune liste blanche réseau, aucun journal de sécurité, aucun garde-fou d'entrée ou de sortie. La recherche agentique et la CAG sont dans le MVP.
@@ -112,7 +112,7 @@ Le PRD reprend fidèlement l'essentiel du cadrage (typologie des questions, gel,
 
 ### E13. Autres métriques FinOps manquantes (basse)
 
-- Cadrage : « appels LLM par requête » ; « coût par requête réussie » (extension WaveStack) ; décomposition « sans optimisation / coût réel / part du cache ».
+- Cadrage : « appels LLM par requête » ; « coût par requête réussie » (extension HarnessLab) ; décomposition « sans optimisation / coût réel / part du cache ».
 - PRD : le nombre d'appels LLM par requête n'est pas une métrique du Rapport (FR-31, FR-40) ; le coût par requête réussie est absent ; FR-34 distingue seulement coût réel et coût sans cache (pas de décomposition à trois termes, mentionnée seulement dans l'addendum).
 
 ### E14. Rôle des corpus : groupe témoin et contamination attendue (basse)

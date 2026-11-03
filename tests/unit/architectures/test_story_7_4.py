@@ -22,7 +22,7 @@ from librarian_bench.runner.context import Context as RunCtx
 def ctx(tmp_path: Path):  # type: ignore[no-untyped-def]
     provider = FakeProvider()
     c = RunCtx.from_profile(
-        "test", wl_home=tmp_path / "wl", run_id="r-1", seed=1, providers={"fake": provider}
+        "test", bench_home=tmp_path / "wl", run_id="r-1", seed=1, providers={"fake": provider}
     )
     c.parser = "markdown"
     c.provider = provider  # type: ignore[attr-defined]
@@ -332,7 +332,7 @@ def test_borne_de_cout_compte_la_tentative_non_conforme(
     borne = {"amount": str(c1 + faute / 2), "currency": "USD"}
     provider = FakeProvider()
     autre = RunCtx.from_profile(
-        "test", wl_home=tmp_path / "wl2", run_id="r-2", seed=1, providers={"fake": provider}
+        "test", bench_home=tmp_path / "wl2", run_id="r-2", seed=1, providers={"fake": provider}
     )
     autre.parser = "markdown"
     autre.provider = provider  # type: ignore[attr-defined]
@@ -362,8 +362,8 @@ def test_fenetre_identifiants_trop_longs_erreur_de_configuration(
 
 
 def test_index_agentic_json_malforme_erreur(ctx: RunCtx, index: Path) -> None:
-    from librarian_bench.core.errors import WlError
+    from librarian_bench.core.errors import LibrarianBenchError
 
     (index / "agentic.json").write_text('{"anchors": {}}', encoding="utf-8")
-    with pytest.raises(WlError, match="malformé"):
+    with pytest.raises(LibrarianBenchError, match="malformé"):
         _arch(ctx).load(index)

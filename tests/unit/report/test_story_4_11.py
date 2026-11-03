@@ -55,8 +55,8 @@ def _wl(*args: str, code: int = 0) -> Any:
     return res
 
 
-def _un_run(wl_home: Path) -> Path:
-    (dossier,) = [d for d in (wl_home / "runs").iterdir() if d.is_dir()]
+def _un_run(bench_home: Path) -> Path:
+    (dossier,) = [d for d in (bench_home / "runs").iterdir() if d.is_dir()]
     return dossier
 
 
@@ -66,10 +66,10 @@ def _csv(chemin: Path) -> list[dict[str, str]]:
 
 
 @pytest.fixture
-def run_complet(tmp_path: Path, wl_home: Path) -> Path:
+def run_complet(tmp_path: Path, bench_home: Path) -> Path:
     """Exécution terminée : deux Baselines, Conditions standard et contexte parfait."""
     _wl("run", str(_experience(tmp_path, conditions=["standard", "perfect_context"])))
-    dossier = _un_run(wl_home)
+    dossier = _un_run(bench_home)
     # Le Faux LLM donne des verdicts constants : on les varie, de façon déterministe, pour que les
     # taux, les IC et les tests apparies ne soient pas triviaux.
     lignes = [json.loads(x) for x in (dossier / "panel.jsonl").read_text("utf-8").splitlines()]
@@ -119,7 +119,7 @@ def test_wl_run_ecrit_le_rapport_complet_avec_l_entete(run_complet: Path) -> Non
     assert "`fake-llm-b`" in md and "`fake-llm-c`" in md and "Égalités" in md
 
 
-def test_rapport_regenere_identique_wl_rapport(run_complet: Path, wl_home: Path) -> None:
+def test_rapport_regenere_identique_wl_rapport(run_complet: Path, bench_home: Path) -> None:
     avant = {p.name: p.read_bytes() for p in (run_complet / "report").iterdir()}
     _wl("rapport", run_complet.name)
     apres = {p.name: p.read_bytes() for p in (run_complet / "report").iterdir()}
@@ -337,7 +337,7 @@ def test_paire_sans_question_commune_n_a_pas_de_p_valeur(run_complet: Path) -> N
 # --- AC 5 : inapplicables ----------------------------------------------------------------------
 
 
-def test_inapplicables_listees_avec_leur_raison(tmp_path: Path, wl_home: Path) -> None:
+def test_inapplicables_listees_avec_leur_raison(tmp_path: Path, bench_home: Path) -> None:
     confs = [
         BM25,
         {
@@ -347,7 +347,7 @@ def test_inapplicables_listees_avec_leur_raison(tmp_path: Path, wl_home: Path) -
         },
     ]
     _wl("run", str(_experience(tmp_path, configurations=confs, max_questions=4)))
-    dossier = _un_run(wl_home)
+    dossier = _un_run(bench_home)
     raison = json.loads((dossier / "applicability.json").read_text(encoding="utf-8"))[
         "contexte-long"
     ]["reason"]
@@ -365,7 +365,7 @@ def test_inapplicables_listees_avec_leur_raison(tmp_path: Path, wl_home: Path) -
 def _plafond_pour(tmp_path: Path, n: int) -> Decimal:
     probe = tmp_path / "probe_home"
     resolue = validate_file(_experience(tmp_path, "probe")).resolved
-    run_experiment(resolue, load_questions(resolue), wl_home=probe)
+    run_experiment(resolue, load_questions(resolue), bench_home=probe)
     conn = sqlite3.connect(probe / "ledger.sqlite")
     try:
         lignes = list(conn.execute("SELECT estimated, actual FROM reservations ORDER BY id"))
@@ -375,7 +375,9 @@ def _plafond_pour(tmp_path: Path, n: int) -> Decimal:
     return sum(reels[:n]) + Decimal(lignes[n][0]) - Decimal("1e-9")
 
 
-def test_plafond_atteint_rapport_partiel_en_tete_puis_code_3(tmp_path: Path, wl_home: Path) -> None:
+def test_plafond_atteint_rapport_partiel_en_tete_puis_code_3(
+    tmp_path: Path, bench_home: Path
+) -> None:
     plafond = _plafond_pour(tmp_path, 5)
     chemin = _experience(
         tmp_path,
@@ -384,7 +386,7 @@ def test_plafond_atteint_rapport_partiel_en_tete_puis_code_3(tmp_path: Path, wl_
     )
     res = _wl("run", str(chemin), code=3)
     assert "Rapport écrit dans" in res.output
-    dossier = _un_run(wl_home)
+    dossier = _un_run(bench_home)
     md = (dossier / "report" / "report.md").read_text(encoding="utf-8")
     assert md.split("\n")[2].startswith("> **Exécution arrêtée au plafond de dépense")
     reponses = read_answers(dossier)
@@ -392,7 +394,7 @@ def test_plafond_atteint_rapport_partiel_en_tete_puis_code_3(tmp_path: Path, wl_
     assert restantes
     # Aucune Réponse `budget_exceeded` n'entre dans un score.
     ex = charger(dossier)
-    res_scores = evaluer(ex, resolveur_de(ex.experience, wl_home))
+    res_scores = evaluer(ex, resolveur_de(ex.experience, bench_home))
     assert sum(c.budget_exceeded for c in res_scores.comptes.values()) == len(restantes)
     assert sum(c.ok for c in res_scores.comptes.values()) == 5
 
@@ -529,7 +531,7 @@ def test_lire_jsonl_tolere_une_troncature_au_milieu_d_un_caractere_multioctet(
 
 
 def test_echec_du_rapport_ne_masque_pas_le_code_de_l_execution(
-    tmp_path: Path, wl_home: Path, monkeypatch: pytest.MonkeyPatch
+    tmp_path: Path, bench_home: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:
     def casse(*_: Any, **__: Any) -> Path:
         raise RuntimeError("panne inattendue")

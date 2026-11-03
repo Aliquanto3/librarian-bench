@@ -144,7 +144,7 @@ def _ecrire_corpus(racine: Path, volatilite: str = "medium") -> Path:
     return yml
 
 
-def test_cli_ecrit_le_profil(tmp_path: Path, wl_home: Path) -> None:
+def test_cli_ecrit_le_profil(tmp_path: Path, bench_home: Path) -> None:
     yml = _ecrire_corpus(tmp_path)
     sortie = tmp_path / "out"
     args = ["corpus", "profiler", str(yml), "--parser", "auto", "--profil", "test"]
@@ -160,7 +160,7 @@ def test_cli_ecrit_le_profil(tmp_path: Path, wl_home: Path) -> None:
     assert "Langue dominante : fr" in r.output
 
 
-def test_cli_corpus_invalide_sort_en_code_2(tmp_path: Path, wl_home: Path) -> None:
+def test_cli_corpus_invalide_sort_en_code_2(tmp_path: Path, bench_home: Path) -> None:
     yml = _ecrire_corpus(tmp_path, volatilite="inconnue")
     r = runner.invoke(
         app, ["corpus", "profiler", str(yml), "--profil", "test", "--sortie", str(tmp_path)]
@@ -181,7 +181,7 @@ def test_entites_apostrophe_typographique_elision_et_initiale() -> None:
     assert extraire_entites("Le rapport de M. Durand.") == set()  # « M » seul est écarté
 
 
-def test_cli_resume_en_francais_et_profil_inconnu(tmp_path: Path, wl_home: Path) -> None:
+def test_cli_resume_en_francais_et_profil_inconnu(tmp_path: Path, bench_home: Path) -> None:
     yml = _ecrire_corpus(tmp_path)
     args = ["corpus", "profiler", str(yml), "--sortie", str(tmp_path / "out")]
     r = runner.invoke(app, [*args, "--profil", "test"])

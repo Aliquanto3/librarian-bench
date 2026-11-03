@@ -53,7 +53,7 @@ from librarian_bench.components.graph.cache import brut, cle_extraction, extrair
 from librarian_bench.components.graph.communities import detect_communities, louvain_seed
 from librarian_bench.components.graph.extraction import EntityExtractor
 from librarian_bench.components.graph.reports import CommunityReporter, community_context
-from librarian_bench.core.errors import WlError
+from librarian_bench.core.errors import LibrarianBenchError
 from librarian_bench.core.ids import sha16
 from librarian_bench.core.types import (
     ArchAnswer,
@@ -125,7 +125,7 @@ def _lire_json(chemin: Path) -> Any:
     try:
         return json.loads(chemin.read_text(encoding="utf-8"))
     except (OSError, ValueError) as exc:
-        raise WlError(f"index illisible : {chemin} absent ou illisible") from exc
+        raise LibrarianBenchError(f"index illisible : {chemin} absent ou illisible") from exc
 
 
 @register("architecture", "graphrag")

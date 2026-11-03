@@ -49,7 +49,7 @@ def _csv(chemin: Path) -> list[dict[str, str]]:
 
 def _lancer(tmp_path_factory: pytest.TempPathFactory, nom: str, **champs: Any) -> Path:
     base = tmp_path_factory.mktemp(nom)
-    home = base / "wl_home"
+    home = base / "bench_home"
     home.mkdir()
     chemin = base / "exp.yaml"
     donnees = {**DONNEES, **champs}

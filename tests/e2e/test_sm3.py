@@ -67,7 +67,7 @@ def sm3(tmp_path_factory: pytest.TempPathFactory) -> tuple[Path, Path]:
     """`LIBRARIAN_BENCH_HOME` et dossier de l'Exécution SM-3, relevé juste après `librarian-bench
     run` : d'autres tests
     lancent ensuite d'autres Exécutions dans ce même `LIBRARIAN_BENCH_HOME`."""
-    dossier = tmp_path_factory.mktemp("sm3") / "wl_home"
+    dossier = tmp_path_factory.mktemp("sm3") / "bench_home"
     dossier.mkdir()
     res = _wl(dossier, "run", str(MINI_TEST))
     assert res.exit_code == 0, res.output

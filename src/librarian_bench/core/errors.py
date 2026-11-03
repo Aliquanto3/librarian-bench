@@ -1,13 +1,13 @@
-"""Exceptions du banc ; `WlError` est la racine."""
+"""Exceptions du banc ; `LibrarianBenchError` est la racine."""
 
 from decimal import Decimal
 
 
-class WlError(Exception):
+class LibrarianBenchError(Exception):
     """Erreur de base du banc."""
 
 
-class ConfigError(WlError):
+class ConfigError(LibrarianBenchError):
     """Erreur de configuration, localisée par un chemin en notation pointée."""
 
     def __init__(self, path: str, message: str) -> None:
@@ -16,7 +16,7 @@ class ConfigError(WlError):
         super().__init__(f"{path} : {message}")
 
 
-class ValidationFailed(WlError):
+class ValidationFailed(LibrarianBenchError):
     """Regroupe toutes les erreurs de validation statique d'une Expérience."""
 
     def __init__(self, errors: list[ConfigError]) -> None:
@@ -24,11 +24,11 @@ class ValidationFailed(WlError):
         super().__init__("\n".join(str(e) for e in errors))
 
 
-class BudgetExceeded(WlError):
+class BudgetExceeded(LibrarianBenchError):
     """Le Plafond de dépense serait dépassé."""
 
 
-class Inapplicable(WlError):
+class Inapplicable(LibrarianBenchError):
     """La configuration ne s'applique pas ; `reason` en donne la raison."""
 
     def __init__(self, reason: str) -> None:
@@ -36,7 +36,7 @@ class Inapplicable(WlError):
         super().__init__(reason)
 
 
-class ProviderError(WlError):
+class ProviderError(LibrarianBenchError):
     """Échec d'un fournisseur de modèle ; `retryable` indique si un nouvel essai a un sens.
 
     `sent` : la requête est partie sans réponse exploitable (délai dépassé après envoi) ; le
@@ -49,7 +49,7 @@ class ProviderError(WlError):
         super().__init__(message)
 
 
-class NonConformantOutput(WlError):
+class NonConformantOutput(LibrarianBenchError):
     """La sortie structurée d'un modèle ne respecte pas le schéma attendu.
 
     `cost_uncached` : coût hors cache de la tentative fautive (déjà tracée), pour que

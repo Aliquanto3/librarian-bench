@@ -11,7 +11,7 @@ from collections.abc import Sequence
 from typing import Any, Literal
 
 from librarian_bench.config.schemas import EnergySettings
-from librarian_bench.core.errors import WlError
+from librarian_bench.core.errors import LibrarianBenchError
 from librarian_bench.core.types import Usage
 from librarian_bench.ports.measure import EnergyEstimator, EnergyMeter
 
@@ -31,7 +31,7 @@ def _importer(nom: str) -> Any:
     try:
         return importlib.import_module(nom)
     except ImportError as exc:
-        raise WlError(_MSG_EXTRA.format(nom)) from exc
+        raise LibrarianBenchError(_MSG_EXTRA.format(nom)) from exc
 
 
 def spread_energy(
@@ -188,7 +188,8 @@ class EcoLogitsEstimator:
     """Énergie estimée d'un appel d'API (EcoLogits) ; `None` si le modèle est inconnu.
 
     `ecologits.tracers.utils.llm_impacts` n'est pas documentée (review-versions.md, point 5) :
-    son absence ou une signature changée lèvent un `WlError`, et tout autre échec est journalisé.
+    son absence ou une signature changée lèvent un `LibrarianBenchError`, et tout autre échec est
+    journalisé.
     La voie documentée (`EcoLogits.init` puis `response.impacts`) revient à l'adaptateur Anthropic.
     """
 
@@ -196,7 +197,7 @@ class EcoLogitsEstimator:
         utils: Any = _importer("ecologits.tracers.utils")
         self._llm_impacts: Any = getattr(utils, "llm_impacts", None)
         if not callable(self._llm_impacts):
-            raise WlError(
+            raise LibrarianBenchError(
                 "ecologits installé sans `ecologits.tracers.utils.llm_impacts` : "
                 "version incompatible (attendu 0.11.x, extra energy)"
             )
@@ -211,7 +212,7 @@ class EcoLogitsEstimator:
                 request_latency=latency_s,
             )
         except TypeError as exc:  # signature changée : défaut d'intégration, pas un modèle inconnu
-            raise WlError(f"API EcoLogits `llm_impacts` incompatible : {exc}") from exc
+            raise LibrarianBenchError(f"API EcoLogits `llm_impacts` incompatible : {exc}") from exc
         except Exception as exc:
             _log.warning("EcoLogits : estimation impossible pour %s (%s)", model_id, exc)
             return None
@@ -246,7 +247,8 @@ def init_ecologits(electricity_mix_zone: str | None = None) -> None:
     """`EcoLogits.init(providers=["anthropic"])` (AD-17) : le SDK renvoie alors `response.impacts`.
 
     À appeler une fois au démarrage d'un run qui utilise le provider Anthropic. Sans l'extra
-    `energy`, lève `WlError` ; l'adaptateur lit `impacts` s'il existe et ne dépend pas de l'appel.
+    `energy`, lève `LibrarianBenchError` ; l'adaptateur lit `impacts` s'il existe et ne dépend pas
+    de l'appel.
     """
     global _ecologits_initialise
     if _ecologits_initialise:  # une fois par processus : `init` patche le SDK

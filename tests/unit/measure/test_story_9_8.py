@@ -159,7 +159,7 @@ def _lancer(
     tmp_path: Path, membres: tuple[str, ...], panne: bool = False, hits: bool = False
 ) -> list[dict[str, Any]]:
     _Meter.demarrages = []
-    with Context.from_profile("test", wl_home=tmp_path / "wl", run_id="r-j") as ctx:
+    with Context.from_profile("test", bench_home=tmp_path / "wl", run_id="r-j") as ctx:
         runner: Any = SimpleNamespace(ctx=ctx, meter=_Meter(0.01))
         essais = {"n": 0}
 

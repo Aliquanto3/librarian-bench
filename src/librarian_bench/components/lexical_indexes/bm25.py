@@ -10,7 +10,7 @@ from typing import Any
 import bm25s
 from pydantic import BaseModel, ConfigDict
 
-from librarian_bench.core.errors import WlError
+from librarian_bench.core.errors import LibrarianBenchError
 from librarian_bench.core.types import Passage
 from librarian_bench.registry import register
 
@@ -76,6 +76,6 @@ class Bm25Index:
         try:
             mots = json.loads(chemin.read_text(encoding="utf-8"))
         except (OSError, ValueError) as exc:
-            raise WlError(f"index lexical illisible : {chemin}") from exc
+            raise LibrarianBenchError(f"index lexical illisible : {chemin}") from exc
         self._mots = {str(i): list(m) for i, m in mots.items()}
         self._moteur = None

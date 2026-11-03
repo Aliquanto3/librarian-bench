@@ -8,10 +8,10 @@ from pathlib import Path
 from librarian_bench.compat import dossier_home
 
 
-def resolve_wl_home(wl_home: Path | None = None) -> Path:
+def resolve_bench_home(bench_home: Path | None = None) -> Path:
     """Dossier d'état : argument, sinon `LIBRARIAN_BENCH_HOME`, sinon `./.librarian-bench`."""
-    if wl_home is not None:
-        return wl_home
+    if bench_home is not None:
+        return bench_home
     return dossier_home()
 
 

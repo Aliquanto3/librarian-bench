@@ -9,7 +9,7 @@ import numpy as np
 from numpy.typing import NDArray
 from pydantic import BaseModel, ConfigDict, Field
 
-from librarian_bench.core.errors import WlError
+from librarian_bench.core.errors import LibrarianBenchError
 from librarian_bench.core.types import ModelRefMeta, Usage
 from librarian_bench.registry import register
 
@@ -52,9 +52,9 @@ class SentenceTransformersEmbedder:
             try:
                 from sentence_transformers import SentenceTransformer  # pyright: ignore[reportMissingImports]
             except ImportError:
-                raise WlError("installer l'extra local") from None
+                raise LibrarianBenchError("installer l'extra local") from None
             except Exception as exc:  # extra présent mais cassé (DLL de torch, etc.)
-                raise WlError(
+                raise LibrarianBenchError(
                     f"extra local inutilisable ({type(exc).__name__}) : réinstaller l'extra local"
                 ) from exc
             try:
@@ -62,7 +62,7 @@ class SentenceTransformersEmbedder:
                     self._repo, device=self._device, local_files_only=True
                 )
             except Exception as exc:  # modèle absent du cache, périphérique inconnu, etc.
-                raise WlError(
+                raise LibrarianBenchError(
                     f"embedder {self.model_id} non chargé ({type(exc).__name__}) : "
                     "lancer `librarian-bench installer` pour le préparer"
                 ) from exc
@@ -82,7 +82,7 @@ class SentenceTransformersEmbedder:
             )
             latence = time.perf_counter() - t0
             if brut.shape != (len(lot), self.dim):
-                raise WlError(
+                raise LibrarianBenchError(
                     f"embedder {self.model_id} : forme {brut.shape} au lieu de "
                     f"({len(lot)}, {self.dim})"
                 )

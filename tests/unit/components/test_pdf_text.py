@@ -80,7 +80,7 @@ def test_pdf_tronque_leve_value_error():
 
 
 def test_ingestion_ignore_le_pdf_illisible_et_resout_les_pages(
-    tmp_path: Path, wl_home: Path, caplog: pytest.LogCaptureFixture
+    tmp_path: Path, bench_home: Path, caplog: pytest.LogCaptureFixture
 ):
     fichier = _corpus(
         tmp_path,
@@ -100,7 +100,7 @@ def test_ingestion_ignore_le_pdf_illisible_et_resout_les_pages(
     assert parse.anchor_text(f"{pdf.doc_id}#p2") == "Deux"
 
 
-def test_cache_versionne_pour_le_pdf(tmp_path: Path, wl_home: Path, monkeypatch):
+def test_cache_versionne_pour_le_pdf(tmp_path: Path, bench_home: Path, monkeypatch):
     fichier = _corpus(tmp_path, {"r.pdf": _pdf(["Un"])})
     ingest(declare(fichier))
     appels: list[str] = []
@@ -168,7 +168,7 @@ def test_document_ferme_meme_en_cas_d_erreur(monkeypatch):
     assert fermes == [1, 1]
 
 
-def test_resolve_avec_le_chemin_de_l_ac(tmp_path: Path, wl_home: Path):
+def test_resolve_avec_le_chemin_de_l_ac(tmp_path: Path, bench_home: Path):
     """AC : `resolve("docs/registre.pdf", …)` quand `docs/` est sous la racine du Corpus."""
     racine = tmp_path / "racine"
     fichier = _corpus(racine, {"registre.pdf": _pdf(["Un", "Deux", "Trois"])})

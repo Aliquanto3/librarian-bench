@@ -52,8 +52,8 @@ def _wl(*args: str) -> Any:
     return CliRunner().invoke(app, ["run", *args])
 
 
-def _un_run(wl_home: Path) -> Path:
-    (dossier,) = [d for d in (wl_home / "runs").iterdir() if d.is_dir()]
+def _un_run(bench_home: Path) -> Path:
+    (dossier,) = [d for d in (bench_home / "runs").iterdir() if d.is_dir()]
     return dossier
 
 
@@ -126,12 +126,12 @@ def test_taux_d_erreur_strictement_au_dessus_du_seuil() -> None:
 
 @pytest.mark.parametrize("valeur", [1.5, -0.1, "0.2", True, float("nan"), float("inf")])
 def test_max_error_rate_hors_bornes_refuse_code_2(
-    tmp_path: Path, wl_home: Path, valeur: Any
+    tmp_path: Path, bench_home: Path, valeur: Any
 ) -> None:
     res = _wl(str(_experience(tmp_path, max_error_rate=valeur)))
     assert res.exit_code == 2, res.output
     assert "max_error_rate" in res.output
-    assert not (wl_home / "runs").exists()
+    assert not (bench_home / "runs").exists()
 
 
 def test_max_error_rate_defaut_0_2_dans_l_experience_resolue(tmp_path: Path) -> None:
@@ -145,13 +145,13 @@ def test_max_error_rate_defaut_0_2_dans_l_experience_resolue(tmp_path: Path) -> 
 
 
 def test_reproduction_mini_cpu_avant_correctif_completed_with_errors_code_1(
-    tmp_path: Path, wl_home: Path, monkeypatch: pytest.MonkeyPatch
+    tmp_path: Path, bench_home: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:
     _avec_faux(monkeypatch, _faux_mini_cpu_avant_correctif())
     chemin = _experience(tmp_path, configurations=MINI_CPU)
     res = _wl(str(chemin))
     assert res.exit_code == 1, res.output
-    dossier = _un_run(wl_home)
+    dossier = _un_run(bench_home)
     manifeste = _manifeste(dossier)
     assert manifeste["status"] == "completed_with_errors"
 
@@ -189,24 +189,24 @@ def test_reproduction_mini_cpu_avant_correctif_completed_with_errors_code_1(
     bandeau = "\n".join(rapport[2:12])
     assert "> - `pageindex` : aucune Réponse `ok` (2 en `error`)" in bandeau
     assert "`rag-naif`" in bandeau and "`raptor`" in bandeau and "(20 %)" in bandeau
-    assert not deja_terminee(wl_home, dossier.name)
+    assert not deja_terminee(bench_home, dossier.name)
 
 
 def test_tolerer_erreurs_code_0_meme_resume(
-    tmp_path: Path, wl_home: Path, monkeypatch: pytest.MonkeyPatch
+    tmp_path: Path, bench_home: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:
     _avec_faux(monkeypatch, _faux_mini_cpu_avant_correctif())
     res = _wl(str(_experience(tmp_path, configurations=MINI_CPU)), "--tolerer-erreurs")
     assert res.exit_code == 0, res.output
-    assert _manifeste(_un_run(wl_home))["status"] == "completed_with_errors"
+    assert _manifeste(_un_run(bench_home))["status"] == "completed_with_errors"
     assert "completed_with_errors" in res.output
     assert "pageindex : aucune Réponse ok (2 en error)" in res.output
 
 
-def test_scenario_sain_completed_code_0(tmp_path: Path, wl_home: Path) -> None:
+def test_scenario_sain_completed_code_0(tmp_path: Path, bench_home: Path) -> None:
     res = _wl(str(_experience(tmp_path, configurations=MINI_CPU)))
     assert res.exit_code == 0, res.output
-    dossier = _un_run(wl_home)
+    dossier = _un_run(bench_home)
     manifeste = _manifeste(dossier)
     assert manifeste["status"] == "completed" and manifeste["causes"] == []
     assert manifeste["answers"] == {"ok": 8, "error": 0, "inapplicable": 0}
@@ -219,7 +219,7 @@ def test_scenario_sain_completed_code_0(tmp_path: Path, wl_home: Path) -> None:
 
 
 def test_plafond_prime_sur_les_erreurs(
-    tmp_path: Path, wl_home: Path, monkeypatch: pytest.MonkeyPatch
+    tmp_path: Path, bench_home: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:
     from librarian_bench.architectures.bm25_only import Bm25Only
 
@@ -235,7 +235,7 @@ def test_plafond_prime_sur_les_erreurs(
     monkeypatch.setattr(Bm25Only, "answer", repondre)
     res = _wl(str(_experience(tmp_path, max_questions=3)), "--tolerer-erreurs")
     assert res.exit_code == 3, res.output
-    manifeste = _manifeste(_un_run(wl_home))
+    manifeste = _manifeste(_un_run(bench_home))
     assert manifeste["status"] == "budget_exceeded" and manifeste["causes"] == []
     assert manifeste["answers"]["error"] == 1
 
@@ -244,7 +244,7 @@ def test_plafond_prime_sur_les_erreurs(
 
 
 def test_reprise_repose_les_erreurs_et_rejuge(
-    tmp_path: Path, wl_home: Path, monkeypatch: pytest.MonkeyPatch
+    tmp_path: Path, bench_home: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:
     from librarian_bench.architectures.bm25_only import Bm25Only
     from librarian_bench.components.judges.llm import LLMJudge
@@ -268,7 +268,7 @@ def test_reprise_repose_les_erreurs_et_rejuge(
     monkeypatch.setattr(LLMJudge, "judge", juger)
     chemin = _experience(tmp_path, max_questions=3)
     assert _wl(str(chemin)).exit_code == 1
-    dossier = _un_run(wl_home)
+    dossier = _un_run(bench_home)
     manifeste = _manifeste(dossier)
     assert manifeste["status"] == "completed_with_errors" and manifeste["unjudged"] > 0
     assert {c["cause"] for c in manifeste["causes"]} == {"error_rate", "unjudged"}
@@ -283,12 +283,12 @@ def test_reprise_repose_les_erreurs_et_rejuge(
     assert manifeste["status"] == "completed" and manifeste["unjudged"] == 0
     assert manifeste["causes"] == [] and manifeste["answers"]["error"] == 0
     assert {a.status for a in read_answers(dossier).values()} == {"ok"}
-    assert deja_terminee(wl_home, dossier.name)
+    assert deja_terminee(bench_home, dossier.name)
     assert "rien à reprendre" in _wl(str(chemin), "--reprendre", dossier.name).output
 
 
 def test_toutes_en_erreur_code_1_meme_tolerer_erreurs(
-    tmp_path: Path, wl_home: Path, monkeypatch: pytest.MonkeyPatch
+    tmp_path: Path, bench_home: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:
     """`all_failed` (aucune `ok`) est un `completed_with_errors` : code 1 même avec
     `--tolerer-erreurs` (arbitrage d'Anaël du 2026-10-19, fix-arbitrages-8-3-8-8, AC 1),
@@ -304,6 +304,6 @@ def test_toutes_en_erreur_code_1_meme_tolerer_erreurs(
     assert res.exit_code == 1, res.output
     assert "Aucune Réponse valide" in res.output
     assert "bm25 : aucune Réponse ok (2 en error)" in res.output
-    for dossier in (wl_home / "runs").iterdir():
+    for dossier in (bench_home / "runs").iterdir():
         if dossier.is_dir():
             assert _manifeste(dossier)["status"] == "completed_with_errors"

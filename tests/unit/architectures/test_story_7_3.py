@@ -22,7 +22,7 @@ from librarian_bench.runner.index_cache import IndexCache
 def ctx(tmp_path: Path):  # type: ignore[no-untyped-def]
     provider = FakeProvider()
     c = RunCtx.from_profile(
-        "test", wl_home=tmp_path / "wl", run_id="r-1", seed=1, providers={"fake": provider}
+        "test", bench_home=tmp_path / "wl", run_id="r-1", seed=1, providers={"fake": provider}
     )
     c.parser = "markdown"
     c.provider = provider  # type: ignore[attr-defined]
@@ -162,7 +162,7 @@ def test_fidelite_depend_de_la_graine(minicorpus: ParsedCorpus, tmp_path: Path) 
         provider = FakeProvider()
         with RunCtx.from_profile(
             "test",
-            wl_home=tmp_path / f"wl{graine}",
+            bench_home=tmp_path / f"wl{graine}",
             run_id="r-1",
             seed=graine,
             providers={"fake": provider},
@@ -324,7 +324,7 @@ def test_copie_generique_au_runner_et_taux_dans_le_rapport(
     def fabrique() -> Any:
         return ctx.build("architecture", spec)
 
-    cache = IndexCache(ctx.wl_home)
+    cache = IndexCache(ctx.bench_home)
     _, cle = cache.build(ctx, fabrique, minicorpus)
     source = _json(cache.path(cle), "wiki_fidelity.json")
     assert _json(ctx.run_dir, "wiki_fidelity.json") == {"wiki-1": source}
@@ -342,7 +342,7 @@ def test_architecture_sans_fidelite_ne_copie_rien_et_rapport_vide(
 ) -> None:
     ctx.config_id = "bm25"
     spec = ComponentSpec(name="bm25_only", params={})
-    IndexCache(ctx.wl_home).build(ctx, lambda: ctx.build("architecture", spec), minicorpus)
+    IndexCache(ctx.bench_home).build(ctx, lambda: ctx.build("architecture", spec), minicorpus)
     assert not (ctx.run_dir / "wiki_fidelity.json").exists()
     assert taux_fidelite(ctx.run_dir) == {} and section_fidelite(ctx.run_dir) == ""
 
@@ -390,7 +390,7 @@ def test_graine_dans_la_cle_un_hit_de_cache_ne_sert_pas_l_echantillon_d_une_autr
     def fabrique() -> Any:
         return ctx.build("architecture", spec)
 
-    cache = IndexCache(ctx.wl_home)
+    cache = IndexCache(ctx.bench_home)
     cles, tirages = set(), {}
     for graine in range(1, 7):
         ctx.seed = graine

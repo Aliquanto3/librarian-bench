@@ -10,7 +10,7 @@ Exigences : FR-1, FR-37, FR-40 ; AD-11 ; `contracts.md` §5, §8 ; limites (iii)
 
 ## Réalisé
 
-- `runner/rejuger.py` (nouveau) : `rejuger(experience, questions, *, wl_home, source, reprendre=None, providers=None)`. Il crée une nouvelle Exécution (nouveau `run_id`, manifeste `rejudged_from`, `source_freeze_sha256`, `excluded_questions`) et copie de la source, pour les seules Questions du split courant du Jeu gelé (`load_questions`) :
+- `runner/rejuger.py` (nouveau) : `rejuger(experience, questions, *, bench_home, source, reprendre=None, providers=None)`. Il crée une nouvelle Exécution (nouveau `run_id`, manifeste `rejudged_from`, `source_freeze_sha256`, `excluded_questions`) et copie de la source, pour les seules Questions du split courant du Jeu gelé (`load_questions`) :
   - les lignes effectives d'`answers.jsonl`, octet pour octet. Leur `answer_id` garde le `run_id` source, si bien que les annotations faites sur la source s'y rapportent toujours (cas de la 9.10) ;
   - les spans de `traces.jsonl` hors Poste `judging` (indexation comprise, Questions écartées exclues) ;
   - `corpus_profile.json` et `applicability.json`.

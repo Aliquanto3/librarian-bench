@@ -79,7 +79,7 @@ def test_sous_corpus_et_empreinte(minicorpus: ParsedCorpus) -> None:
     assert all(d in minicorpus.documents for d in p[5].documents)
 
 
-@pytest.mark.usefixtures("wl_home")
+@pytest.mark.usefixtures("bench_home")
 def test_commande_paliers() -> None:
     res = CliRunner().invoke(app, ["corpus", "paliers", str(MINI / "corpus.yaml")])
     assert res.exit_code == 0, res.output
@@ -94,7 +94,7 @@ def test_commande_sans_tiers(tmp_path: Path) -> None:
     assert "ne déclare pas de clé `tiers`" in res.output
 
 
-@pytest.mark.usefixtures("wl_home")
+@pytest.mark.usefixtures("bench_home")
 def test_commande_document_illisible_hors_paliers(tmp_path: Path) -> None:
     # Deux Documents déclarés, un seul lisible : le tirage porte sur le Corpus ingéré.
     chemin = _petit_corpus(tmp_path, "tiers: {seed: 1, sizes: [1]}\n")
@@ -109,7 +109,7 @@ def test_commande_document_illisible_hors_paliers(tmp_path: Path) -> None:
     assert "dépasse le nombre de Documents (1)" in res.output
 
 
-@pytest.mark.usefixtures("wl_home")
+@pytest.mark.usefixtures("bench_home")
 def test_commande_taille_trop_grande(tmp_path: Path) -> None:
     chemin = _petit_corpus(tmp_path, "tiers: {seed: 1, sizes: [3]}\n")
     res = CliRunner().invoke(app, ["corpus", "paliers", str(chemin)])

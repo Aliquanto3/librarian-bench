@@ -25,13 +25,13 @@ ITEM = JudgeInput(
 
 
 class Env:
-    def __init__(self, wl_home: Path) -> None:
+    def __init__(self, bench_home: Path) -> None:
         self.provider = FakeProvider()
         self.requetes: list[LLMRequest] = []
         self.sortie: str | None = None
         self.provider.script("judge", "judge*", self._appel)
         self.ctx = Context.from_profile(
-            "test", wl_home=wl_home, run_id="r-1", seed=1, providers={"fake": self.provider}
+            "test", bench_home=bench_home, run_id="r-1", seed=1, providers={"fake": self.provider}
         )
 
     def _appel(self, req: LLMRequest) -> str:

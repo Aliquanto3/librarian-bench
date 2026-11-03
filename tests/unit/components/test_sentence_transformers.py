@@ -13,7 +13,7 @@ from librarian_bench import registry
 from librarian_bench.components.embedders.sentence_transformers import SentenceTransformersEmbedder
 from librarian_bench.config.catalog import load_catalog
 from librarian_bench.config.defaults import load_profile
-from librarian_bench.core.errors import WlError
+from librarian_bench.core.errors import LibrarianBenchError
 from librarian_bench.core.types import Condition, CostPost, Phase
 from librarian_bench.measure.tokenizers import ApproxTokenizer
 from librarian_bench.measure.tracing import Tracer
@@ -98,7 +98,7 @@ def test_enregistre_et_construit_sans_l_extra(ctx: _Ctx, monkeypatch: pytest.Mon
 def test_premier_usage_sans_l_extra_leve(ctx: _Ctx, monkeypatch: pytest.MonkeyPatch) -> None:
     monkeypatch.setitem(sys.modules, "sentence_transformers", None)
     emb = _construire(ctx)
-    with pytest.raises(WlError, match="installer l'extra local"):
+    with pytest.raises(LibrarianBenchError, match="installer l'extra local"):
         emb.embed_queries(["bonjour"])
 
 
@@ -122,7 +122,7 @@ def test_bge_m3_sans_prefixe_et_device_cuda(tmp_path: Path, double: type[_Double
 
 def test_forme_inattendue_refusee(tmp_path: Path, double: type[_DoubleModele]) -> None:
     emb = _construire(_Ctx(tmp_path / "g.jsonl", "gpu"))  # bge-m3 attend 1024, le double 384
-    with pytest.raises(WlError, match="forme"):
+    with pytest.raises(LibrarianBenchError, match="forme"):
         emb.embed_passages(["x"])
 
 
@@ -176,7 +176,8 @@ def test_real_local_encode_deux_phrases(tmp_path: Path) -> None:
 def test_extra_local_casse_leve_une_wlerror(
     monkeypatch: pytest.MonkeyPatch, tmp_path: Path
 ) -> None:
-    """Extra présent mais inutilisable (DLL de torch sous Windows) : `WlError` en français."""
+    """Extra présent mais inutilisable (DLL de torch sous Windows) : `LibrarianBenchError` en
+    français."""
 
     class Casse(type(sys)):  # type: ignore[misc]
         def __getattr__(self, nom: str) -> Any:
@@ -184,5 +185,5 @@ def test_extra_local_casse_leve_une_wlerror(
 
     monkeypatch.setitem(sys.modules, "sentence_transformers", Casse("sentence_transformers"))
     emb = _Ctx(tmp_path / "t.jsonl").build("embedder", ComponentSpec(name="sentence_transformers"))
-    with pytest.raises(WlError, match="extra local inutilisable"):
+    with pytest.raises(LibrarianBenchError, match="extra local inutilisable"):
         emb.embed_queries(["bonjour"])

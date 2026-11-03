@@ -138,13 +138,13 @@ def _sortie(req: LLMRequest) -> str:
 
 
 @pytest.fixture
-def env(wl_home: Path, monkeypatch: pytest.MonkeyPatch) -> Env:
+def env(bench_home: Path, monkeypatch: pytest.MonkeyPatch) -> Env:
     e = Env()
 
     def _contexte(profil: str, seed: int) -> Context:
         return Context.from_profile(
             "test",
-            wl_home=wl_home,
+            bench_home=bench_home,
             run_id="hors-1",
             seed=seed,
             providers={"fake": e.provider},
@@ -255,7 +255,7 @@ def test_anchor_id_absent_du_corpus_ecarte(corpus: Path, env: Env) -> None:
     assert "anchor_id" not in brut and "headings" in brut
 
 
-def test_ancrage_page_ecrit_en_doc_page(env: Env, wl_home: Path, tmp_path: Path) -> None:
+def test_ancrage_page_ecrit_en_doc_page(env: Env, bench_home: Path, tmp_path: Path) -> None:
     from fpdf import FPDF
 
     (tmp_path / "docs").mkdir()
@@ -288,7 +288,7 @@ def test_ancrage_page_ecrit_en_doc_page(env: Env, wl_home: Path, tmp_path: Path)
 # --- AC 3 : rôle, inputs, Poste, Cache ---------------------------------------------------------
 
 
-def test_role_inputs_et_poste_evalset_puis_cache(corpus: Path, env: Env, wl_home: Path) -> None:
+def test_role_inputs_et_poste_evalset_puis_cache(corpus: Path, env: Env, bench_home: Path) -> None:
     env.script(_sortie)
     assert _generer(corpus).exit_code == 0
     (req,) = env.requetes
@@ -296,7 +296,7 @@ def test_role_inputs_et_poste_evalset_puis_cache(corpus: Path, env: Env, wl_home
     assert set(req.inputs) >= {"anchors", "types"}
     assert req.inputs["types"] == {"factual": 3, "multi_hop": 1, "unanswerable": 1}
     assert all(set(a) == {"anchor_id", "text"} for a in req.inputs["anchors"])
-    traces = wl_home / "hors-execution" / "hors-1" / "traces.jsonl"
+    traces = bench_home / "hors-execution" / "hors-1" / "traces.jsonl"
     (span,) = [json.loads(x) for x in traces.read_text(encoding="utf-8").splitlines()]
     assert span["wl.post"] == "evalset" and span["wl.step"] == "question_gen"
     assert span["wl.status"] == "ok" and span["wl.llm_cache_hit"] is False
@@ -312,14 +312,14 @@ def test_role_inputs_et_poste_evalset_puis_cache(corpus: Path, env: Env, wl_home
     assert spans[-1]["wl.llm_cache_hit"] is True and spans[-1]["wl.cost"] == "0"
 
 
-def test_generer_fixe_lui_meme_le_poste(corpus: Path, wl_home: Path) -> None:
+def test_generer_fixe_lui_meme_le_poste(corpus: Path, bench_home: Path) -> None:
     """`generer` ouvre son `scope(post="evalset")` : un contexte sans Poste suffit."""
     from librarian_bench.corpus.declare import declare
     from librarian_bench.corpus.ingest import ingest
 
     parsed = ingest(declare(corpus))
     vide = io.QuestionsFile(corpus_id="demo", target_count=3, questions=())
-    with Context.from_profile("test", wl_home=wl_home, run_id="r-1", seed=1) as ctx:
+    with Context.from_profile("test", bench_home=bench_home, run_id="r-1", seed=1) as ctx:
         res = generate.generer(ctx, parsed, vide, {"factual": 2}, "fake-llm-a")
         assert len(res.ajoutees) == 2
         with pytest.raises(Exception, match="Poste de coût non fixé"):
@@ -348,14 +348,14 @@ def test_plafond_insuffisant_code_3_sans_ecriture(corpus: Path, env: Env) -> Non
 # --- AC 5 : échantillon déterministe -----------------------------------------------------------
 
 
-def test_meme_graine_meme_echantillon(corpus: Path, env: Env, wl_home: Path) -> None:
+def test_meme_graine_meme_echantillon(corpus: Path, env: Env, bench_home: Path) -> None:
     from librarian_bench.corpus.declare import declare
     from librarian_bench.corpus.ingest import ingest
 
     parsed = ingest(declare(corpus))
 
     def tirage(graine: int) -> list[str]:
-        with Context.from_profile("test", wl_home=wl_home, run_id="r-1", seed=graine) as ctx:
+        with Context.from_profile("test", bench_home=bench_home, run_id="r-1", seed=graine) as ctx:
             return generate.echantillon_ancrages(ctx, parsed, 3)
 
     un = tirage(1)
@@ -373,12 +373,12 @@ def test_meme_graine_meme_echantillon(corpus: Path, env: Env, wl_home: Path) -> 
 
 
 def test_modele_inconnu_du_catalogue_code_2_sans_appel(
-    corpus: Path, env: Env, wl_home: Path
+    corpus: Path, env: Env, bench_home: Path
 ) -> None:
     env.script(_sortie)
     res = _generer(corpus, "--modele", "modele-fantome")
     assert res.exit_code == 2 and "modèle inconnu du Catalogue" in res.output
-    assert env.requetes == [] and not (wl_home / "hors-execution").exists()
+    assert env.requetes == [] and not (bench_home / "hors-execution").exists()
     assert not (corpus.parent / "questions.yaml").exists()
 
 

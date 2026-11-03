@@ -14,7 +14,7 @@ from librarian_bench.components.graph.fusion import (
     meilleur_texte,
     nom_canonique,
 )
-from librarian_bench.core.errors import WlError
+from librarian_bench.core.errors import LibrarianBenchError
 from librarian_bench.core.ids import slug_entite
 from librarian_bench.registry import register
 
@@ -69,7 +69,7 @@ class NetworkxGraphStore:
     ) -> None:
         cle = slug_entite(entity_id) or slug_entite(name)
         if not cle:
-            raise WlError(f"entité sans identifiant exploitable : {entity_id!r}")
+            raise LibrarianBenchError(f"entité sans identifiant exploitable : {entity_id!r}")
         forme = name or entity_id
         if cle in self._g:
             n = self._g.nodes[cle]
@@ -114,7 +114,9 @@ class NetworkxGraphStore:
     ) -> None:
         a, b = slug_entite(source), slug_entite(target)
         if not a or not b:
-            raise WlError(f"relation sans extrémité exploitable : {source!r} -> {target!r}")
+            raise LibrarianBenchError(
+                f"relation sans extrémité exploitable : {source!r} -> {target!r}"
+            )
         if a == b:
             return  # pas de boucle : une entité ne se relie pas à elle-même
         for cle, brut in ((a, source), (b, target)):
@@ -189,7 +191,7 @@ class NetworkxGraphStore:
                 g.add_edge(str(e.pop("source")), str(e.pop("target")), **e)
             journal = [list(op) for op in brut.get("journal") or []]
         except (OSError, ValueError, KeyError, TypeError) as exc:
-            raise WlError(f"graphe illisible : {directory}") from exc
+            raise LibrarianBenchError(f"graphe illisible : {directory}") from exc
         if not journal and g.number_of_nodes():  # graphe sans journal : un apport par élément
             journal = [
                 ["entity", k, d["name"], d["kind"], d["description"], list(d["passage_ids"])]

@@ -15,7 +15,7 @@ from pydantic import (
     model_validator,
 )
 
-from librarian_bench.core.errors import WlError
+from librarian_bench.core.errors import LibrarianBenchError
 from librarian_bench.ports.gateway import LLMRequest, LLMRole
 
 
@@ -184,10 +184,11 @@ assert set(ROLES) == set(get_args(LLMRole)), "ROLES doit couvrir exactement `LLM
 
 
 def check_inputs(request: LLMRequest) -> None:
-    """Refuse (`WlError`) une requête sans l'une des clés obligatoires d'`inputs` de son rôle."""
+    """Refuse (`LibrarianBenchError`) une requête sans l'une des clés obligatoires d'`inputs`
+    de son rôle."""
     manquantes = [k for k in ROLES[request.role].required_inputs if k not in request.inputs]
     if manquantes:
-        raise WlError(
+        raise LibrarianBenchError(
             f"requête {request.step!r} (rôle {request.role}) : "
             f"clés d'`inputs` manquantes : {', '.join(manquantes)}"
         )

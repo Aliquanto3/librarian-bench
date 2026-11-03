@@ -25,7 +25,7 @@ from pydantic import BaseModel, SecretStr
 from librarian_bench.config.catalog import load_catalog
 from librarian_bench.config.defaults import load_profile
 from librarian_bench.config.experiment import Budget, RetrySettings
-from librarian_bench.core.errors import ProviderError, WlError
+from librarian_bench.core.errors import LibrarianBenchError, ProviderError
 from librarian_bench.core.types import Condition, CostPost, Phase
 from librarian_bench.llm.budget import Ledger
 from librarian_bench.llm.cache import ResponseCache
@@ -324,7 +324,7 @@ def test_init_ecologits(monkeypatch: pytest.MonkeyPatch) -> None:
     assert appels == [{"providers": ["anthropic"], "electricity_mix_zone": None}]
     monkeypatch.setattr(energy, "_ecologits_initialise", False)
     monkeypatch.setitem(sys.modules, "ecologits", None)
-    with pytest.raises(WlError, match="extra energy"):
+    with pytest.raises(LibrarianBenchError, match="extra energy"):
         energy.init_ecologits()
 
 
@@ -370,13 +370,13 @@ class _Capture(logging.Handler):
 
 
 @pytest.fixture
-def passerelle(wl_home: Path, tmp_path: Path) -> Iterator[Callable[..., tuple[Any, Path]]]:
+def passerelle(bench_home: Path, tmp_path: Path) -> Iterator[Callable[..., tuple[Any, Path]]]:
     fermer: list[Callable[[], None]] = []
 
     def fabrique(providers: dict[str, Any], **kw: Any) -> tuple[MeteredGateway, Path]:
         catalog = load_catalog()
-        ledger = Ledger(Budget(per_run={}, period={}), "run-1", wl_home)
-        cache = ResponseCache(wl_home)
+        ledger = Ledger(Budget(per_run={}, period={}), "run-1", bench_home)
+        cache = ResponseCache(bench_home)
         fermer.extend([ledger.close, cache.close])
         chemin = tmp_path / "traces.jsonl"
         ref = ApproxTokenizer()

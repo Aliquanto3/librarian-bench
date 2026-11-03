@@ -15,7 +15,7 @@ from typing import Any, Literal, get_args
 
 from librarian_bench.config.experiment import Budget, ResolvedExperiment
 from librarian_bench.config.resolve import write_resolved
-from librarian_bench.core.errors import WlError
+from librarian_bench.core.errors import LibrarianBenchError
 from librarian_bench.core.ids import canonical_json
 from librarian_bench.core.jsonl import lire_jsonl, terminer_ligne
 from librarian_bench.core.types import Answer, Verdict
@@ -68,7 +68,7 @@ def _ecrire_manifest(dossier: Path, donnees: dict[str, Any]) -> None:
 
 
 def create_run_dir(
-    wl_home: Path,
+    bench_home: Path,
     run_id: str,
     experience: ResolvedExperiment,
     *,
@@ -83,13 +83,15 @@ def create_run_dir(
     ajoutés au manifeste (rejugement, story 9.6 : `rejudged_from`, `excluded_questions`)."""
     if not _RUN_ID.fullmatch(run_id):
         raise ValueError(f"run_id invalide : {run_id!r} (lettres, chiffres, - et _)")
-    dossier = wl_home / "runs" / run_id
+    dossier = bench_home / "runs" / run_id
     if dossier.exists() and (not dossier.is_dir() or any(dossier.iterdir())):
-        raise WlError(f"Exécution {run_id} déjà initialisée (reprise : --reprendre)")
+        raise LibrarianBenchError(f"Exécution {run_id} déjà initialisée (reprise : --reprendre)")
     if not _SHA256.fullmatch(freeze_sha256):
         raise ValueError(f"freeze_sha256 invalide : {freeze_sha256!r} (sha256 hexadécimal)")
     if any(c.parser.name == "auto" for c in experience.configurations):
-        raise WlError("parser « auto » non résolu : appeler resolve_parsers avant create_run_dir")
+        raise LibrarianBenchError(
+            "parser « auto » non résolu : appeler resolve_parsers avant create_run_dir"
+        )
     empreinte = write_resolved(experience, dossier)
     _ecrire_manifest(
         dossier,

@@ -17,9 +17,9 @@ from librarian_bench.core.bilan import decrire_cause
 from librarian_bench.core.errors import (
     BudgetExceeded,
     ConfigError,
+    LibrarianBenchError,
     ProviderError,
     ValidationFailed,
-    WlError,
 )
 from librarian_bench.core.types import ParsedCorpus
 from librarian_bench.corpus.declare import declare
@@ -127,14 +127,14 @@ def run(
             typer.echo(f"  - {e.path} : {e.message}", err=True)
         raise typer.Exit(2) from echec
     typer.echo("Validation réussie.")
-    wl_home = dossier_home()
+    bench_home = dossier_home()
     termine = False
     try:  # Gel vérifié à la validation, avant le préflight et tout appel (AD-11, AD-15)
         questions = load_questions(resultat.resolved)
         verifier_paliers(resultat.resolved, questions)  # Palier non déclaré : code 2
         if reprendre is not None:  # Expérience ou Gel différents de l'Exécution : code 2
-            verifier_reprise(resultat.resolved, wl_home, reprendre, questions.freeze_sha256)
-            termine = deja_terminee(wl_home, reprendre)
+            verifier_reprise(resultat.resolved, bench_home, reprendre, questions.freeze_sha256)
+            termine = deja_terminee(bench_home, reprendre)
     except ConfigError as erreur:
         typer.echo(f"Configuration invalide : {erreur}", err=True)
         raise typer.Exit(2) from erreur
@@ -155,11 +155,13 @@ def run(
         raise typer.Exit(4)
     typer.echo("Préflight réussi.")
     try:
-        issue = run_experiment(resultat.resolved, questions, wl_home=wl_home, reprendre=reprendre)
+        issue = run_experiment(
+            resultat.resolved, questions, bench_home=bench_home, reprendre=reprendre
+        )
     except ConfigError as erreur:
         typer.echo(f"Configuration invalide : {erreur}", err=True)
         raise typer.Exit(2) from erreur
-    except WlError as erreur:  # dont « Exécution <run_id> en cours » (run.lock)
+    except LibrarianBenchError as erreur:  # dont « Exécution <run_id> en cours » (run.lock)
         typer.echo(f"Erreur : {erreur}", err=True)
         raise typer.Exit(1) from erreur
     typer.echo(
@@ -168,7 +170,7 @@ def run(
     )
     _conclure(
         issue,
-        wl_home,
+        bench_home,
         resultat.resolved.max_error_rate,
         f"librarian-bench run {experience} --reprendre {issue.run_id}",
         tolerer_erreurs,
@@ -176,13 +178,13 @@ def run(
 
 
 def _conclure(
-    issue: RunOutcome, wl_home: Path, max_error_rate: float, reprise: str, tolerer_erreurs: bool
+    issue: RunOutcome, bench_home: Path, max_error_rate: float, reprise: str, tolerer_erreurs: bool
 ) -> None:
     """Rapport puis code de sortie d'une Exécution, communs à `librarian-bench run` et
     `librarian-bench rejuger`."""
     # Le Rapport se génère aussi sur les résultats partiels d'un arrêt au plafond (AD-1 : c'est
     # la CLI qui enchaîne le runner puis `report/`, le runner n'importe jamais `report`).
-    rapport_ok = _ecrire_rapport(issue.run_dir, wl_home)
+    rapport_ok = _ecrire_rapport(issue.run_dir, bench_home)
     if issue.status == "budget_exceeded":
         typer.echo("Plafond de dépense atteint : Exécution arrêtée.", err=True)
         raise typer.Exit(3)
@@ -248,18 +250,18 @@ def rejuger(
             typer.echo(f"  - {e.path} : {e.message}", err=True)
         raise typer.Exit(2) from echec
     typer.echo("Validation réussie.")
-    wl_home = dossier_home()
+    bench_home = dossier_home()
     resolue = resultat.resolved
     termine = False
     try:  # Gel courant vérifié, Expérience comparée à la source, avant tout appel
         questions = load_questions(resolue)
         avec_parsers = resolve_parsers(resolue, declare(Path(resolue.corpus)))
-        verifier_source(avec_parsers, wl_home, run_id)
+        verifier_source(avec_parsers, bench_home, run_id)
         if reprendre is not None:
             verifier_reprise_rejugement(
-                resolue, wl_home, run_id, reprendre, questions.freeze_sha256
+                resolue, bench_home, run_id, reprendre, questions.freeze_sha256
             )
-            termine = deja_terminee(wl_home, reprendre)
+            termine = deja_terminee(bench_home, reprendre)
     except ConfigError as erreur:
         typer.echo(f"Configuration invalide : {erreur}", err=True)
         raise typer.Exit(2) from erreur
@@ -277,11 +279,13 @@ def rejuger(
         raise typer.Exit(4)
     typer.echo("Préflight réussi.")
     try:
-        fait = rejugement(resolue, questions, wl_home=wl_home, source=run_id, reprendre=reprendre)
+        fait = rejugement(
+            resolue, questions, bench_home=bench_home, source=run_id, reprendre=reprendre
+        )
     except ConfigError as erreur:
         typer.echo(f"Configuration invalide : {erreur}", err=True)
         raise typer.Exit(2) from erreur
-    except WlError as erreur:  # dont « Exécution <run_id> en cours » (run.lock)
+    except LibrarianBenchError as erreur:  # dont « Exécution <run_id> en cours » (run.lock)
         typer.echo(f"Erreur : {erreur}", err=True)
         raise typer.Exit(1) from erreur
     if fait.excluded_questions:
@@ -295,13 +299,13 @@ def rejuger(
         f"{issue.n_answers} Réponse(s) dans {issue.run_dir}"
     )
     reprise = f"librarian-bench rejuger {run_id} {experience} --reprendre {issue.run_id}"
-    _conclure(issue, wl_home, resolue.max_error_rate, reprise, tolerer_erreurs)
+    _conclure(issue, bench_home, resolue.max_error_rate, reprise, tolerer_erreurs)
 
 
-def _ecrire_rapport(run_dir: Path, wl_home: Path) -> bool:
+def _ecrire_rapport(run_dir: Path, bench_home: Path) -> bool:
     """Génère `report/` ; un échec du Rapport est annoncé sans masquer l'issue de l'Exécution."""
     try:
-        sortie = generer_rapport(run_dir, wl_home=wl_home)
+        sortie = generer_rapport(run_dir, bench_home=bench_home)
     except Exception as erreur:  # jamais masquer le code de sortie de l'Exécution (3 au plafond)
         typer.echo(f"Rapport non généré : {type(erreur).__name__}: {erreur}", err=True)
         return False
@@ -334,13 +338,13 @@ def rapport(
     if (exporter_front is None) != (vers is None):
         typer.echo("--exporter-front et --vers vont ensemble.", err=True)
         raise typer.Exit(2)
-    wl_home = dossier_home()
-    dossier = wl_home / "runs" / run_id
+    bench_home = dossier_home()
+    dossier = bench_home / "runs" / run_id
     if not RUN_ID.fullmatch(run_id) or not dossier.is_dir():
-        typer.echo(f"Exécution {run_id} introuvable dans {wl_home / 'runs'}.", err=True)
+        typer.echo(f"Exécution {run_id} introuvable dans {bench_home / 'runs'}.", err=True)
         raise typer.Exit(2)
     try:
-        sortie = generer_rapport(dossier, wl_home=wl_home)
+        sortie = generer_rapport(dossier, bench_home=bench_home)
         typer.echo(f"Rapport écrit dans {sortie}")
         if exporter_front is not None and vers is not None:
             ids = exporter_front_vers(dossier, exporter_front, vers)
@@ -348,7 +352,7 @@ def rapport(
     except ConfigError as erreur:
         typer.echo(f"Configuration invalide : {erreur}", err=True)
         raise typer.Exit(2) from erreur
-    except (WlError, OSError, ValueError) as erreur:
+    except (LibrarianBenchError, OSError, ValueError) as erreur:
         typer.echo(f"Rapport non généré : {erreur}", err=True)
         raise typer.Exit(1) from erreur
 
@@ -407,7 +411,7 @@ def calibrer(
     erreur non réessayable du fournisseur. Codes 1 (interruption), 3 et 4 : le message donne le
     nombre de verdicts conservés et la commande de reprise.
     """
-    wl_home = dossier_home()
+    bench_home = dossier_home()
     try:
         resultat = validate_file(experience)
     except ValidationFailed as echec:
@@ -419,9 +423,9 @@ def calibrer(
     modeles = set(exp.judges.pool or exp.profile_settings.defaults.judge_pool)
     if exp.judges.calibration_judge is not None:
         modeles.add(exp.judges.calibration_judge)
-    if not RUN_ID.fullmatch(run) or not (wl_home / "runs" / run / "answers.jsonl").is_file():
+    if not RUN_ID.fullmatch(run) or not (bench_home / "runs" / run / "answers.jsonl").is_file():
         # code 2 avant le préflight ; un `--run` qui n'est pas un simple nom est refusé
-        typer.echo(f"Exécution {run} introuvable dans {wl_home / 'runs'}.", err=True)
+        typer.echo(f"Exécution {run} introuvable dans {bench_home / 'runs'}.", err=True)
         raise typer.Exit(2)
     verdict = preflight(modeles, resultat.catalog, exp.profile_settings)
     if not verdict.ok:
@@ -436,7 +440,7 @@ def calibrer(
             exp,
             annotations,
             run,
-            wl_home=wl_home,
+            bench_home=bench_home,
             sortie=sortie,
             reprendre=reprendre,
             ecraser=ecraser,
@@ -458,7 +462,7 @@ def calibrer(
             err=True,
         )
         raise typer.Exit(4) from erreur
-    except WlError as erreur:
+    except LibrarianBenchError as erreur:
         typer.echo(f"Erreur : {erreur}", err=True)
         raise typer.Exit(1) from erreur
     except KeyboardInterrupt as erreur:
@@ -521,7 +525,7 @@ def installer(
     except ProviderError as erreur:  # Ollama injoignable : code 4 du contrat (contracts.md §8)
         typer.echo(f"Erreur : {erreur}", err=True)
         raise typer.Exit(4) from erreur
-    except WlError as erreur:
+    except LibrarianBenchError as erreur:
         typer.echo(f"Erreur : {erreur}", err=True)
         raise typer.Exit(1) from erreur
     typer.echo(f"Encodage tiktoken {res.encodage} prêt.")
@@ -587,8 +591,8 @@ def _contexte_hors_execution(profil: str, seed: int) -> Context:
     """Contexte d'une commande hors Exécution (traces dans
     `LIBRARIAN_BENCH_HOME/hors-execution/<run_id>/`)."""
     run_id = f"questions-{datetime.now(UTC):%Y%m%d-%H%M%S}-{secrets.token_hex(3)}"
-    wl_home = dossier_home()
-    return Context.from_profile(profil, wl_home=wl_home, run_id=run_id, seed=seed)
+    bench_home = dossier_home()
+    return Context.from_profile(profil, bench_home=bench_home, run_id=run_id, seed=seed)
 
 
 @questions_app.command("generer")
@@ -653,7 +657,7 @@ def questions_generer(
     except ProviderError as erreur:
         typer.echo(f"Erreur : {erreur}", err=True)
         raise typer.Exit(4) from erreur
-    except WlError as erreur:
+    except LibrarianBenchError as erreur:
         typer.echo(f"Erreur : {erreur}", err=True)
         raise typer.Exit(1) from erreur
     if res.ajoutees:
@@ -707,7 +711,7 @@ def questions_closed_book(
     except ProviderError as erreur:
         typer.echo(f"Erreur : {erreur}", err=True)
         raise typer.Exit(4) from erreur
-    except WlError as erreur:
+    except LibrarianBenchError as erreur:
         typer.echo(f"Erreur : {erreur}", err=True)
         raise typer.Exit(1) from erreur
     if res.fichier != jeu:
@@ -796,7 +800,7 @@ def corpus_profiler(
     except ConfigError as erreur:
         typer.echo(f"Configuration invalide : {erreur}", err=True)
         raise typer.Exit(2) from erreur
-    except WlError as erreur:
+    except LibrarianBenchError as erreur:
         typer.echo(f"Erreur : {erreur}", err=True)
         raise typer.Exit(1) from erreur
     fichier = sortie / "corpus_profile.json"
@@ -851,7 +855,7 @@ def corpus_paliers(
     except ConfigError as erreur:
         typer.echo(f"Configuration invalide : {erreur}", err=True)
         raise typer.Exit(2) from erreur
-    except WlError as erreur:
+    except LibrarianBenchError as erreur:
         typer.echo(f"Erreur : {erreur}", err=True)
         raise typer.Exit(1) from erreur
     typer.echo(f"Paliers du Corpus « {declare_corpus.corpus_id} » (graine {tiers.seed}) :")
@@ -917,7 +921,7 @@ def annotations_exporter(
     sortie : 0 succès, 1 erreur, 2 Exécution introuvable ou non terminée, réglage invalide,
     dossier déjà rempli.
     """
-    wl_home = dossier_home()
+    bench_home = dossier_home()
     if (run_id is None) == (depuis is None):
         typer.echo("Configuration invalide : donner un run_id ou --depuis, pas les deux.", err=True)
         raise typer.Exit(2)
@@ -929,9 +933,9 @@ def annotations_exporter(
             )
         else:
             assert run_id is not None
-            dossier = wl_home / "runs" / run_id
+            dossier = bench_home / "runs" / run_id
             if not RUN_ID.fullmatch(run_id) or not dossier.is_dir():
-                typer.echo(f"Exécution {run_id} introuvable dans {wl_home / 'runs'}.", err=True)
+                typer.echo(f"Exécution {run_id} introuvable dans {bench_home / 'runs'}.", err=True)
                 raise typer.Exit(2)
             paquet = exporter_paquet(
                 dossier,
@@ -941,12 +945,12 @@ def annotations_exporter(
                 graine=graine,
                 part_double=part_double,
                 ecraser=ecraser,
-                wl_home=wl_home,
+                bench_home=bench_home,
             )
     except ConfigError as erreur:
         typer.echo(f"Configuration invalide : {erreur}", err=True)
         raise typer.Exit(2) from erreur
-    except (WlError, OSError, ValueError) as erreur:
+    except (LibrarianBenchError, OSError, ValueError) as erreur:
         typer.echo(f"Paquet non écrit : {erreur}", err=True)
         raise typer.Exit(1) from erreur
     for alerte in paquet.alertes:

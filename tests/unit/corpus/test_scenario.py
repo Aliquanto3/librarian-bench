@@ -219,7 +219,7 @@ def test_equivaut_a_une_ingestion_directe_de_l_etat_apres(tmp_path, minicorpus):
             cible.unlink()
         else:
             shutil.copy(SCENARIO.parent / op["source"], cible)
-    direct = ingest(declare(copie / "corpus.yaml"), wl_home=tmp_path / ".librarian-bench")
+    direct = ingest(declare(copie / "corpus.yaml"), bench_home=tmp_path / ".librarian-bench")
     _, apres = sc.appliquer_fichier(minicorpus, SCENARIO, lang="fr")
     assert apres == direct
 

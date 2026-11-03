@@ -12,7 +12,7 @@ from opentelemetry.sdk.trace import ReadableSpan, TracerProvider
 from opentelemetry.sdk.trace.export import SimpleSpanProcessor, SpanExporter, SpanExportResult
 from opentelemetry.sdk.trace.sampling import ALWAYS_ON
 
-from librarian_bench.core.errors import WlError
+from librarian_bench.core.errors import LibrarianBenchError
 from librarian_bench.core.jsonl import terminer_ligne
 from librarian_bench.core.types import Condition, CostPost, Phase, Usage
 from librarian_bench.measure.energy import EnergyMethod, spread_energy
@@ -126,7 +126,7 @@ class Tracer:
         """Retient les spans locaux jusqu'à `end_phase` : leur énergie n'est connue qu'en fin de
         phase et `traces.jsonl` n'est jamais réécrit (AD-17)."""
         if self._phase is not None:
-            raise WlError("phase d'énergie déjà ouverte")
+            raise LibrarianBenchError("phase d'énergie déjà ouverte")
         self._phase = []
 
     def end_phase(
@@ -166,7 +166,9 @@ class Tracer:
             # Les traces sont la seule source des coûts : une ligne perdue arrête l'Exécution.
             erreur, self.exporter.erreur = self.exporter.erreur, None
             cause = f" : {erreur}" if erreur else " (SDK OpenTelemetry désactivé ?)"
-            raise WlError(f"trace `{step}` non écrite dans {self.exporter.path}{cause}") from erreur
+            raise LibrarianBenchError(
+                f"trace `{step}` non écrite dans {self.exporter.path}{cause}"
+            ) from erreur
 
     def record(
         self,
@@ -239,7 +241,7 @@ def _otlp_processor(endpoint: str) -> Any:
             OTLPSpanExporter,
         )
     except ImportError as exc:
-        raise WlError(
+        raise LibrarianBenchError(
             "export OTLP demandé mais `opentelemetry-exporter-otlp` n'est pas installé"
         ) from exc
     return SimpleSpanProcessor(OTLPSpanExporter(endpoint=endpoint))  # AD-11 : synchrone

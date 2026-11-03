@@ -89,10 +89,10 @@ class RejugementOutcome:
     excluded_questions: tuple[str, ...]
 
 
-def _dossier(wl_home: Path, run_id: str, champ: str) -> Path:
+def _dossier(bench_home: Path, run_id: str, champ: str) -> Path:
     if not RUN_ID.fullmatch(run_id):  # jamais hors de runs/
         raise ConfigError(champ, f"run_id invalide : {run_id!r} (lettres, chiffres, - et _)")
-    return wl_home / "runs" / run_id
+    return bench_home / "runs" / run_id
 
 
 def _manifeste(dossier: Path, champ: str) -> dict[str, Any]:
@@ -157,14 +157,14 @@ def _jeu_conforme(experience: ResolvedExperiment, gel_source: object, posees: se
     return empreinte(doc.model_copy(update={"questions": remises})) == gel_source
 
 
-def verifier_source(experience: ResolvedExperiment, wl_home: Path, source_id: str) -> Source:
+def verifier_source(experience: ResolvedExperiment, bench_home: Path, source_id: str) -> Source:
     """Contrôles avant tout appel ; `ConfigError` (code 2) sinon. `experience` a ses parsers
     résolus. La source doit être terminée (`completed` ou `completed_with_errors`) et avoir des
     Réponses ; l'Expérience ne peut différer que par `judges`, `budget`, `max_error_rate` et le
     Catalogue ; le Corpus et le Scénario (contenu) doivent être ceux de la source ; le Jeu courant
     ne peut différer du Gel de la source que par le `split`, et chaque Question du split courant
     doit avoir une Réponse dans la source."""
-    dossier = _dossier(wl_home, source_id, "rejuger")
+    dossier = _dossier(bench_home, source_id, "rejuger")
     manifeste = _manifeste(dossier, "rejuger")
     statut = manifeste.get("status")
     if statut not in _SOURCES_ADMISES:
@@ -187,7 +187,7 @@ def verifier_source(experience: ResolvedExperiment, wl_home: Path, source_id: st
             f"{', '.join(sorted(set(ecarts)))} (seuls {', '.join(MODIFIABLES)} peuvent changer)",
         )
     if stockees:
-        actuelles = empreintes_entrees(experience, wl_home)
+        actuelles = empreintes_entrees(experience, bench_home)
         for cle, (_, quoi) in _ENTREES.items():
             if stockees.get(cle) != actuelles.get(cle):
                 raise ConfigError(
@@ -214,13 +214,13 @@ def verifier_source(experience: ResolvedExperiment, wl_home: Path, source_id: st
 
 
 def verifier_reprise_rejugement(
-    experience: ResolvedExperiment, wl_home: Path, source_id: str, reprendre: str, freeze: str
+    experience: ResolvedExperiment, bench_home: Path, source_id: str, reprendre: str, freeze: str
 ) -> None:
     """Reprise d'un rejugement : contrôles de `librarian-bench run --reprendre` (Expérience à
     plafonds égaux,
     Juges compris, Gel courant, entrées), et le rejugement doit venir de `source_id`."""
-    verifier_reprise(experience, wl_home, reprendre, freeze)
-    origine = _manifeste(_dossier(wl_home, reprendre, "reprendre"), "reprendre").get(
+    verifier_reprise(experience, bench_home, reprendre, freeze)
+    origine = _manifeste(_dossier(bench_home, reprendre, "reprendre"), "reprendre").get(
         "rejudged_from"
     )
     if origine != source_id:
@@ -292,7 +292,7 @@ def rejuger(
     experience: ResolvedExperiment,
     questions: FrozenQuestions,
     *,
-    wl_home: Path,
+    bench_home: Path,
     source: str,
     run_id: str | None = None,
     providers: Providers | None = None,
@@ -304,12 +304,14 @@ def rejuger(
     corpus = declare(Path(experience.corpus))
     experience = resolve_parsers(experience, corpus)
     panels = panels_de(experience)  # Panel inadmissible : refus (code 2) avant tout appel
-    src = verifier_source(experience, wl_home, source)
+    src = verifier_source(experience, bench_home, source)
     courantes = {q.id for q in questions.questions}
     ecartees = questions_ecartees(src.dossier, courantes)
     if reprendre is not None:
-        verifier_reprise_rejugement(experience, wl_home, source, reprendre, questions.freeze_sha256)
-        if deja_terminee(wl_home, reprendre):
+        verifier_reprise_rejugement(
+            experience, bench_home, source, reprendre, questions.freeze_sha256
+        )
+        if deja_terminee(bench_home, reprendre):
             raise ConfigError(
                 "reprendre", f"Exécution {reprendre} déjà terminée : rien à reprendre"
             )
@@ -319,15 +321,15 @@ def rejuger(
         run_id = new_run_id(sha16(canonical_json(graine)))
     scenario = Path(experience.scenario) if experience.scenario else None
     with Context.from_experiment(
-        experience, wl_home=wl_home, run_id=run_id, providers=providers, execution=True
+        experience, bench_home=bench_home, run_id=run_id, providers=providers, execution=True
     ) as ctx:
         if reprendre is None:
             dossier = create_run_dir(
-                wl_home,
+                bench_home,
                 run_id,
                 experience,
                 freeze_sha256=questions.freeze_sha256,
-                inputs=empreintes_entrees(experience, wl_home),
+                inputs=empreintes_entrees(experience, bench_home),
                 extra={
                     "rejudged_from": source,
                     "source_freeze_sha256": src.manifeste.get("freeze_sha256"),
@@ -336,7 +338,7 @@ def rejuger(
             )
             copier_generation(src.dossier, dossier, courantes)
         else:
-            dossier = wl_home / "runs" / run_id
+            dossier = bench_home / "runs" / run_id
             reopen_run_dir(dossier, experience.budget, experience.max_error_rate)
         handler: logging.Handler | None = None
         paquet = logging.getLogger("librarian_bench")

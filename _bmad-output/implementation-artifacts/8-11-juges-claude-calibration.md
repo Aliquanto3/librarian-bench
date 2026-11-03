@@ -44,5 +44,5 @@ Appels réels à l'API (`claude-opus-5-5`, requête du Juge, 3 Critères, ~1 050
 - Complexité : 0 constat (listes de verdicts parcourues une fois ; rapprochement Critère × annotations négligeable à 92 lignes).
 
 Commande de la calibration réelle (depuis la racine du dépôt principal, où se trouve `.env`), `calibration.json` de l'Exécution laissé à la calibration Ollama :
-`LIBRARIAN_BENCH_HOME=C:/Users/Utilisateur/Documents/GitHub/wl-runs-v0.2.0 uv run librarian-bench calibrer experiments/calibration-claude.yaml --annotations corpora/minicorpus/annotations --run 20261018-115941-a2a512 --sortie C:/Users/Utilisateur/Documents/GitHub/wl-runs-v0.2.0/runs/20261018-115941-a2a512/calibration-claude.json`
+`LIBRARIAN_BENCH_HOME=../wl-runs-v0.2.0 uv run librarian-bench calibrer experiments/calibration-claude.yaml --annotations corpora/minicorpus/annotations --run 20261018-115941-a2a512 --sortie ../wl-runs-v0.2.0/runs/20261018-115941-a2a512/calibration-claude.json`
 → verdicts dans `calibration-claude_verdicts.jsonl` du même dossier.

@@ -57,7 +57,9 @@ def _lire_surcharge(chemin: Path) -> dict[str, Any]:
     return data
 
 
-def load_costs(wl_home: Path | None = None, experiment_costs: Path | None = None) -> CostSettings:
+def load_costs(
+    bench_home: Path | None = None, experiment_costs: Path | None = None
+) -> CostSettings:
     """Résout les `CostSettings` : défauts, puis `<LIBRARIAN_BENCH_HOME>/costs.yaml`, puis fichier
     d'Expérience.
 
@@ -67,11 +69,11 @@ def load_costs(wl_home: Path | None = None, experiment_costs: Path | None = None
     donnees = _lire_surcharge(base)
     sources = [str(base)]
     env = env_home()
-    if wl_home is None and env:
-        wl_home = Path(env)
-    if wl_home is not None and (wl_home / "costs.yaml").is_file():
-        donnees = fusionner(donnees, _lire_surcharge(wl_home / "costs.yaml"))
-        sources.append(str(wl_home / "costs.yaml"))
+    if bench_home is None and env:
+        bench_home = Path(env)
+    if bench_home is not None and (bench_home / "costs.yaml").is_file():
+        donnees = fusionner(donnees, _lire_surcharge(bench_home / "costs.yaml"))
+        sources.append(str(bench_home / "costs.yaml"))
     if experiment_costs is not None:
         donnees = fusionner(donnees, _lire_surcharge(experiment_costs))
         sources.append(str(experiment_costs))

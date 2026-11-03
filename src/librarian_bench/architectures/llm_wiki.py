@@ -40,7 +40,7 @@ from librarian_bench.architectures._fenetre import borner_passages, couper
 from librarian_bench.architectures._passages import ecrire_passages, lire_passages
 from librarian_bench.components.context import build_arch_answer
 from librarian_bench.config.panel import closed_book_judge
-from librarian_bench.core.errors import ConfigError, WlError
+from librarian_bench.core.errors import ConfigError, LibrarianBenchError
 from librarian_bench.core.ids import sha16
 from librarian_bench.core.types import (
     ArchAnswer,
@@ -382,7 +382,7 @@ class LlmWiki(ArchitectureBase):
         try:
             brut: dict[str, Any] = json.loads(chemin.read_text(encoding="utf-8"))
         except (OSError, ValueError) as exc:
-            raise WlError(f"index illisible : {chemin} absent ou illisible") from exc
+            raise LibrarianBenchError(f"index illisible : {chemin} absent ou illisible") from exc
         return brut
 
     # -- cycle de vie ---------------------------------------------------------------------------

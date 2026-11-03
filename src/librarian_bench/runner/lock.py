@@ -5,7 +5,7 @@ import sys
 from pathlib import Path
 from typing import IO
 
-from librarian_bench.core.errors import WlError
+from librarian_bench.core.errors import LibrarianBenchError
 
 # Octet verrouillé : le premier ; le `run_id` du détenteur s'écrit après, pour rester lisible
 # par un second processus même quand le verrou Windows interdit la lecture de l'octet verrouillé.
@@ -46,13 +46,14 @@ def _deverrouiller(f: IO[bytes]) -> None:
 class RunLock:
     """Verrou du système : libéré par l'OS si le processus meurt, sans fichier orphelin bloquant."""
 
-    def __init__(self, wl_home: Path, run_id: str) -> None:
-        self.path = wl_home / "run.lock"
+    def __init__(self, bench_home: Path, run_id: str) -> None:
+        self.path = bench_home / "run.lock"
         self.run_id = run_id
         self._f: IO[bytes] | None = None
 
     def acquire(self) -> None:
-        """Prend le verrou ; `WlError` « Exécution <run_id> en cours » s'il est détenu."""
+        """Prend le verrou ; `LibrarianBenchError` « Exécution <run_id> en cours » s'il est
+        détenu."""
         self.path.parent.mkdir(parents=True, exist_ok=True)
         fd = os.open(self.path, os.O_RDWR | os.O_CREAT, 0o644)
         f = os.fdopen(fd, "r+b", buffering=0)
@@ -62,7 +63,7 @@ class RunLock:
                 detenteur = f.read().decode("utf-8", "replace").strip() or "inconnue"
             finally:
                 f.close()
-            raise WlError(f"Exécution {detenteur} en cours")
+            raise LibrarianBenchError(f"Exécution {detenteur} en cours")
         try:
             f.seek(_DECALAGE)
             f.truncate(_DECALAGE)

@@ -37,7 +37,7 @@ from librarian_bench.architectures._fenetre import couper
 from librarian_bench.architectures._passages import ecrire_passages, lire_passages
 from librarian_bench.components.context import build_arch_answer
 from librarian_bench.config.experiment import Amount
-from librarian_bench.core.errors import ConfigError, WlError
+from librarian_bench.core.errors import ConfigError, LibrarianBenchError
 from librarian_bench.core.ids import sha16
 from librarian_bench.core.types import (
     ArchAnswer,
@@ -187,7 +187,9 @@ class Agentic(ArchitectureBase):
         try:
             brut = json.loads((directory / FICHIER).read_text(encoding="utf-8"))
         except (OSError, ValueError) as exc:
-            raise WlError(f"index illisible : {directory / FICHIER} absent ou illisible") from exc
+            raise LibrarianBenchError(
+                f"index illisible : {directory / FICHIER} absent ou illisible"
+            ) from exc
         try:
             self._ancrages = {
                 a: {"doc_id": str(v["doc_id"]), "text": str(v["text"])}
@@ -198,7 +200,7 @@ class Agentic(ArchitectureBase):
                 for d in brut["documents"]
             ]
         except (KeyError, TypeError, AttributeError) as exc:
-            raise WlError(f"index illisible : {directory / FICHIER} malformé") from exc
+            raise LibrarianBenchError(f"index illisible : {directory / FICHIER} malformé") from exc
 
     # -- outils (lecture seule, limités au Corpus indexé) ---------------------------------------
 
@@ -368,7 +370,7 @@ class Agentic(ArchitectureBase):
                 lus[lecture] = lus[lecture].model_copy(update={"text": resultats[0]["text"]})
             sortie, cout, devise = self._appeler(question, etape, historique, resultats)
             if devise != budget.currency:
-                raise WlError(
+                raise LibrarianBenchError(
                     f"`agentic` : coût en {devise}, borne `max_cost_per_question` en "
                     f"{budget.currency}"
                 )

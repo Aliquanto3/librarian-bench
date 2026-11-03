@@ -6,7 +6,7 @@ import numpy as np
 from numpy.typing import NDArray
 from pydantic import BaseModel, ConfigDict
 
-from librarian_bench.core.errors import WlError
+from librarian_bench.core.errors import LibrarianBenchError
 from librarian_bench.core.types import ScoredPassage
 from librarian_bench.ports.components import SearchIndex
 from librarian_bench.registry import register
@@ -30,11 +30,13 @@ class DenseRetriever:
         query_vector: NDArray[np.float32] | None = None,
     ) -> list[ScoredPassage]:
         if index.vectors is None:
-            raise WlError("le retriever `dense` exige un store vectoriel")
+            raise LibrarianBenchError("le retriever `dense` exige un store vectoriel")
         vecteur = query_vector
         if vecteur is None:
             if index.embedder is None:
-                raise WlError("le retriever `dense` exige un embedder sans `query_vector`")
+                raise LibrarianBenchError(
+                    "le retriever `dense` exige un embedder sans `query_vector`"
+                )
             vecteur = index.embedder.embed_queries([query])[0]
         demande = k
         while True:

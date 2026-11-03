@@ -62,7 +62,7 @@ def questions() -> dict[str, Question]:
 def ctx(tmp_path: Path, minicorpus: ParsedCorpus) -> Iterator[Context]:
     c = Context.from_profile(
         "test",
-        wl_home=tmp_path / "wl",
+        bench_home=tmp_path / "wl",
         run_id="conformite",
         seed=42,
         providers={"fake": FakeProvider()},
@@ -102,7 +102,7 @@ class _Banc:
     def __init__(self, ctx: Context, nom: str, params: dict[str, Any] | None) -> None:
         assert params is not None, f"{nom} : aucune Configuration dans experiments/mini-test.yaml"
         self.ctx, self.nom, self.params = ctx, nom, params
-        self.cache = IndexCache(ctx.wl_home)
+        self.cache = IndexCache(ctx.bench_home)
 
     def fabrique(self, params: dict[str, Any] | None = None) -> ArchitectureBase:
         spec = ComponentSpec(name=self.nom, params=self.params if params is None else params)

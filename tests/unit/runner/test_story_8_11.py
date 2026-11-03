@@ -105,11 +105,11 @@ class _SdkFactice:
 
 
 @pytest.fixture
-def execution(tmp_path: Path, wl_home: Path) -> tuple[Path, Path]:
+def execution(tmp_path: Path, bench_home: Path) -> tuple[Path, Path]:
     exp = _experience(tmp_path)
     res = CliRunner().invoke(app, ["run", str(exp)])
     assert res.exit_code == 0, res.output
-    (dossier,) = [d for d in (wl_home / "runs").iterdir() if d.is_dir()]
+    (dossier,) = [d for d in (bench_home / "runs").iterdir() if d.is_dir()]
     return exp, dossier
 
 
@@ -142,7 +142,7 @@ def test_catalogue_opus_5_5_tarifs_et_absence_de_palier() -> None:
 
 
 def test_calibration_claude_sortie_structuree_cout_par_appel_et_pas_de_temperature(
-    execution: tuple[Path, Path], tmp_path: Path, wl_home: Path
+    execution: tuple[Path, Path], tmp_path: Path, bench_home: Path
 ) -> None:
     _, dossier = execution
     _annoter(dossier, tmp_path / "ann")
@@ -152,7 +152,7 @@ def test_calibration_claude_sortie_structuree_cout_par_appel_et_pas_de_temperatu
         exp,
         tmp_path / "ann",
         dossier.name,
-        wl_home=wl_home,
+        bench_home=bench_home,
         providers={"anthropic": AnthropicProvider(client=sdk)},  # type: ignore[arg-type]
     )
     n_reponses = len({a for a in read_answers(dossier)})
@@ -182,7 +182,7 @@ def test_calibration_claude_sortie_structuree_cout_par_appel_et_pas_de_temperatu
     assert res.cout == {"USD": attendu}
     spans = [
         json.loads(ligne)
-        for d in (wl_home / "hors-execution").iterdir()
+        for d in (bench_home / "hors-execution").iterdir()
         for ligne in (d / "traces.jsonl").read_text(encoding="utf-8").splitlines()
     ]
     juges = [s for s in spans if s.get("wl.post") == "judging" and not s["wl.llm_cache_hit"]]
@@ -194,7 +194,7 @@ def test_calibration_claude_sortie_structuree_cout_par_appel_et_pas_de_temperatu
 
 
 def test_plafond_anthropic_atteint_leve_budget_exceeded_et_n_ecrit_rien(
-    execution: tuple[Path, Path], tmp_path: Path, wl_home: Path
+    execution: tuple[Path, Path], tmp_path: Path, bench_home: Path
 ) -> None:
     _, dossier = execution
     _annoter(dossier, tmp_path / "ann")
@@ -205,7 +205,7 @@ def test_plafond_anthropic_atteint_leve_budget_exceeded_et_n_ecrit_rien(
             exp,
             tmp_path / "ann",
             dossier.name,
-            wl_home=wl_home,
+            bench_home=bench_home,
             providers={"anthropic": AnthropicProvider(client=sdk)},  # type: ignore[arg-type]
         )
     assert not (dossier / "calibration.json").exists()
@@ -228,7 +228,7 @@ def test_experience_livree_calibration_claude() -> None:
 
 
 def test_reponse_opus_sans_outil_verdict_manquant_cout_trace_calibration_ecrite(
-    execution: tuple[Path, Path], tmp_path: Path, wl_home: Path
+    execution: tuple[Path, Path], tmp_path: Path, bench_home: Path
 ) -> None:
     """Troncature ou refus (aucun bloc d'outil) : nouvel essai puis verdict manquant et
     avertissement pour cette Réponse ; les appels payés sont tracés ; le reste est écrit."""
@@ -242,7 +242,7 @@ def test_reponse_opus_sans_outil_verdict_manquant_cout_trace_calibration_ecrite(
         exp,
         tmp_path / "ann",
         dossier.name,
-        wl_home=wl_home,
+        bench_home=bench_home,
         providers={"anthropic": AnthropicProvider(client=sdk)},  # type: ignore[arg-type]
     )
     assert chemin.is_file() and fichier_verdicts(chemin).is_file()
@@ -264,7 +264,7 @@ def test_reponse_opus_sans_outil_verdict_manquant_cout_trace_calibration_ecrite(
 
 
 def test_sorties_distinctes_ne_s_ecrasent_pas_et_dossier_cree(
-    execution: tuple[Path, Path], tmp_path: Path, wl_home: Path
+    execution: tuple[Path, Path], tmp_path: Path, bench_home: Path
 ) -> None:
     """Deux calibrations de la même Exécution (Ollama par défaut, Claude avec `--sortie`) :
     chacune garde ses verdicts ; un dossier de sortie absent est créé avant les appels."""
@@ -272,12 +272,19 @@ def test_sorties_distinctes_ne_s_ecrasent_pas_et_dossier_cree(
     _annoter(dossier, tmp_path / "ann")
     exp = validate_file(_exp_claude(tmp_path, "10.00")).resolved
     providers = {"anthropic": AnthropicProvider(client=_SdkFactice())}  # type: ignore[arg-type]
-    _, defaut = calibrer(exp, tmp_path / "ann", dossier.name, wl_home=wl_home, providers=providers)
+    _, defaut = calibrer(
+        exp, tmp_path / "ann", dossier.name, bench_home=bench_home, providers=providers
+    )
     assert fichier_verdicts(defaut) == dossier / "calibration_verdicts.jsonl"
     avant = (dossier / "calibration_verdicts.jsonl").read_bytes()
     sortie = tmp_path / "absent" / "calibration-claude.json"
     _, chemin = calibrer(
-        exp, tmp_path / "ann", dossier.name, wl_home=wl_home, sortie=sortie, providers=providers
+        exp,
+        tmp_path / "ann",
+        dossier.name,
+        bench_home=bench_home,
+        sortie=sortie,
+        providers=providers,
     )
     assert chemin == sortie and sortie.is_file()
     assert (sortie.parent / "calibration-claude_verdicts.jsonl").is_file()

@@ -21,7 +21,7 @@ status: done
 - `dominant_lang` : plus grand nombre de Documents ; égalité -> ordre alphabétique (déterminisme).
 - Entités : séquences capitalisées (liaisons `de`, `du`, `des`, `de la`, `of`, `the`, `d'`), premier mot de chaque phrase ou ligne écarté, titres ignorés, comparaison insensible à la casse. `link_density` = part des Documents partageant au moins une entité avec un autre.
 - Corpus sans Document ingéré : `ConfigError` (code 2).
-- CLI : `--profil` (défaut `cpu`, tokenizer `reference` qui ne télécharge rien et exige `librarian-bench installer`) ; `--sortie` (défaut dossier courant) reçoit `corpus_profile.json` (`model_dump(mode="json")`). `ConfigError` -> code 2, autre `WlError` -> 1.
+- CLI : `--profil` (défaut `cpu`, tokenizer `reference` qui ne télécharge rien et exige `librarian-bench installer`) ; `--sortie` (défaut dossier courant) reçoit `corpus_profile.json` (`model_dump(mode="json")`). `ConfigError` -> code 2, autre `LibrarianBenchError` -> 1.
 - Report : l'AC dit « profil `test` » sans option dans la commande de l'énoncé ; `--profil` est ajouté pour le choisir.
 
 ## Tâches et critères

@@ -8,7 +8,7 @@ from pydantic import BaseModel, ConfigDict, Field
 
 from librarian_bench.components.retrievers.dense import DenseRetriever
 from librarian_bench.components.retrievers.lexical import LexicalRetriever
-from librarian_bench.core.errors import WlError
+from librarian_bench.core.errors import LibrarianBenchError
 from librarian_bench.core.types import ScoredPassage
 from librarian_bench.ports.components import SearchIndex
 from librarian_bench.registry import register
@@ -69,7 +69,9 @@ class HybridRetriever:
         query_vector: NDArray[np.float32] | None = None,
     ) -> list[ScoredPassage]:
         if index.vectors is None or index.lexical is None:
-            raise WlError("le retriever `hybrid` exige un store vectoriel et un index lexical")
+            raise LibrarianBenchError(
+                "le retriever `hybrid` exige un store vectoriel et un index lexical"
+            )
         p = self.params
         profondeur = max(k, p.candidates)
         dense = self._dense.retrieve(query, profondeur, index, query_vector)

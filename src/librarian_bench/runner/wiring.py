@@ -32,7 +32,7 @@ def build_gateway(
     Le gestionnaire de `run.log` et `limiter_journaux` reviennent au runner (epic 4).
     """
     reference = make_tokenizer(profile.tokenizer)
-    estimator = make_estimator(profile.energy)  # WlError sans l'extra `energy`
+    estimator = make_estimator(profile.energy)  # LibrarianBenchError sans l'extra `energy`
     if profile.energy.api == "ecologits":
         init_ecologits()
     if providers is None:

@@ -11,7 +11,7 @@ from librarian_bench import registry
 from librarian_bench.architectures.naive_rag import NaiveRag
 from librarian_bench.components.retrievers.dense import DenseRetriever
 from librarian_bench.components.vector_stores.numpy_exact import NumpyExactStore
-from librarian_bench.core.errors import WlError
+from librarian_bench.core.errors import LibrarianBenchError
 from librarian_bench.core.types import ParsedCorpus, ParsedDocument, QuestionInput
 from librarian_bench.llm.providers.fake import FakeProvider
 from librarian_bench.ports.architecture import CorpusChange
@@ -27,7 +27,7 @@ PETITS = {"name": "fixed_tokens", "params": {"size": 40, "overlap": 5}}
 def ctx(tmp_path: Path):  # type: ignore[no-untyped-def]
     provider = FakeProvider()
     c = RunCtx.from_profile(
-        "test", wl_home=tmp_path / "wl", run_id="r-1", seed=1, providers={"fake": provider}
+        "test", bench_home=tmp_path / "wl", run_id="r-1", seed=1, providers={"fake": provider}
     )
     c.parser = "markdown"  # parser concret (jamais `auto`) pour la clé d'index
     c.provider = provider  # type: ignore[attr-defined]
@@ -111,14 +111,14 @@ def test_numpy_exact_save_load_et_dimension_refusee(ctx: RunCtx, tmp_path: Path)
     sans_dim = ctx.build("vector_store", ComponentSpec(name="numpy_exact"))
     sans_dim.load(tmp_path / "a")
     assert sans_dim.dim == 8
-    with pytest.raises(WlError, match="dimension"):
+    with pytest.raises(LibrarianBenchError, match="dimension"):
         store.add(["x"], _unitaires(1, 4))
-    with pytest.raises(WlError, match="dimension"):
+    with pytest.raises(LibrarianBenchError, match="dimension"):
         store.search(_unitaires(1, 4)[0], 3)
     mauvais = ctx.build("vector_store", ComponentSpec(name="numpy_exact", params={"dim": 4}))
-    with pytest.raises(WlError, match="dimension"):
+    with pytest.raises(LibrarianBenchError, match="dimension"):
         mauvais.load(tmp_path / "a")
-    with pytest.raises(WlError, match="illisible"):
+    with pytest.raises(LibrarianBenchError, match="illisible"):
         autre.load(tmp_path / "absent")
 
 
@@ -127,7 +127,7 @@ def test_numpy_exact_add_remplace_un_id_existant(ctx: RunCtx) -> None:
     store.add(["a", "b"], np.array([[1.0, 0.0], [0.0, 1.0]], dtype=np.float32))
     store.add(["a"], np.array([[0.0, 1.0]], dtype=np.float32))
     assert store.search(np.array([1.0, 0.0], dtype=np.float32), 5) == [("a", 0.0), ("b", 0.0)]
-    with pytest.raises(WlError):
+    with pytest.raises(LibrarianBenchError):
         store.add(["z", "z"], np.zeros((2, 2), dtype=np.float32))
 
 
@@ -166,7 +166,7 @@ def test_dense_appelle_embed_queries_et_classe_de_1_a_k(
 
 def test_dense_sans_store_refuse(ctx: RunCtx) -> None:
     retriever = ctx.build("retriever", ComponentSpec(name="dense"))
-    with pytest.raises(WlError, match="store"):
+    with pytest.raises(LibrarianBenchError, match="store"):
         retriever.retrieve("x", 3, SearchIndex(passages={}))
 
 
@@ -321,7 +321,7 @@ def test_naive_rag_update_scenario_reel_depuis_le_cache(
 def test_numpy_exact_ajout_rate_ne_fixe_pas_la_dimension(ctx: RunCtx, tmp_path: Path) -> None:
     store = ctx.build("vector_store", ComponentSpec(name="numpy_exact"))
     assert store.search(np.ones(3, np.float32), 2) == []  # vide, sans dimension
-    with pytest.raises(WlError):
+    with pytest.raises(LibrarianBenchError):
         store.add(["a"], np.zeros((2, 4), dtype=np.float32))  # 1 id pour 2 vecteurs
     assert store.dim == 0
     store.add(["a"], np.array([[1.0, 0.0]], dtype=np.float32))
@@ -329,5 +329,5 @@ def test_numpy_exact_ajout_rate_ne_fixe_pas_la_dimension(ctx: RunCtx, tmp_path: 
     (tmp_path / "x").mkdir()
     (tmp_path / "x" / "ids.json").write_text("{}", encoding="utf-8")
     np.save(tmp_path / "x" / "vectors.npy", np.zeros((0, 2), dtype=np.float32))
-    with pytest.raises(WlError, match="illisible"):
+    with pytest.raises(LibrarianBenchError, match="illisible"):
         store.load(tmp_path / "x")

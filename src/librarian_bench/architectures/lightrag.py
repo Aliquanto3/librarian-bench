@@ -44,7 +44,7 @@ from librarian_bench.architectures._passages import ecrire_passages, lire_passag
 from librarian_bench.components.context import build_arch_answer
 from librarian_bench.components.graph.cache import cle_extraction, extraire_avec_cache
 from librarian_bench.components.graph.extraction import EntityExtractor
-from librarian_bench.core.errors import WlError
+from librarian_bench.core.errors import LibrarianBenchError
 from librarian_bench.core.ids import sha16, slug_entite
 from librarian_bench.core.types import (
     ArchAnswer,
@@ -115,7 +115,7 @@ def _lire_json(chemin: Path) -> Any:
     try:
         return json.loads(chemin.read_text(encoding="utf-8"))
     except (OSError, ValueError) as exc:
-        raise WlError(f"index illisible : {chemin} absent ou illisible") from exc
+        raise LibrarianBenchError(f"index illisible : {chemin} absent ou illisible") from exc
 
 
 def _relations(g: Any) -> dict[str, tuple[str, str, str]]:

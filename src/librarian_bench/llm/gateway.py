@@ -18,7 +18,12 @@ from tenacity import Retrying, retry_if_exception, stop_after_attempt, wait_expo
 from librarian_bench.config.catalog import ModelCatalog
 from librarian_bench.config.experiment import RetrySettings
 from librarian_bench.config.schemas import OllamaSettings
-from librarian_bench.core.errors import BudgetExceeded, NonConformantOutput, ProviderError, WlError
+from librarian_bench.core.errors import (
+    BudgetExceeded,
+    LibrarianBenchError,
+    NonConformantOutput,
+    ProviderError,
+)
 from librarian_bench.core.types import Usage
 from librarian_bench.llm.budget import Ledger
 from librarian_bench.llm.cache import ResponseCache, cache_key, role_marker
@@ -118,7 +123,9 @@ class MeteredGateway:
     @staticmethod
     def _marquer(request: LLMRequest) -> LLMRequest:
         if "[[wl:role=" in request.system:
-            raise WlError("le marqueur `[[wl:role=…]]` est posé par la passerelle seule (AD-4)")
+            raise LibrarianBenchError(
+                "le marqueur `[[wl:role=…]]` est posé par la passerelle seule (AD-4)"
+            )
         return request.model_copy(update={"system": role_marker(request.role) + request.system})
 
     def _estimation(
@@ -226,7 +233,9 @@ class MeteredGateway:
         nom = entry.provider
         provider = self._providers.get(nom)
         if provider is None:
-            raise WlError(f"aucun provider `{nom}` branché pour le modèle {request.model_id!r}")
+            raise LibrarianBenchError(
+                f"aucun provider `{nom}` branché pour le modèle {request.model_id!r}"
+            )
         devise = entry.pricing.currency if entry.pricing else _DEVISE_LOCALE
         marquee = self._marquer(request)
         if not entry.accepts_temperature and marquee.temperature is not None:

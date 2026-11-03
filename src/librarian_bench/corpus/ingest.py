@@ -92,8 +92,8 @@ def versions_parsers(parser: str) -> dict[str, str]:
     return {nom: _version(registry.get("parser", nom)) for nom in noms}
 
 
-def _wl_home(wl_home: Path | None) -> Path:
-    return wl_home or dossier_home()
+def _bench_home(bench_home: Path | None) -> Path:
+    return bench_home or dossier_home()
 
 
 def _version(cls: Any) -> str:
@@ -143,14 +143,14 @@ def empreinte(documents: Iterable[ParsedDocument]) -> str:
 
 
 def ingest(
-    corpus: DeclaredCorpus, parser: str = "auto", *, wl_home: Path | None = None
+    corpus: DeclaredCorpus, parser: str = "auto", *, bench_home: Path | None = None
 ) -> ParsedCorpus:
     """Parse les Documents du Corpus (cache par Document et par Parser) en `ParsedCorpus`.
 
     Un Document que son Parser ne sait pas lire est signalé au journal et ignoré.
     """
     par_format = parsers_par_format(corpus.formats, parser)
-    cache = _wl_home(wl_home) / "parse_cache"
+    cache = _bench_home(bench_home) / "parse_cache"
     instances: dict[str, Any] = {}
     documents: list[ParsedDocument] = []
     for doc in corpus.documents:  # déjà triés par source_path

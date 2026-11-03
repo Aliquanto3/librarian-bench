@@ -34,19 +34,19 @@ _ENTREES = {
 }
 
 
-def dossier_de(wl_home: Path, run_id: str) -> Path:
+def dossier_de(bench_home: Path, run_id: str) -> Path:
     if not RUN_ID.fullmatch(run_id):  # `--reprendre ../x` : jamais hors de runs/
         raise ConfigError("reprendre", f"run_id invalide : {run_id!r} (lettres, chiffres, - et _)")
-    return wl_home / "runs" / run_id
+    return bench_home / "runs" / run_id
 
 
-def empreintes_entrees(experience: ResolvedExperiment, wl_home: Path) -> dict[str, str]:
+def empreintes_entrees(experience: ResolvedExperiment, bench_home: Path) -> dict[str, str]:
     """Empreintes du contenu que l'empreinte de l'Expérience ne couvre pas (elle ne porte que
     les chemins) : Corpus ingéré, Corpus après Scénario, Catalogue de modèles (tarifs compris).
     Écrites au manifeste (`inputs`) au départ, comparées à la reprise. `experience` a ses
     parsers résolus (`resolve_parsers`)."""
     parser = experience.configurations[0].parser.name
-    parse = ingest(declare(Path(experience.corpus)), parser, wl_home=wl_home)
+    parse = ingest(declare(Path(experience.corpus)), parser, bench_home=bench_home)
     catalogue = load_catalog(Path(experience.catalog) if experience.catalog else None)
     entrees = {
         "corpus_fingerprint": parse.fingerprint,
@@ -58,8 +58,8 @@ def empreintes_entrees(experience: ResolvedExperiment, wl_home: Path) -> dict[st
     return entrees
 
 
-def lire_manifeste(wl_home: Path, run_id: str) -> dict[str, object]:
-    dossier = dossier_de(wl_home, run_id)
+def lire_manifeste(bench_home: Path, run_id: str) -> dict[str, object]:
+    dossier = dossier_de(bench_home, run_id)
     try:
         return json.loads((dossier / "manifest.json").read_text(encoding="utf-8"))
     except (OSError, ValueError) as exc:
@@ -78,7 +78,7 @@ def charger_resolue(dossier: Path) -> ResolvedExperiment:
 
 
 def verifier_reprise(
-    experience: ResolvedExperiment, wl_home: Path, run_id: str, freeze_sha256: str
+    experience: ResolvedExperiment, bench_home: Path, run_id: str, freeze_sha256: str
 ) -> Path:
     """Contrôles d'une reprise, sans verrou ni appel ; `ConfigError` (code 2) sinon. Rend le
     dossier de l'Exécution.
@@ -90,8 +90,8 @@ def verifier_reprise(
     autre écart (Configuration, graine, modèles, Corpus, Questions…) est refusé. L'empreinte du
     Gel du Jeu doit aussi être celle du manifeste.
     """
-    dossier = dossier_de(wl_home, run_id)
-    manifeste = lire_manifeste(wl_home, run_id)
+    dossier = dossier_de(bench_home, run_id)
+    manifeste = lire_manifeste(bench_home, run_id)
     if manifeste.get("freeze_sha256") != freeze_sha256:
         raise ConfigError(
             "reprendre", f"le Jeu de Questions n'est plus celui de l'Exécution {run_id} (Gel)"
@@ -113,7 +113,7 @@ def verifier_reprise(
         )
     stockees = manifeste.get("inputs")
     if isinstance(stockees, dict):  # contenu du Corpus, du Scénario et du Catalogue
-        actuelles = empreintes_entrees(resolue, wl_home)
+        actuelles = empreintes_entrees(resolue, bench_home)
         for cle in sorted(set(stockees) | set(actuelles)):
             if stockees.get(cle) != actuelles.get(cle):
                 quoi = _ENTREES.get(cle, cle)
@@ -123,12 +123,12 @@ def verifier_reprise(
     return dossier
 
 
-def deja_terminee(wl_home: Path, run_id: str) -> bool:
+def deja_terminee(bench_home: Path, run_id: str) -> bool:
     """Exécution `completed` sans Critère resté non jugé (`unjudged`, story 4.9) : une reprise
     n'a rien à refaire (code 0 dans la CLI). Avec des Critères non jugés, la reprise rejuge.
     `completed_with_errors` (story 8.3) n'est jamais terminée : la reprise repose les Questions
     en `error` et rejuge les Critères sans verdict."""
-    manifeste = lire_manifeste(wl_home, run_id)
+    manifeste = lire_manifeste(bench_home, run_id)
     return manifeste.get("status") == "completed" and not manifeste.get("unjudged")
 
 

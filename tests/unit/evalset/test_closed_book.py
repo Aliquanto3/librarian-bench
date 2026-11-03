@@ -77,13 +77,13 @@ class Env:
 
 
 @pytest.fixture
-def env(wl_home: Path, monkeypatch: pytest.MonkeyPatch) -> Env:
+def env(bench_home: Path, monkeypatch: pytest.MonkeyPatch) -> Env:
     e = Env()
 
     def _contexte(profil: str, seed: int) -> Context:
         return Context.from_profile(
             "test",
-            wl_home=wl_home,
+            bench_home=bench_home,
             run_id="hors-1",
             seed=seed,
             providers={"fake": e.provider},
@@ -260,7 +260,7 @@ def test_sans_question_garde_la_partie_nouvelle() -> None:
 
 
 def test_jeu_gele_seul_contaminated_by_change_et_relance_remplace(
-    tmp_path: Path, env: Env, wl_home: Path
+    tmp_path: Path, env: Env, bench_home: Path
 ) -> None:
     env.reponse = lambda r: "Orvane" if r.model_id == "fake-llm-a" else "rien"
     f = _ecrire(
@@ -282,7 +282,7 @@ def test_jeu_gele_seul_contaminated_by_change_et_relance_remplace(
         }
 
     assert sans(apres) == sans(avant)
-    traces = wl_home / "hors-execution" / "hors-1" / "traces.jsonl"
+    traces = bench_home / "hors-execution" / "hors-1" / "traces.jsonl"
     spans = [json.loads(x) for x in traces.read_text(encoding="utf-8").splitlines()]
     assert len(spans) == 2
     assert {s["wl.post"] for s in spans} == {"judging"}
@@ -297,7 +297,7 @@ def test_relance_garde_l_ordre_de_contaminated_by(tmp_path: Path, env: Env) -> N
 
 
 def test_span_du_juge_porte_judging_sur_reponse_libre(
-    tmp_path: Path, env: Env, wl_home: Path
+    tmp_path: Path, env: Env, bench_home: Path
 ) -> None:
     env.reponse = lambda r: "Orvane fonda la guilde"
     f = _ecrire(
@@ -305,7 +305,7 @@ def test_span_du_juge_porte_judging_sur_reponse_libre(
         [_q(1, answer_form="free", reference_answer="Orvane fonda la guilde")],
     )
     assert _lancer(f, "--modeles", "fake-llm-a").exit_code == 0
-    traces = wl_home / "hors-execution" / "hors-1" / "traces.jsonl"
+    traces = bench_home / "hors-execution" / "hors-1" / "traces.jsonl"
     spans = [json.loads(x) for x in traces.read_text(encoding="utf-8").splitlines()]
     assert len(spans) == 2 and len(env.juge) == 1  # question posée, puis Juge
     assert {s["wl.post"] for s in spans} == {"judging"}

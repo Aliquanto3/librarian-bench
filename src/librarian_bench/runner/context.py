@@ -20,7 +20,7 @@ from librarian_bench.config.catalog import ModelCatalog, load_catalog
 from librarian_bench.config.defaults import load_profile
 from librarian_bench.config.experiment import Budget, ResolvedExperiment, RetrySettings
 from librarian_bench.config.schemas import ProfileSettings, valider
-from librarian_bench.core.errors import WlError
+from librarian_bench.core.errors import LibrarianBenchError
 from librarian_bench.core.ids import sha16
 from librarian_bench.core.types import Condition, CostPost, Phase
 from librarian_bench.llm.budget import Ledger
@@ -50,7 +50,9 @@ class _PasserelleSousPoste:
 
     def _verifier(self) -> None:
         if self._ctx._post is None:  # pyright: ignore[reportPrivateUsage]
-            raise WlError("Poste de coût non fixé : appeler la passerelle dans ctx.scope(post=…)")
+            raise LibrarianBenchError(
+                "Poste de coût non fixé : appeler la passerelle dans ctx.scope(post=…)"
+            )
 
     def complete(self, request: LLMRequest, *, use_cache: bool = True) -> LLMResult:
         self._verifier()
@@ -77,7 +79,7 @@ class Context:
         *,
         profile: ProfileSettings,
         catalog: ModelCatalog,
-        wl_home: Path,
+        bench_home: Path,
         run_id: str,
         seed: int = 0,
         config_id: str = "",
@@ -103,10 +105,10 @@ class Context:
         self.parser = parser
         self.catalog = catalog
         self.profile = profile
-        self.wl_home = wl_home
+        self.bench_home = bench_home
         # Les traces d'une commande hors Exécution ne vont pas dans `runs/` (AD-9 : la somme des
         # spans d'une Exécution égale sa dépense ; un `run_id` réutilisé la fausserait).
-        self.run_dir = wl_home / ("runs" if execution else "hors-execution") / run_id
+        self.run_dir = bench_home / ("runs" if execution else "hors-execution") / run_id
         self._post: CostPost | None = post
         self._question_id: str | None = None
         self._lock: RunLock | None = None
@@ -114,13 +116,13 @@ class Context:
         self._cache: ResponseCache | None = None
         self._cache_jetable: Path | None = None
         if execution:
-            self._lock = RunLock(wl_home, run_id)
+            self._lock = RunLock(bench_home, run_id)
             self._lock.acquire()
         try:
             self._ledger = Ledger(
                 budget if budget is not None else Budget(),
                 run_id,
-                wl_home,
+                bench_home,
                 recover_orphans=execution,  # seulement sous `run.lock` (AD-11)
                 hors_execution=not execution,
             )
@@ -131,7 +133,7 @@ class Context:
                 self._cache_jetable = Path(tempfile.mkdtemp(prefix="wl-cache-scenarise-"))
                 self._cache = ResponseCache(self._cache_jetable)
             else:
-                self._cache = ResponseCache(wl_home)
+                self._cache = ResponseCache(bench_home)
             # `traceur` : le Tracer concret (phases d'énergie, latence cumulée), réservé au runner.
             self.traceur = Tracer(self, self.run_dir / "traces.jsonl")
             self.tracer: PortTracer = self.traceur
@@ -158,7 +160,7 @@ class Context:
         cls,
         experience: ResolvedExperiment,
         *,
-        wl_home: Path,
+        bench_home: Path,
         run_id: str,
         config_id: str | None = None,
         providers: Providers | None = None,
@@ -175,7 +177,7 @@ class Context:
         return cls(
             profile=experience.profile_settings,
             catalog=load_catalog(Path(experience.catalog) if experience.catalog else None),
-            wl_home=wl_home,
+            bench_home=bench_home,
             run_id=run_id,
             seed=experience.seed,
             config_id=conf.id,
@@ -192,7 +194,7 @@ class Context:
         cls,
         profile: str,
         *,
-        wl_home: Path,
+        bench_home: Path,
         run_id: str,
         seed: int = 0,
         catalog: ModelCatalog | None = None,
@@ -203,7 +205,7 @@ class Context:
         return cls(
             profile=load_profile(profile),
             catalog=catalog if catalog is not None else load_catalog(),
-            wl_home=wl_home,
+            bench_home=bench_home,
             run_id=run_id,
             seed=seed,
             providers=providers,
@@ -221,7 +223,7 @@ class Context:
     @property
     def post(self) -> CostPost:
         if self._post is None:
-            raise WlError("Poste de coût non fixé : utiliser ctx.scope(post=…)")
+            raise LibrarianBenchError("Poste de coût non fixé : utiliser ctx.scope(post=…)")
         return self._post
 
     @property

@@ -9,7 +9,7 @@ from pathlib import Path
 from typing import Any
 
 from librarian_bench.config.catalog import ModelCatalog
-from librarian_bench.core.errors import WlError
+from librarian_bench.core.errors import LibrarianBenchError
 from librarian_bench.ports.measure import Tokenizer
 
 _ENCODAGE = "o200k_base"
@@ -75,13 +75,13 @@ class ReferenceTokenizer:
             "lancer `librarian-bench installer` pour le préparer (aucun téléchargement automatique)"
         )
         if not encodage_installe():
-            raise WlError(message)
+            raise LibrarianBenchError(message)
         try:
             import tiktoken
 
             return tiktoken.get_encoding(_ENCODAGE)
         except Exception as exc:  # cache illisible, réseau tenté puis refusé, etc.
-            raise WlError(message) from exc
+            raise LibrarianBenchError(message) from exc
 
 
 class ScaledTokenizer:
@@ -102,7 +102,7 @@ def make_tokenizer(name: str) -> Tokenizer:
         return ApproxTokenizer()
     if name == "reference":
         return ReferenceTokenizer()
-    raise WlError(f"tokenizer inconnu : {name!r} (attendu : approx, reference)")
+    raise LibrarianBenchError(f"tokenizer inconnu : {name!r} (attendu : approx, reference)")
 
 
 def tokenizer_for(model_id: str, catalog: ModelCatalog, reference: Tokenizer) -> Tokenizer:

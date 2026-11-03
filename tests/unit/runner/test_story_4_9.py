@@ -54,8 +54,8 @@ def _wl(*args: str, code: int = 0) -> Any:
     return res
 
 
-def _un_run(wl_home: Path) -> Path:
-    (dossier,) = [d for d in (wl_home / "runs").iterdir() if d.is_dir()]
+def _un_run(bench_home: Path) -> Path:
+    (dossier,) = [d for d in (bench_home / "runs").iterdir() if d.is_dir()]
     return dossier
 
 
@@ -95,11 +95,11 @@ def _lignes(dossier: Path, nom: str) -> list[str]:
 
 
 def test_panel_un_appel_par_reponse_et_par_juge_verdicts_et_panel(
-    tmp_path: Path, wl_home: Path, monkeypatch: pytest.MonkeyPatch
+    tmp_path: Path, bench_home: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:
     appels = _espion(monkeypatch)
     _wl(str(_experience(tmp_path, configurations=[BM25, SANS_CONTEXTE])))
-    dossier = _un_run(wl_home)
+    dossier = _un_run(bench_home)
     questions = _questions()
     reponses = read_answers(dossier)
     assert len(reponses) == 2 * len(questions)
@@ -158,11 +158,11 @@ def test_panel_un_appel_par_reponse_et_par_juge_verdicts_et_panel(
 
 
 def test_juge_recoit_les_textes_des_ancrages_et_le_contexte_du_generator(
-    tmp_path: Path, wl_home: Path, monkeypatch: pytest.MonkeyPatch
+    tmp_path: Path, bench_home: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:
     appels = _espion(monkeypatch)
     _wl(str(_experience(tmp_path)))
-    reponses = {a.question_id: a for a in read_answers(_un_run(wl_home)).values()}
+    reponses = {a.question_id: a for a in read_answers(_un_run(bench_home)).values()}
     questions = _questions()
     assert appels
     for _, qid, _, _, item in appels:
@@ -177,7 +177,7 @@ def test_juge_recoit_les_textes_des_ancrages_et_le_contexte_du_generator(
 
 
 def test_juges_exclus_par_la_calibration_ne_sont_pas_appeles(
-    tmp_path: Path, wl_home: Path, monkeypatch: pytest.MonkeyPatch
+    tmp_path: Path, bench_home: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:
     catalogue = tmp_path / "models.yaml"
     d = (
@@ -200,7 +200,7 @@ def test_juges_exclus_par_la_calibration_ne_sont_pas_appeles(
     )
     _wl(str(chemin))
     assert {m for m, *_ in appels} == {"fake-llm-b", "fake-llm-d"}
-    panel = read_panel(_un_run(wl_home))
+    panel = read_panel(_un_run(bench_home))
     assert {m for p in panel.values() for m in p.judges} == {"fake-llm-b", "fake-llm-d"}
 
 
@@ -208,7 +208,7 @@ def test_juges_exclus_par_la_calibration_ne_sont_pas_appeles(
 
 
 def test_inapplicable_non_jugee(
-    tmp_path: Path, wl_home: Path, monkeypatch: pytest.MonkeyPatch
+    tmp_path: Path, bench_home: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:
     appels = _espion(monkeypatch)
     longue = {
@@ -217,7 +217,7 @@ def test_inapplicable_non_jugee(
         "params": {"generator": {"name": "llm", "params": {"max_tokens": 99000}}},
     }
     _wl(str(_experience(tmp_path, configurations=[BM25, longue], max_questions=4)))
-    dossier = _un_run(wl_home)
+    dossier = _un_run(bench_home)
     inapplicables = {i for i, a in read_answers(dossier).items() if a.status == "inapplicable"}
     assert len(inapplicables) == 4
     assert len(appels) == 2 * 4  # les 4 Réponses ok de bm25 seulement, deux Juges chacune
@@ -226,17 +226,19 @@ def test_inapplicable_non_jugee(
 
 
 def test_budget_exceeded_non_juge(
-    tmp_path: Path, wl_home: Path, monkeypatch: pytest.MonkeyPatch
+    tmp_path: Path, bench_home: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:
     appels = _espion(monkeypatch)
     plafond = {"per_run": {"fake": {"amount": "0.000000001", "currency": "USD"}}}
     _wl(str(_experience(tmp_path, budget=plafond, max_questions=3)), code=3)
-    dossier = _un_run(wl_home)
+    dossier = _un_run(bench_home)
     assert {a.status for a in read_answers(dossier).values()} == {"budget_exceeded"}
     assert not appels and not read_verdicts(dossier) and not read_panel(dossier)
 
 
-def test_erreur_non_jugee(tmp_path: Path, wl_home: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+def test_erreur_non_jugee(
+    tmp_path: Path, bench_home: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
     from librarian_bench.architectures.bm25_only import Bm25Only
 
     reel = Bm25Only.answer
@@ -249,7 +251,7 @@ def test_erreur_non_jugee(tmp_path: Path, wl_home: Path, monkeypatch: pytest.Mon
     monkeypatch.setattr(Bm25Only, "answer", peut_echouer)
     appels = _espion(monkeypatch)
     _wl(str(_experience(tmp_path, max_questions=3)))
-    dossier = _un_run(wl_home)
+    dossier = _un_run(bench_home)
     erreurs = [a for a in read_answers(dossier).values() if a.status == "error"]
     assert [a.question_id for a in erreurs] == ["q-002"]
     assert "q-002" not in {qid for _, qid, *_ in appels} and len(appels) == 2 * 2
@@ -260,7 +262,7 @@ def test_erreur_non_jugee(tmp_path: Path, wl_home: Path, monkeypatch: pytest.Mon
 
 
 def test_reprise_apres_arret_pendant_le_jugement_ne_demande_que_les_cles_absentes(
-    tmp_path: Path, wl_home: Path, monkeypatch: pytest.MonkeyPatch
+    tmp_path: Path, bench_home: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:
     n = 4
     etat = {"coupe": True}
@@ -272,7 +274,7 @@ def test_reprise_apres_arret_pendant_le_jugement_ne_demande_que_les_cles_absente
     chemin = _experience(tmp_path, max_questions=n)
     appels = _espion(monkeypatch, coupe)
     _wl(str(chemin), code=3)
-    dossier = _un_run(wl_home)
+    dossier = _un_run(bench_home)
     assert json.loads((dossier / "manifest.json").read_text("utf-8"))["status"] == "budget_exceeded"
     assert len(read_answers(dossier)) == n and len(appels) == 3
     agreges = {k[0] for k in read_panel(dossier)}
@@ -307,11 +309,11 @@ def _juges_scenarises(monkeypatch: pytest.MonkeyPatch, sortie: Callable[[str], A
 
 
 def test_juges_contradictoires_egalite_no_et_tie_dans_panel(
-    tmp_path: Path, wl_home: Path, monkeypatch: pytest.MonkeyPatch
+    tmp_path: Path, bench_home: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:
     _juges_scenarises(monkeypatch, lambda m: m == "fake-llm-b")  # b : oui, c : non
     _wl(str(_experience(tmp_path, max_questions=3)))
-    dossier = _un_run(wl_home)
+    dossier = _un_run(bench_home)
     jugees = [p for p in read_panel(dossier).values() if p.judges]
     assert jugees and all(p.tie and p.verdict == "no" for p in jugees)
     assert all(set(p.judges) == PANEL for p in jugees)
@@ -320,7 +322,7 @@ def test_juges_contradictoires_egalite_no_et_tie_dans_panel(
 
 
 def test_juge_en_echec_compte_au_manifeste_puis_repris(
-    tmp_path: Path, wl_home: Path, monkeypatch: pytest.MonkeyPatch
+    tmp_path: Path, bench_home: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:
     def sortie(modele: str) -> bool:
         if modele == "fake-llm-c":
@@ -330,7 +332,7 @@ def test_juge_en_echec_compte_au_manifeste_puis_repris(
     _juges_scenarises(monkeypatch, sortie)
     chemin = _experience(tmp_path, max_questions=2)
     res = _wl(str(chemin))
-    dossier = _un_run(wl_home)
+    dossier = _un_run(bench_home)
     manifeste = json.loads((dossier / "manifest.json").read_text("utf-8"))
     questions = _questions()
     attendu = sum(

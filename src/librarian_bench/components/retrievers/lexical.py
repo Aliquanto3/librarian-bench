@@ -6,7 +6,7 @@ import numpy as np
 from numpy.typing import NDArray
 from pydantic import BaseModel, ConfigDict
 
-from librarian_bench.core.errors import WlError
+from librarian_bench.core.errors import LibrarianBenchError
 from librarian_bench.core.types import ScoredPassage
 from librarian_bench.ports.components import SearchIndex
 from librarian_bench.registry import register
@@ -30,7 +30,7 @@ class LexicalRetriever:
         query_vector: NDArray[np.float32] | None = None,
     ) -> list[ScoredPassage]:
         if index.lexical is None:
-            raise WlError("le retriever `lexical` exige un index lexical")
+            raise LibrarianBenchError("le retriever `lexical` exige un index lexical")
         # `k` s'applique après le filtre : on élargit la recherche tant que des ids inconnus
         # des Passages réduisent la liste sous `k`.
         demande = k

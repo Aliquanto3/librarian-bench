@@ -232,7 +232,7 @@ def _chemin_absolu(base: Path, valeur: str | None) -> str | None:
 def resolve_experiment(
     experience: Experiment,
     source: Path,
-    wl_home: Path | None = None,
+    bench_home: Path | None = None,
     *,
     erreurs: list[ConfigError] | None = None,
     releves: list[Collecte] | None = None,
@@ -252,7 +252,7 @@ def resolve_experiment(
     chemin_catalogue = _chemin_absolu(base, experience.catalog)
     catalogue = load_catalog(Path(chemin_catalogue) if chemin_catalogue else None)
     chemin_couts = _chemin_absolu(base, experience.costs)
-    couts = load_costs(wl_home, Path(chemin_couts) if chemin_couts else None)
+    couts = load_costs(bench_home, Path(chemin_couts) if chemin_couts else None)
 
     configurations: list[ResolvedConfiguration] = []
     for i, conf in enumerate(experience.configurations):

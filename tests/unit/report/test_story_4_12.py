@@ -26,7 +26,7 @@ USD = Decimal("0.8938")
 
 
 @pytest.fixture
-def run_dir(tmp_path: Path, wl_home: Path) -> Path:
+def run_dir(tmp_path: Path, bench_home: Path) -> Path:
     donnees = {
         "experiment_id": "exp-4-12",
         "seed": 42,
@@ -42,7 +42,7 @@ def run_dir(tmp_path: Path, wl_home: Path) -> Path:
     chemin.write_text(yaml.safe_dump(donnees, allow_unicode=True), encoding="utf-8")
     res = CliRunner().invoke(app, ["run", str(chemin)])
     assert res.exit_code == 0, res.output
-    (dossier,) = [d for d in (wl_home / "runs").iterdir() if d.is_dir()]
+    (dossier,) = [d for d in (bench_home / "runs").iterdir() if d.is_dir()]
     return dossier
 
 

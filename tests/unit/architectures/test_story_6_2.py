@@ -17,7 +17,7 @@ from librarian_bench.components.retrievers.hybrid import (
 )
 from librarian_bench.config.resolve import Collecte
 from librarian_bench.config.validate import _verifier_capacites
-from librarian_bench.core.errors import ConfigError, WlError
+from librarian_bench.core.errors import ConfigError, LibrarianBenchError
 from librarian_bench.core.types import (
     ParsedCorpus,
     ParsedDocument,
@@ -38,7 +38,7 @@ PETITS = {"name": "fixed_tokens", "params": {"size": 40, "overlap": 5}}
 def ctx(tmp_path: Path):  # type: ignore[no-untyped-def]
     provider = FakeProvider()
     c = RunCtx.from_profile(
-        "test", wl_home=tmp_path / "wl", run_id="r-1", seed=1, providers={"fake": provider}
+        "test", bench_home=tmp_path / "wl", run_id="r-1", seed=1, providers={"fake": provider}
     )
     c.parser = "markdown"
     c.provider = provider  # type: ignore[attr-defined]
@@ -144,9 +144,9 @@ def test_hybrid_retriever_fusionne_les_deux_listes(
 
 def test_hybrid_retriever_exige_les_deux_index(ctx: RunCtx) -> None:
     retriever = ctx.build("retriever", ComponentSpec(name="hybrid"))
-    with pytest.raises(WlError, match="lexical"):
+    with pytest.raises(LibrarianBenchError, match="lexical"):
         retriever.retrieve("x", 3, SearchIndex(passages={}))
-    with pytest.raises(WlError):
+    with pytest.raises(LibrarianBenchError):
         ctx.build("retriever", ComponentSpec(name="hybrid", params={"fusion": "autre"}))
 
 

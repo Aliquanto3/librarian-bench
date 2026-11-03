@@ -41,11 +41,11 @@ class ResolveurCorpus:
     def __init__(
         self,
         experience: ResolvedExperiment,
-        wl_home: Path,
+        bench_home: Path,
         inputs: Mapping[str, Any] | None = None,
     ) -> None:
         self._experience = experience
-        self._wl_home = wl_home
+        self._bench_home = bench_home
         self._inputs = inputs
         self._parser_de = {c.id: c.parser.name for c in experience.configurations}
         # Parser de l'empreinte du manifeste : celui de la première Configuration (runner).
@@ -67,7 +67,7 @@ class ResolveurCorpus:
                 if self._declare is None:
                     self._declare = declare(Path(self._experience.corpus))
                 decl = self._declare
-                parse: ParsedCorpus | None = ingest(decl, parser, wl_home=self._wl_home)
+                parse: ParsedCorpus | None = ingest(decl, parser, bench_home=self._bench_home)
                 if phase == "after_update":
                     if self._experience.scenario is None or parse is None:
                         parse = None
@@ -148,7 +148,7 @@ class ResolveurCorpus:
 
 
 def resolveur_de(
-    experience: ResolvedExperiment, wl_home: Path, inputs: Mapping[str, Any] | None = None
+    experience: ResolvedExperiment, bench_home: Path, inputs: Mapping[str, Any] | None = None
 ) -> ResolveurCorpus:
     """`inputs` : empreintes du manifeste ; `None` (tests) ne compare pas les empreintes."""
-    return ResolveurCorpus(experience, wl_home, inputs)
+    return ResolveurCorpus(experience, bench_home, inputs)

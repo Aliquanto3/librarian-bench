@@ -105,7 +105,7 @@ NFR-11 : Contre-indicateurs. Une Architecture qui ne passe pas la conformité ne
 - **AD-20 Déterminisme.** `ctx.rng(*clés)` ou `default_rng(sha16(...))`, `temperature: 0` et `seed`, itérations sur des listes triées, égalités départagées par id.
 - **AD-21 Profils.** `cpu` (défaut), `gpu` et `test` dans `defaults/profiles/`, lus par `ctx.profile` ; nom écrit au manifeste et au Rapport.
 - **AD-22 Grandeurs du Rapport** (`contracts.md` §7). `scoring/` produit les verdicts, `stats/` des fonctions pures, `report/` agrège par (config_id, condition, tier, phase) à partir des seuls fichiers de l'Exécution. Paliers tirés par `corpus/tiers.py` avec `required_paths`.
-- **Conventions.** Identifiants et clés en anglais ; messages CLI, Rapport et docstrings en français. Un Composant par module ; nom au registre = nom du module. Exceptions de `core/errors.py` seulement. Codes de sortie 0, 1, 2, 3, 4. `logging` (pas de `print` hors `cli.py`). JSONL en UTF-8 avec LF. Prompts en constantes `str.format` dans le module. Arborescence de tests `tests/unit/<couche>/`, `conformance/`, `e2e/`, `real/`, avec les fixtures `fake_ctx`, `minicorpus` et `wl_home`.
+- **Conventions.** Identifiants et clés en anglais ; messages CLI, Rapport et docstrings en français. Un Composant par module ; nom au registre = nom du module. Exceptions de `core/errors.py` seulement. Codes de sortie 0, 1, 2, 3, 4. `logging` (pas de `print` hors `cli.py`). JSONL en UTF-8 avec LF. Prompts en constantes `str.format` dans le module. Arborescence de tests `tests/unit/<couche>/`, `conformance/`, `e2e/`, `real/`, avec les fixtures `fake_ctx`, `minicorpus` et `bench_home`.
 - **Données livrées.** `defaults/models.yaml` (Haiku 5.5, modèles Ollama CPU et GPU, embedders, `fake-*`), `defaults/costs.yaml`, `defaults/profiles/*.yaml`, `experiments/mini-test.yaml`, `mini-cpu.yaml` et `mini-real-haiku.yaml`. `scripts/make_minicorpus_pdfs.py` (fpdf2) produit les PDF, qui sont commités.
 - **Ordre de construction imposé.** `core` et `ports`, puis `registry` et `config`, puis `llm` avec le Faux LLM et `measure/tracing`, puis `corpus` et le Mini-corpus, puis `runner`, `scoring`, `stats` et `report` avec les Baselines. Enfin les Architectures, dans l'ordre du PRD §7.1. La suite de conformité existe avant la première Architecture du niveau 1.
 - **Enchaînement par story.** `agent-cost-kit:dev-story` → `second-avis` → `reviewer` → intégration. Chaque story est livrable seule ; le contrôle rapide et `pytest` passent sans réseau.
@@ -119,7 +119,7 @@ Un autre banc (slm-quality-bench) occupe la machine jusqu'au 18/10 vers 10 h, av
 - **Pas d'extra lourd, pas de téléchargement de plus de 1 Go.** Ne pas installer les extras `local` (torch) ni `docling`, et ne pas lancer `librarian-bench installer`. Les tests par défaut n'en ont pas besoin (profil `test`).
 - **Ressources.** `OMP_NUM_THREADS=4`, `MKL_NUM_THREADS=4` et `OPENBLAS_NUM_THREADS=4` dans l'environnement du run. Au plus 6 Go de RAM, priorité `BelowNormal` pour les processus du run, aucun pytest parallèle.
 - **API autorisée.** SM-4 (story 4.15) ne sollicite que l'API Anthropic, avec des Juges et un embedder factices (story 4.14), sous le plafond de 5 $.
-- **Surveillance par l'orchestrateur.** Avant de commencer, puis toutes les 10 minutes environ : débit du banc (réponses des 10 dernières minutes dans `wavelocalai/data/quality_bench/campaigns/pilot-20261017/log-generate.log`, à comparer sur le même modèle et la même piste), CPU total, RAM libre, et consommation propre du run (temps CPU, RSS de pointe, threads), consignée dans le projet.
+- **Surveillance par l'orchestrateur.** Avant de commencer, puis toutes les 10 minutes environ : débit du banc (réponses des 10 dernières minutes dans `../frugal-ai-workbench/data/quality_bench/campaigns/pilot-20261017/log-generate.log`, à comparer sur le même modèle et la même piste), CPU total, RAM libre, et consommation propre du run (temps CPU, RSS de pointe, threads), consignée dans le projet.
 - **Pause ou arrêt** si le débit du banc baisse de plus de 15 %, si le CPU dépasse 80 % de façon soutenue, ou si la RAM libre passe sous 6 Go. Si une ligne `ERROR` ou « campagne arrêtée » apparaît dans le log du banc : ne rien toucher et prévenir Anaël. Le travail lourd attend `pilot-report.md`.
 - **Après le pilote.** Le run peut continuer en journée. Dès que `pilot-report.md` existe, les tests `real_local` et `mini-cpu.yaml` redeviennent possibles, sur le profil CPU (`num_gpu: 0`).
 - **Reprise après `/clear`.** L'orchestrateur tient à jour un `RUN-STATUS.md` : story en cours, stories livrées, dépense, dernière mesure du banc, blocages. Une session neuve doit pouvoir reprendre le run en ne relisant que ce fichier et le sprint status.
@@ -265,13 +265,13 @@ So that chaque story suivante démarre sur un socle qui refuse les imports inter
 
 **Given** `core/errors.py` et `core/ids.py`
 **When** les tests unitaires de `tests/unit/core/` s'exécutent
-**Then** `WlError`, `ConfigError(path, message)`, `ValidationFailed(errors)`, `BudgetExceeded`, `Inapplicable(reason)`, `ProviderError(retryable)` et `NonConformantOutput` existent, avec `WlError` pour racine
+**Then** `LibrarianBenchError`, `ConfigError(path, message)`, `ValidationFailed(errors)`, `BudgetExceeded`, `Inapplicable(reason)`, `ProviderError(retryable)` et `NonConformantOutput` existent, avec `LibrarianBenchError` pour racine
 **And** `canonical_json` trie les clés, utilise `separators=(",", ":")` et sérialise un `Decimal` en chaîne ; `sha16` renvoie 16 caractères hexadécimaux stables ; `slug("Éléments d'histoire")` vaut `elements-d-histoire` ; `new_run_id` suit `YYYYMMDD-HHMMSS-<6 hex>` en UTC
 
 **Given** la commande `librarian-bench` déclarée en script du projet (typer)
-**When** on lance `uv run wl --help`
+**When** on lance `uv run librarian-bench --help`
 **Then** l'aide s'affiche en français et la commande sort en 0
-**And** `.gitignore` contient `.librarian-bench/`, `results/` et `.env`, et `tests/conftest.py` fournit la fixture `wl_home` (dossier dans `tmp_path`, variable `LIBRARIAN_BENCH_HOME` positionnée)
+**And** `.gitignore` contient `.librarian-bench/`, `results/` et `.env`, et `tests/conftest.py` fournit la fixture `bench_home` (dossier dans `tmp_path`, variable `LIBRARIAN_BENCH_HOME` positionnée)
 
 ### Story 1.2 : Types du domaine et ports publiés
 
@@ -461,13 +461,13 @@ So that tout coût et tout kWh du Rapport se retrouvent ligne à ligne.
 **Given** le tokenizer `approx` du profil `test`
 **When** on compte un texte de 12 mots
 **Then** il renvoie 12
-**And** le tokenizer `reference` (`tiktoken` `o200k_base`) est chargé au premier usage, et lève `WlError("… librarian-bench installer …")` si l'encodage n'est pas installé localement, sans téléchargement
+**And** le tokenizer `reference` (`tiktoken` `o200k_base`) est chargé au premier usage, et lève `LibrarianBenchError("… librarian-bench installer …")` si l'encodage n'est pas installé localement, sans téléchargement
 **And** `tokenizer_for(model)` applique `token_factor` (défaut 1,2) quand le Catalogue ne déclare pas `reference`
 
 **Given** l'énergie `fake` du profil `test`
 **When** on démarre et arrête une phase puis on répartit l'énergie sur trois spans locaux de latences 1, 1 et 2 s
 **Then** la répartition se fait au prorata (25 %, 25 %, 50 %) et chaque span porte `wl.energy_method`
-**And** les adaptateurs `codecarbon` et `ecologits` sont importés au premier usage et lèvent `WlError("installer l'extra energy")` s'ils manquent
+**And** les adaptateurs `codecarbon` et `ecologits` sont importés au premier usage et lèvent `LibrarianBenchError("installer l'extra energy")` s'ils manquent
 **And** une énergie n'est `measured` que si le compteur est matériel, sinon `estimated`
 
 **Given** `measure/tco.py` et des `CostSettings` connus
@@ -634,7 +634,7 @@ So that une Exécution n'échoue jamais au milieu pour un modèle ou une clé ab
 
 **Given** le Composant `components/embedders/sentence_transformers.py`, enregistré `("embedder", "sentence_transformers")`
 **When** on le construit sans l'extra `local`
-**Then** il lève `WlError("installer l'extra local")` au premier usage, pas à l'import du module
+**Then** il lève `LibrarianBenchError("installer l'extra local")` au premier usage, pas à l'import du module
 **And** il applique `query_prefix` et `passage_prefix` du Catalogue, utilise `embedder_device` du profil, renvoie des vecteurs normalisés et émet un span `embed` par lot
 **And** un test `real_local` encode deux phrases avec `multilingual-e5-small` ; sans modèle installé, il est sauté
 

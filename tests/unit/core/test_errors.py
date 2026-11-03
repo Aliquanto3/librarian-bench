@@ -4,10 +4,10 @@ from librarian_bench.core.errors import (
     BudgetExceeded,
     ConfigError,
     Inapplicable,
+    LibrarianBenchError,
     NonConformantOutput,
     ProviderError,
     ValidationFailed,
-    WlError,
 )
 
 
@@ -20,7 +20,7 @@ def test_hierarchie() -> None:
         ProviderError,
         ValidationFailed,
     ):
-        assert issubclass(classe, WlError)
+        assert issubclass(classe, LibrarianBenchError)
 
 
 def test_config_error() -> None:
@@ -38,5 +38,5 @@ def test_inapplicable_et_provider() -> None:
     assert Inapplicable("pas de store hybride").reason == "pas de store hybride"
     assert ProviderError("503", retryable=True).retryable is True
     assert ProviderError("401").retryable is False
-    with pytest.raises(WlError):
+    with pytest.raises(LibrarianBenchError):
         raise NonConformantOutput("json invalide")

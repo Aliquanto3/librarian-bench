@@ -46,8 +46,8 @@ def _wl(*args: str) -> Any:
     return CliRunner().invoke(app, ["run", *args])
 
 
-def _un_run(wl_home: Path) -> Path:
-    (dossier,) = [d for d in (wl_home / "runs").iterdir() if d.is_dir()]
+def _un_run(bench_home: Path) -> Path:
+    (dossier,) = [d for d in (bench_home / "runs").iterdir() if d.is_dir()]
     return dossier
 
 
@@ -68,7 +68,7 @@ def _avec_faux(monkeypatch: pytest.MonkeyPatch, faux: FakeProvider) -> None:
 
 
 def test_configuration_entierement_inapplicable_nest_pas_all_failed(
-    tmp_path: Path, wl_home: Path
+    tmp_path: Path, bench_home: Path
 ) -> None:
     """Une seule Configuration, inapplicable à toutes les Questions (fenêtre de contexte) :
     ni `ok` ni `error`, donc ni `all_failed` ni `completed_with_errors` (règle confirmée par
@@ -76,7 +76,7 @@ def test_configuration_entierement_inapplicable_nest_pas_all_failed(
     conformes, ce test fige le comportement bout en bout)."""
     res = _wl(str(_experience(tmp_path, configurations=[CONTEXTE_LONG])))
     assert res.exit_code == 0, res.output
-    dossier = _un_run(wl_home)
+    dossier = _un_run(bench_home)
     manifeste = _manifeste(dossier)
     assert manifeste["status"] == "completed" and manifeste["causes"] == []
     assert manifeste["answers"] == {"ok": 0, "error": 0, "inapplicable": 2}
@@ -105,7 +105,7 @@ def _faux_deuxieme_question_en_erreur_deterministe() -> FakeProvider:
 
 
 def test_max_error_rate_relevable_a_la_reprise(
-    tmp_path: Path, wl_home: Path, monkeypatch: pytest.MonkeyPatch
+    tmp_path: Path, bench_home: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:
     """`max_error_rate` suit désormais la règle des plafonds (`budget`, AC 2 de la 4.8) : relevé
     dans l'Expérience, il est accepté à `--reprendre` (empreinte exceptée) et consigné dans
@@ -114,7 +114,7 @@ def test_max_error_rate_relevable_a_la_reprise(
     chemin = _experience(tmp_path)
     res = _wl(str(chemin))
     assert res.exit_code == 1, res.output
-    dossier = _un_run(wl_home)
+    dossier = _un_run(bench_home)
     manifeste = _manifeste(dossier)
     assert manifeste["status"] == "completed_with_errors"
     assert {c["cause"] for c in manifeste["causes"]} == {"error_rate"}
@@ -130,13 +130,13 @@ def test_max_error_rate_relevable_a_la_reprise(
     assert manifeste["resumptions"][0]["max_error_rate"] == 0.6
 
 
-def test_max_error_rate_non_releve_refuse_un_autre_ecart(tmp_path: Path, wl_home: Path) -> None:
+def test_max_error_rate_non_releve_refuse_un_autre_ecart(tmp_path: Path, bench_home: Path) -> None:
     """Sans relever `max_error_rate`, toute autre différence d'Expérience reste refusée (code 2) :
     la règle des plafonds ne dispense pas des autres contrôles de `verifier_reprise`."""
     chemin = _experience(tmp_path)
     res = _wl(str(chemin))
     assert res.exit_code == 0, res.output
-    dossier = _un_run(wl_home)
+    dossier = _un_run(bench_home)
     chemin_differente = _experience(tmp_path, seed=99)
     res = _wl(str(chemin_differente), "--reprendre", dossier.name)
     assert res.exit_code == 2, res.output
@@ -147,13 +147,13 @@ def test_max_error_rate_non_releve_refuse_un_autre_ecart(tmp_path: Path, wl_home
 
 
 def test_bandeau_du_rapport_cite_le_seuil_releve_a_la_reprise(
-    tmp_path: Path, wl_home: Path, monkeypatch: pytest.MonkeyPatch
+    tmp_path: Path, bench_home: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:
     """Seuil relevé mais encore dépassé (taux 50 % > 30 %) : le bandeau du Rapport cite le seuil
     en vigueur (`resumptions[-1]`), pas celui de `experiment.resolved.yaml` (20 %)."""
     _avec_faux(monkeypatch, _faux_deuxieme_question_en_erreur_deterministe())
     assert _wl(str(_experience(tmp_path))).exit_code == 1
-    dossier = _un_run(wl_home)
+    dossier = _un_run(bench_home)
     res = _wl(str(_experience(tmp_path, max_error_rate=0.3)), "--reprendre", dossier.name)
     assert res.exit_code == 1, res.output
     assert _manifeste(dossier)["status"] == "completed_with_errors"

@@ -42,7 +42,7 @@ class _ProviderPalier512(FakeProvider):
 
 def _ctx(tmp_path: Path, provider: FakeProvider, cle: str) -> RunCtx:
     c = RunCtx.from_profile(
-        "test", wl_home=tmp_path / "wl", run_id="r-1", seed=1, providers={cle: provider}
+        "test", bench_home=tmp_path / "wl", run_id="r-1", seed=1, providers={cle: provider}
     )
     c.parser = "markdown"
     c.provider = provider  # type: ignore[attr-defined]
@@ -199,7 +199,7 @@ def test_rejeu_d_une_experience_repaie_le_prechargement_au_poste_indexing(
     for i, run_id in enumerate(("r-1", "r-2")):
         provider = _ProviderEcriture()
         with RunCtx.from_profile(
-            "test", wl_home=tmp_path / "wl", run_id=run_id, seed=1, providers={"fake": provider}
+            "test", bench_home=tmp_path / "wl", run_id=run_id, seed=1, providers={"fake": provider}
         ) as c:
             c.parser = "markdown"
             arch = _construire(c, minicorpus, tmp_path / "home")

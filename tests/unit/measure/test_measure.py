@@ -12,7 +12,7 @@ import pytest
 
 from librarian_bench.config.catalog import load_catalog
 from librarian_bench.config.defaults import load_costs, load_profile
-from librarian_bench.core.errors import WlError
+from librarian_bench.core.errors import LibrarianBenchError
 from librarian_bench.core.types import Condition, CostPost, Phase, Usage
 from librarian_bench.measure import energy, tokenizers
 from librarian_bench.measure.energy import (
@@ -143,7 +143,7 @@ def test_ecriture_ratee_leve(tmp_path: Path) -> None:
     chemin = tmp_path / "t.jsonl"
     tracer = Tracer(_Ctx(), chemin)
     chemin.mkdir()  # ouvrir un dossier en ajout échoue
-    with pytest.raises(WlError, match="non écrite"):
+    with pytest.raises(LibrarianBenchError, match="non écrite"):
         _record(tracer)
     chemin.rmdir()
     _record(tracer)  # l'erreur ne colle pas aux appels suivants
@@ -154,7 +154,7 @@ def test_sdk_desactive_leve(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> 
     monkeypatch.setenv("OTEL_SDK_DISABLED", "true")
     monkeypatch.setenv("OTEL_TRACES_SAMPLER", "always_off")
     tracer = Tracer(_Ctx(), tmp_path / "t.jsonl")
-    with pytest.raises(WlError, match="non écrite"):
+    with pytest.raises(LibrarianBenchError, match="non écrite"):
         _record(tracer)
 
 
@@ -169,7 +169,7 @@ def test_echantillonnage_ignore_l_environnement(
 
 def test_otlp_demande_sans_paquet(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
     monkeypatch.setitem(sys.modules, "opentelemetry.exporter.otlp.proto.http.trace_exporter", None)
-    with pytest.raises(WlError, match="OTLP"):
+    with pytest.raises(LibrarianBenchError, match="OTLP"):
         Tracer(_Ctx(), tmp_path / "t.jsonl", otlp_endpoint="http://localhost:4318")
 
 
@@ -179,7 +179,7 @@ def test_otlp_demande_sans_paquet(tmp_path: Path, monkeypatch: pytest.MonkeyPatc
 def test_approx_compte_les_mots() -> None:
     assert ApproxTokenizer().count(" ".join(f"mot{i}" for i in range(12))) == 12
     assert make_tokenizer("approx").count("a  b\nc") == 3
-    with pytest.raises(WlError):
+    with pytest.raises(LibrarianBenchError):
         make_tokenizer("inconnu")
 
 
@@ -189,12 +189,12 @@ def test_reference_sans_encodage_local_ne_telecharge_pas(
     monkeypatch.setenv("TIKTOKEN_CACHE_DIR", str(tmp_path))
     tok = ReferenceTokenizer()
     assert tok.name == "reference"
-    with pytest.raises(WlError, match="librarian-bench installer"):
+    with pytest.raises(LibrarianBenchError, match="librarian-bench installer"):
         tok.count("bonjour")
 
 
 def test_reference_avec_cache_illisible(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
-    """Fichier présent mais illisible : WlError, sans téléchargement (pytest-socket)."""
+    """Fichier présent mais illisible : LibrarianBenchError, sans téléchargement (pytest-socket)."""
     import hashlib
 
     monkeypatch.setenv("TIKTOKEN_CACHE_DIR", str(tmp_path))
@@ -203,7 +203,7 @@ def test_reference_avec_cache_illisible(tmp_path: Path, monkeypatch: pytest.Monk
     (tmp_path / cle).write_text("x", encoding="utf-8")
     # Hachage faux : refusé avant tiktoken, qui supprimerait le fichier puis retéléchargerait.
     assert not tokenizers.encodage_installe()
-    with pytest.raises(WlError, match="librarian-bench installer"):
+    with pytest.raises(LibrarianBenchError, match="librarian-bench installer"):
         ReferenceTokenizer().count("bonjour")
     assert (tmp_path / cle).read_text(encoding="utf-8") == "x"  # tiktoken jamais appelé
 
@@ -214,7 +214,7 @@ def test_reference_cache_desactive(monkeypatch: pytest.MonkeyPatch) -> None:
     monkeypatch.setenv("DATA_GYM_CACHE_DIR", "ailleurs")
     assert tokenizers._dossier_cache_tiktoken() is None
     assert not tokenizers.encodage_installe()
-    with pytest.raises(WlError, match="librarian-bench installer"):
+    with pytest.raises(LibrarianBenchError, match="librarian-bench installer"):
         ReferenceTokenizer().count("bonjour")
 
 
@@ -274,7 +274,7 @@ def test_adaptateurs_sans_extra_energy(nom: str, monkeypatch: pytest.MonkeyPatch
     # `None` dans sys.modules fait lever ImportError à importlib.import_module, installé ou non.
     monkeypatch.setitem(sys.modules, cible, None)
     classe = CodecarbonMeter if nom == "codecarbon" else EcoLogitsEstimator
-    with pytest.raises(WlError, match="installer l'extra energy") as exc:
+    with pytest.raises(LibrarianBenchError, match="installer l'extra energy") as exc:
         classe()
     assert cible in str(exc.value)
 
@@ -366,20 +366,20 @@ def test_ecologits_double(monkeypatch: pytest.MonkeyPatch) -> None:
     monkeypatch.setitem(
         sys.modules, "ecologits.tracers.utils", SimpleNamespace(llm_impacts=ancienne)
     )
-    with pytest.raises(WlError, match="incompatible"):
+    with pytest.raises(LibrarianBenchError, match="incompatible"):
         EcoLogitsEstimator().estimate("zzz", Usage(), 1.0)
 
     # API absente : erreur dès la construction.
     monkeypatch.setitem(sys.modules, "ecologits.tracers.utils", SimpleNamespace())
-    with pytest.raises(WlError, match="llm_impacts"):
+    with pytest.raises(LibrarianBenchError, match="llm_impacts"):
         EcoLogitsEstimator()
 
 
 # --- Coût de possession ---------------------------------------------------------------------
 
 
-def test_cout_de_possession(wl_home: Path) -> None:
-    costs = load_costs(wl_home)
+def test_cout_de_possession(bench_home: Path) -> None:
+    costs = load_costs(bench_home)
     total = possession_cost(costs, kwh="0.5", compute_seconds=3600, index_gb=2, months=1)
     own = costs.owned_costs
     attendu = (

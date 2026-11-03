@@ -248,7 +248,7 @@ def exporter_paquet(
     part_double: float = 0.2,
     ecraser: bool = False,
     textes_reference: TextesReference | None = None,
-    wl_home: Path | None = None,
+    bench_home: Path | None = None,
 ) -> Paquet:
     """Écrit `vers/<annotateur>.yaml` pour chaque annotateur. `ConfigError` si un réglage est
     invalide, si l'Exécution n'est pas terminée ou n'a aucune Réponse `ok`, ou si `vers` contient
@@ -256,7 +256,7 @@ def exporter_paquet(
     est faux.
 
     `textes_reference` : texte des Ancrages de référence d'une Réponse (injecté par les tests) ;
-    sinon, avec `wl_home`, le Corpus est relu comme pour le Rapport (empreinte du manifeste
+    sinon, avec `bench_home`, le Corpus est relu comme pour le Rapport (empreinte du manifeste
     comparée) ; sans l'un ni l'autre, `reference_passages` reste vide."""
     if nombre < 1:
         raise ConfigError("nombre", "au moins une Réponse à annoter")
@@ -294,10 +294,10 @@ def exporter_paquet(
             lignes[nom].append(aid)
     resolveur: ResolveurCorpus | None = None
     texte_de: TextesReference | None = textes_reference
-    if texte_de is None and wl_home is not None:
+    if texte_de is None and bench_home is not None:
         inputs = ex.manifeste.get("inputs")
         resolveur = r = resolveur_de(
-            ex.experience, wl_home, inputs if isinstance(inputs, dict) else {}
+            ex.experience, bench_home, inputs if isinstance(inputs, dict) else {}
         )
         texte_de = lambda a, q: r.textes(a.config_id, a.phase, q)  # noqa: E731
 

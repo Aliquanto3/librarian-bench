@@ -12,7 +12,7 @@ Prérequis : Git, Python ≥ 3.12, [uv](https://docs.astral.sh/uv/).
 git clone https://github.com/Aliquanto3/librarian-bench.git
 cd librarian-bench
 uv sync
-uv run wl --help
+uv run librarian-bench --help
 ```
 
 À vérifier : l'installation se termine sans erreur, et l'aide liste les commandes `registre`, `run`, `rapport`, `calibrer`, `installer`, `questions`, `corpus` et `annotations`.

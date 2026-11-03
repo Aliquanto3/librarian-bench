@@ -19,9 +19,9 @@ CONFORMANCE_QUESTION_ID = "q-001"
 
 
 @pytest.fixture
-def wl_home(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> Path:
+def bench_home(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> Path:
     """Dossier d'état local isolé, exposé par la variable `LIBRARIAN_BENCH_HOME`."""
-    dossier = tmp_path / "wl_home"
+    dossier = tmp_path / "bench_home"
     dossier.mkdir()
     monkeypatch.setenv("LIBRARIAN_BENCH_HOME", str(dossier))
     return dossier
@@ -31,8 +31,8 @@ def wl_home(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> Path:
 def minicorpus(tmp_path_factory: pytest.TempPathFactory) -> ParsedCorpus:
     """Mini-corpus fictif ingéré avec les Parsers `auto` (sans modèle ni réseau, ce qu'exige le
     profil `test`) et un cache de parsing temporaire ; une seule ingestion pour la session."""
-    wl_home = tmp_path_factory.mktemp("wl_home_minicorpus")
-    return ingest(declare(CORPUS_MINICORPUS), wl_home=wl_home)
+    bench_home = tmp_path_factory.mktemp("bench_home_minicorpus")
+    return ingest(declare(CORPUS_MINICORPUS), bench_home=bench_home)
 
 
 def pytest_collection_modifyitems(items: list[pytest.Item]) -> None:

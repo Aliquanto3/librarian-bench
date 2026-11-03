@@ -1,6 +1,6 @@
 # Vérifications réelles du 2026-10-26 (lot v0.2.0, stories 8.10 et 8.11)
 
-Calibration réelle des Juges sur les annotations humaines d'Anaël. Windows 11. `LIBRARIAN_BENCH_HOME` vaut `C:/Users/Utilisateur/Documents/GitHub/wl-runs-v0.2.0` (hors dépôt, non commité). Exécution annotée : `20261018-115941-a2a512`, le run mini-cpu de la story 8.8, avec l'ancien Gel (19 Questions dev). Le Gel b2 du même jour retire q-044 du split dev. Toute calibration relancée après ce Gel porte donc sur 88 lignes au lieu de 92.
+Calibration réelle des Juges sur les annotations humaines d'Anaël. Windows 11. `LIBRARIAN_BENCH_HOME` vaut `../wl-runs-v0.2.0` (hors dépôt, non commité). Exécution annotée : `20261018-115941-a2a512`, le run mini-cpu de la story 8.8, avec l'ancien Gel (19 Questions dev). Le Gel b2 du même jour retire q-044 du split dev. Toute calibration relancée après ce Gel porte donc sur 88 lignes au lieu de 92.
 
 | # | Vérification | Résultat | Sortie |
 |---|---|---|---|

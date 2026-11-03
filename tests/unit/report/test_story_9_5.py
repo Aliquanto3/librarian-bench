@@ -15,7 +15,7 @@ from librarian_bench.report.lecture import charger
 RACINE = Path(__file__).resolve().parents[3] / "corpora" / "minicorpus"
 
 
-def _executer(tmp_path: Path, wl_home: Path, juges: dict[str, Any]) -> Path:
+def _executer(tmp_path: Path, bench_home: Path, juges: dict[str, Any]) -> Path:
     donnees = {
         "experiment_id": "exp-9-5",
         "seed": 42,
@@ -32,11 +32,11 @@ def _executer(tmp_path: Path, wl_home: Path, juges: dict[str, Any]) -> Path:
     chemin.write_text(yaml.safe_dump(donnees, allow_unicode=True), encoding="utf-8")
     res = CliRunner().invoke(app, ["run", str(chemin)])
     assert res.exit_code == 0, res.output
-    (dossier,) = [d for d in (wl_home / "runs").iterdir() if d.is_dir()]
+    (dossier,) = [d for d in (bench_home / "runs").iterdir() if d.is_dir()]
     return dossier
 
 
-def test_rapport_juge_unique_calibre_avec_kappas(tmp_path: Path, wl_home: Path) -> None:
+def test_rapport_juge_unique_calibre_avec_kappas(tmp_path: Path, bench_home: Path) -> None:
     kappas = {"correctness": 0.81, "completeness": 0.72, "faithfulness": 0.65}
     fiche = {"excluded": False, "criteria": {c: {"kappa": k} for c, k in kappas.items()}}
     cal = tmp_path / "cal.json"
@@ -46,7 +46,7 @@ def test_rapport_juge_unique_calibre_avec_kappas(tmp_path: Path, wl_home: Path) 
     )
     dossier = _executer(
         tmp_path,
-        wl_home,
+        bench_home,
         {"pool": ["fake-llm-c"], "panel_size": 1, "excluded_from": str(cal)},
     )
     md = (generer_rapport(dossier) / "report.md").read_text(encoding="utf-8")
@@ -56,15 +56,17 @@ def test_rapport_juge_unique_calibre_avec_kappas(tmp_path: Path, wl_home: Path) 
     assert "Qualité non interprétable" not in md  # Generator factice aussi
 
 
-def test_rapport_panel_de_deux_sans_mention_de_juge_unique(tmp_path: Path, wl_home: Path) -> None:
-    dossier = _executer(tmp_path, wl_home, {})
+def test_rapport_panel_de_deux_sans_mention_de_juge_unique(
+    tmp_path: Path, bench_home: Path
+) -> None:
+    dossier = _executer(tmp_path, bench_home, {})
     md = (generer_rapport(dossier) / "report.md").read_text(encoding="utf-8")
     assert "Juge unique calibré" not in md
     assert "Qualité non interprétable" not in md
 
 
-def test_rapport_juges_factices_avec_generator_reel(tmp_path: Path, wl_home: Path) -> None:
-    dossier = _executer(tmp_path, wl_home, {})
+def test_rapport_juges_factices_avec_generator_reel(tmp_path: Path, bench_home: Path) -> None:
+    dossier = _executer(tmp_path, bench_home, {})
     ex = charger(dossier)
     reelles = tuple(
         c.model_copy(update={"answer_producers": ("claude-haiku-5-5",)})
@@ -77,7 +79,7 @@ def test_rapport_juges_factices_avec_generator_reel(tmp_path: Path, wl_home: Pat
 
 
 def test_rapport_juge_unique_par_configuration_et_fiche_sans_kappas(
-    tmp_path: Path, wl_home: Path
+    tmp_path: Path, bench_home: Path
 ) -> None:
     """Revue 9.5 : Generators de Familles différentes, un Juge unique par Configuration ; une
     fiche sans `criteria` n'est pas « calibration absente »."""
@@ -88,7 +90,7 @@ def test_rapport_juge_unique_par_configuration_et_fiche_sans_kappas(
         encoding="utf-8",
     )
     juges = {"pool": ["fake-llm-c"], "panel_size": 1, "excluded_from": str(cal)}
-    ex = charger(_executer(tmp_path, wl_home, juges))
+    ex = charger(_executer(tmp_path, bench_home, juges))
     fiche = {"excluded": False, "criteria": {"completeness": {"kappa": 0.7}}}
     cal.write_text(
         json.dumps({"judges": {"fake-llm-b": {"excluded": False}, "fake-llm-c": fiche}}),

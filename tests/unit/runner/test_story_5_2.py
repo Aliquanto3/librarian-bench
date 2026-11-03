@@ -50,12 +50,12 @@ def _experience(tmp_path: Path, nom: str = "exp.yaml", **champs: Any) -> Path:
 
 
 @pytest.fixture
-def execution(tmp_path: Path, wl_home: Path) -> tuple[Path, Path]:
+def execution(tmp_path: Path, bench_home: Path) -> tuple[Path, Path]:
     """Une Exécution terminée au profil `test` : (experience.yaml, dossier de l'Exécution)."""
     exp = _experience(tmp_path)
     res = CliRunner().invoke(app, ["run", str(exp)])
     assert res.exit_code == 0, res.output
-    (dossier,) = [d for d in (wl_home / "runs").iterdir() if d.is_dir()]
+    (dossier,) = [d for d in (bench_home / "runs").iterdir() if d.is_dir()]
     return exp, dossier
 
 
@@ -139,7 +139,7 @@ def _b_bon_c_mauvais(juge: str, passe: int, critere: str, humain: bool) -> bool:
 
 
 def test_cinq_passes_par_juge_et_reponse_annotee_hors_cache(
-    execution: tuple[Path, Path], tmp_path: Path, monkeypatch: pytest.MonkeyPatch, wl_home: Path
+    execution: tuple[Path, Path], tmp_path: Path, monkeypatch: pytest.MonkeyPatch, bench_home: Path
 ) -> None:
     exp, dossier = execution
     ids = _annoter(dossier, tmp_path / "ann")
@@ -159,7 +159,7 @@ def test_cinq_passes_par_juge_et_reponse_annotee_hors_cache(
 
     traces = [
         json.loads(ligne)
-        for d in (wl_home / "hors-execution").iterdir()
+        for d in (bench_home / "hors-execution").iterdir()
         for ligne in (d / "traces.jsonl").read_text(encoding="utf-8").splitlines()
     ]
     juges = [s for s in traces if s["wl.post"] == "judging"]
@@ -271,7 +271,7 @@ def _calibration_a_la_main(chemin: Path, exclus: dict[str, bool]) -> None:
 
 
 def test_excluded_from_ecarte_le_juge_du_panel_et_le_rapport_le_mentionne(
-    execution: tuple[Path, Path], tmp_path: Path, wl_home: Path
+    execution: tuple[Path, Path], tmp_path: Path, bench_home: Path
 ) -> None:
     calibration = tmp_path / "calibration.json"
     # Exclure c ne laisse qu'un Juge admissible (a est de la Famille du Generator) : refus.
@@ -284,7 +284,7 @@ def test_excluded_from_ecarte_le_juge_du_panel_et_le_rapport_le_mentionne(
     ok = _experience(tmp_path, "ok.yaml", judges={"excluded_from": str(calibration)})
     res = CliRunner().invoke(app, ["run", str(ok)])
     assert res.exit_code == 0, res.output
-    rapports = [p for p in (wl_home / "runs").glob("*/report/*.md")]
+    rapports = [p for p in (bench_home / "runs").glob("*/report/*.md")]
     textes = [p.read_text(encoding="utf-8") for p in rapports]
     assert any(
         "Juges exclus par la calibration : `fake-llm-a` (calibration du 2026-10-18)." in t
@@ -342,15 +342,15 @@ def _spans_judging(dossier_hors_execution: Path) -> list[dict[str, Any]]:
 
 
 def test_seconde_calibration_rappelle_les_passes_1_a_4_hors_cache(
-    execution: tuple[Path, Path], tmp_path: Path, wl_home: Path
+    execution: tuple[Path, Path], tmp_path: Path, bench_home: Path
 ) -> None:
     """La seconde calibration trouve tout au Cache ; seule la passe 0 peut y être servie."""
     exp, dossier = execution
     _annoter(dossier, tmp_path / "ann")
     _calibrer(exp, tmp_path / "ann", dossier.name)
-    (premiere,) = list((wl_home / "hors-execution").iterdir())
+    (premiere,) = list((bench_home / "hors-execution").iterdir())
     _calibrer(exp, tmp_path / "ann", dossier.name, "--ecraser")
-    (seconde,) = [d for d in (wl_home / "hors-execution").iterdir() if d != premiere]
+    (seconde,) = [d for d in (bench_home / "hors-execution").iterdir() if d != premiere]
     spans = _spans_judging(seconde)
     assert spans and len(spans) % 5 == 0
     reels = [s for s in spans if not s["wl.llm_cache_hit"]]

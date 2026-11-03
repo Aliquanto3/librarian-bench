@@ -9,7 +9,7 @@ import numpy as np
 from numpy.typing import NDArray
 from pydantic import BaseModel, ConfigDict
 
-from librarian_bench.core.errors import WlError
+from librarian_bench.core.errors import LibrarianBenchError
 from librarian_bench.ports.components import StoreCapabilities
 from librarian_bench.registry import register
 
@@ -39,17 +39,19 @@ class NumpyExactStore:
     def _verifier(self, vecteurs: NDArray[np.float32]) -> NDArray[np.float32]:
         v = np.asarray(vecteurs, dtype=np.float32)
         if v.ndim != 2:
-            raise WlError(f"vecteurs attendus en 2 dimensions, reçu {v.ndim}")
+            raise LibrarianBenchError(f"vecteurs attendus en 2 dimensions, reçu {v.ndim}")
         if self.dim and v.shape[1] != self.dim:
-            raise WlError(f"dimension {v.shape[1]} différente de celle du store ({self.dim})")
+            raise LibrarianBenchError(
+                f"dimension {v.shape[1]} différente de celle du store ({self.dim})"
+            )
         return v
 
     def add(self, ids: Sequence[str], vectors: NDArray[np.float32]) -> None:
         v = self._verifier(vectors)
         if len(ids) != v.shape[0]:
-            raise WlError(f"{len(ids)} identifiants pour {v.shape[0]} vecteurs")
+            raise LibrarianBenchError(f"{len(ids)} identifiants pour {v.shape[0]} vecteurs")
         if len(set(ids)) != len(ids):
-            raise WlError("identifiants dupliqués dans `add`")
+            raise LibrarianBenchError("identifiants dupliqués dans `add`")
         if self.dim == 0:  # dimension fixée par le premier ajout valide
             self.dim = int(v.shape[1])
             self._matrice = np.zeros((0, self.dim), dtype=np.float32)
@@ -69,7 +71,9 @@ class NumpyExactStore:
         """Au plus `k` couples (id, score), score décroissant, ex æquo départagés par id."""
         q = np.asarray(query, dtype=np.float32).reshape(-1)
         if self.dim and q.shape[0] != self.dim:
-            raise WlError(f"dimension {q.shape[0]} différente de celle du store ({self.dim})")
+            raise LibrarianBenchError(
+                f"dimension {q.shape[0]} différente de celle du store ({self.dim})"
+            )
         if k <= 0 or not self._ids:
             return []
         scores = self._matrice @ q
@@ -90,11 +94,13 @@ class NumpyExactStore:
             dim = int(meta["dim"])
             ids = [str(i) for i in meta["ids"]]
         except (OSError, ValueError, KeyError, TypeError) as exc:
-            raise WlError(f"store vectoriel illisible : {directory}") from exc
+            raise LibrarianBenchError(f"store vectoriel illisible : {directory}") from exc
         if self.dim and dim != self.dim:
-            raise WlError(f"dimension {dim} du store sauvegardé différente de {self.dim}")
+            raise LibrarianBenchError(
+                f"dimension {dim} du store sauvegardé différente de {self.dim}"
+            )
         if matrice.ndim != 2 or matrice.shape != (len(ids), dim):
-            raise WlError(f"store vectoriel incohérent : {directory}")
+            raise LibrarianBenchError(f"store vectoriel incohérent : {directory}")
         self.dim = dim
         self._ids = ids
         self._matrice = matrice.astype(np.float32, copy=False)

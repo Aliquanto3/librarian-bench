@@ -133,7 +133,7 @@ def test_cout_fake(catalog: ModelCatalog) -> None:
 
 
 def test_costs_defauts() -> None:
-    c = load_costs(wl_home=None)
+    c = load_costs(bench_home=None)
     assert c.owned_costs.kwh_price_eur == Decimal("0.2001")
     assert c.carbon.gco2e_per_kwh == Decimal("19.6")
     assert c.fx.rates_to_eur["USD"] == Decimal("0.8938")
@@ -145,8 +145,8 @@ def test_costs_fusion_cle_par_cle(tmp_path: Path) -> None:
     (home / "costs.yaml").write_text('owned_costs:\n  kwh_price_eur: "0.30"\n', encoding="utf-8")
     exp = tmp_path / "exp_costs.yaml"
     exp.write_text('carbon:\n  gco2e_per_kwh: "50"\n', encoding="utf-8")
-    base = load_costs(wl_home=None)
-    c = load_costs(wl_home=home, experiment_costs=exp)
+    base = load_costs(bench_home=None)
+    c = load_costs(bench_home=home, experiment_costs=exp)
     assert c.owned_costs.kwh_price_eur == Decimal("0.30")
     assert c.carbon.gco2e_per_kwh == Decimal("50")
     # Le reste et les dates des valeurs sont conservés.
@@ -157,12 +157,12 @@ def test_costs_fusion_cle_par_cle(tmp_path: Path) -> None:
     assert c.fx == base.fx
     # Précédence : l'Expérience l'emporte sur LIBRARIAN_BENCH_HOME.
     exp.write_text('owned_costs:\n  kwh_price_eur: "0.40"\n', encoding="utf-8")
-    resolu = load_costs(wl_home=home, experiment_costs=exp)
+    resolu = load_costs(bench_home=home, experiment_costs=exp)
     assert resolu.owned_costs.kwh_price_eur == Decimal("0.40")
 
 
-def test_costs_wl_home_par_variable(wl_home: Path) -> None:
-    (wl_home / "costs.yaml").write_text("carbon:\n  region: DE\n", encoding="utf-8")
+def test_costs_wl_home_par_variable(bench_home: Path) -> None:
+    (bench_home / "costs.yaml").write_text("carbon:\n  region: DE\n", encoding="utf-8")
     assert load_costs().carbon.region == "DE"
 
 
@@ -170,7 +170,7 @@ def test_costs_cle_inconnue(tmp_path: Path) -> None:
     exp = tmp_path / "c.yaml"
     exp.write_text("carbon:\n  inconnue: 1\n", encoding="utf-8")
     with pytest.raises(ConfigError) as e:
-        load_costs(wl_home=None, experiment_costs=exp)
+        load_costs(bench_home=None, experiment_costs=exp)
     assert e.value.path == "carbon.inconnue"
 
 

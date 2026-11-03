@@ -215,7 +215,7 @@ def test_parsers_par_format_auto():
     assert parsers_par_format(["pdf"]) == {"pdf": "pdf_text"}
 
 
-def test_ingest_trie_fingerprint_et_resolve(tmp_path: Path, wl_home: Path):
+def test_ingest_trie_fingerprint_et_resolve(tmp_path: Path, bench_home: Path):
     fichier = _corpus(
         tmp_path,
         {"z.txt": b"zzz", "b/a.md": MD, "a.html": b"<h1>H</h1><p>x</p>"},
@@ -229,7 +229,7 @@ def test_ingest_trie_fingerprint_et_resolve(tmp_path: Path, wl_home: Path):
     autre = declare(
         _corpus(tmp_path / "bis", {"z.txt": b"zzz", "b/a.md": MD, "a.html": b"<h1>H</h1>y"})
     )
-    assert ingest(autre, wl_home=wl_home).fingerprint != parse.fingerprint
+    assert ingest(autre, bench_home=bench_home).fingerprint != parse.fingerprint
     # resolve / anchor_text sur une section
     ancre = parse.resolve("b/a.md", None, ("Histoire", "Fondation"))
     assert ancre == f"{sha16_bytes(MD)}#h/histoire/fondation"
@@ -241,7 +241,7 @@ def test_ingest_trie_fingerprint_et_resolve(tmp_path: Path, wl_home: Path):
 
 
 def test_cache_relu_sans_appeler_le_parser(
-    tmp_path: Path, wl_home: Path, monkeypatch: pytest.MonkeyPatch
+    tmp_path: Path, bench_home: Path, monkeypatch: pytest.MonkeyPatch
 ):
     corpus = declare(_corpus(tmp_path, {"a.md": MD, "b.txt": b"bb"}))
     appels: list[str] = []
@@ -254,21 +254,21 @@ def test_cache_relu_sans_appeler_le_parser(
     monkeypatch.setattr(MarkdownParser, "parse", compte)
     premier = ingest(corpus)
     assert appels == ["a.md"]
-    fichier = wl_home / "parse_cache" / "markdown" / f"{sha16_bytes(MD)}.json"
+    fichier = bench_home / "parse_cache" / "markdown" / f"{sha16_bytes(MD)}.json"
     assert fichier.is_file()
-    assert (wl_home / "parse_cache" / "text" / f"{sha16_bytes(b'bb')}.json").is_file()
+    assert (bench_home / "parse_cache" / "text" / f"{sha16_bytes(b'bb')}.json").is_file()
     second = ingest(corpus)
     assert appels == ["a.md"]  # relu du cache
     assert second == premier
 
 
-def test_cache_corrompu_reparse_et_renommage(tmp_path: Path, wl_home: Path):
+def test_cache_corrompu_reparse_et_renommage(tmp_path: Path, bench_home: Path):
     corpus = declare(_corpus(tmp_path, {"a.md": MD}))
     ingest(corpus)
-    (wl_home / "parse_cache" / "markdown" / f"{sha16_bytes(MD)}.json").write_text("{pas du json")
+    (bench_home / "parse_cache" / "markdown" / f"{sha16_bytes(MD)}.json").write_text("{pas du json")
     assert len(ingest(corpus).documents) == 1  # reparsé sans erreur
     # une autre version du Parser invalide le cache
-    fichier = wl_home / "parse_cache" / "markdown" / f"{sha16_bytes(MD)}.json"
+    fichier = bench_home / "parse_cache" / "markdown" / f"{sha16_bytes(MD)}.json"
     assert json.loads(fichier.read_text(encoding="utf-8"))["parser_version"] == "1"
     appels: list[str] = []
     original = MarkdownParser.parse
@@ -291,6 +291,6 @@ def test_cache_corrompu_reparse_et_renommage(tmp_path: Path, wl_home: Path):
     assert {a.source_path for a in doc.anchors.values()} == {"autre.md"}
 
 
-def test_corpus_vide(tmp_path: Path, wl_home: Path):
+def test_corpus_vide(tmp_path: Path, bench_home: Path):
     parse = ingest(declare(_corpus(tmp_path, {"x.docx": b"x"})))
     assert parse.documents == ()

@@ -182,7 +182,7 @@ class Verdict(BaseModel):
 
 **Sans objet (`na`, v0.3.0, story 9.3).** Seule `faithfulness` peut valoir `na` côté machine : calculé (`judge_model: "auto"`, sans appel de Juge) pour une Réponse vide (ou faite de blancs) ou une abstention, ou répondu par un Juge quand la Réponse n'affirme rien de vérifiable. Un `na` d'un Juge sur un autre Critère est une sortie non conforme. L'humain peut annoter `na` sur les trois Critères (§4.6). Les fichiers `verdicts.jsonl` et `panel.jsonl` antérieurs (verdict booléen) restent lisibles : `true` se relit `yes`, `false` se relit `no`.
 
-`core/errors.py` définit `WlError` comme racine. En dérivent `ConfigError(path: str, message)` (le chemin est en notation pointée, par exemple `configurations[2].params.k`), `ValidationFailed(errors: list[ConfigError])`, `BudgetExceeded`, `Inapplicable(reason)`, `ProviderError(retryable: bool)` et `NonConformantOutput`.
+`core/errors.py` définit `LibrarianBenchError` comme racine. En dérivent `ConfigError(path: str, message)` (le chemin est en notation pointée, par exemple `configurations[2].params.k`), `ValidationFailed(errors: list[ConfigError])`, `BudgetExceeded`, `Inapplicable(reason)`, `ProviderError(retryable: bool)` et `NonConformantOutput`.
 
 `core/ids.py` fournit `canonical_json(obj) -> str` (clés triées, `separators=(",", ":")`, Decimal sérialisé en chaîne), `sha16(*parts) -> str`, `slug(text) -> str` (minuscules, accents retirés, `[a-z0-9-]`) et `new_run_id(experiment_hash) -> str` au format `YYYYMMDD-HHMMSS-<6 hex>`, heure UTC.
 

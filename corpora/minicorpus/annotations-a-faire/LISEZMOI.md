@@ -25,7 +25,7 @@ Remplacer `annotateur2` par le nom réel si besoin (champ `annotator` du YAML et
 ```
 uv run librarian-bench annotations importer corpora/minicorpus/annotations-a-faire/annotateur2.yaml verdicts-annotateur2.json
 cp corpora/minicorpus/annotations-a-faire/annotateur2.yaml corpora/minicorpus/annotations/
-LIBRARIAN_BENCH_HOME=C:/Users/Utilisateur/Documents/GitHub/wl-runs-v0.2.0 uv run --extra energy librarian-bench calibrer corpora/minicorpus/annotations-a-faire/calibration-inter-annotateurs.yaml --annotations corpora/minicorpus/annotations --run 20261018-115941-a2a512 --sortie C:/Users/Utilisateur/Documents/GitHub/wl-runs-v0.2.0/runs/20261018-115941-a2a512/calibration-inter.json
+LIBRARIAN_BENCH_HOME=../wl-runs-v0.2.0 uv run --extra energy librarian-bench calibrer corpora/minicorpus/annotations-a-faire/calibration-inter-annotateurs.yaml --annotations corpora/minicorpus/annotations --run 20261018-115941-a2a512 --sortie ../wl-runs-v0.2.0/runs/20261018-115941-a2a512/calibration-inter.json
 ```
 
 Le kappa inter-annotateurs figure dans `calibration-inter.json` et dans la section « Calibration des Juges » du Rapport. Il porte sur les lignes doublement annotées (hors `na`), soit 25 lignes au plus.

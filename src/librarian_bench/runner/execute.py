@@ -250,7 +250,7 @@ class _Runner:
         self.dossier = dossier
         self.corpus = corpus
         self.questions = questions
-        self.index_cache = IndexCache(ctx.wl_home)
+        self.index_cache = IndexCache(ctx.bench_home)
         self.meter = make_meter(ctx.profile.energy)
         self._parses: dict[str, ParsedCorpus] = {}
         self._profils: dict[str, CorpusProfile] = {}
@@ -451,7 +451,7 @@ class _Runner:
         """Ingestion et Profil du Corpus pour un parser résolu (une fois par parser)."""
         if parser not in self._parses:
             log.info("étape ingestion : parser %s", parser)
-            parse = ingest(self.corpus, parser, wl_home=self.ctx.wl_home)
+            parse = ingest(self.corpus, parser, bench_home=self.ctx.bench_home)
             log.info("étape profilage : %d Documents", len(parse.documents))
             self._parses[parser] = parse
             self._profils[parser] = profil_corpus(
@@ -896,7 +896,7 @@ def run_experiment(
     experience: ResolvedExperiment,
     questions: FrozenQuestions,
     *,
-    wl_home: Path,
+    bench_home: Path,
     run_id: str | None = None,
     providers: Providers | None = None,
     reprendre: str | None = None,
@@ -915,30 +915,37 @@ def run_experiment(
     panels = panels_de(experience)  # Panel inadmissible : refus (code 2) avant tout appel
     scenario = Path(experience.scenario) if experience.scenario else None
     if scenario is not None:  # Scénario invalide : refus (code 2) avant le dossier d'Exécution
-        charger(scenario, ingest(corpus, experience.configurations[0].parser.name, wl_home=wl_home))
+        charger(
+            scenario,
+            ingest(corpus, experience.configurations[0].parser.name, bench_home=bench_home),
+        )
     entrees: dict[str, str] | None = None
     if reprendre is not None:
-        verifier_reprise(experience, wl_home, reprendre, questions.freeze_sha256)
-        if deja_terminee(wl_home, reprendre):
+        verifier_reprise(experience, bench_home, reprendre, questions.freeze_sha256)
+        if deja_terminee(bench_home, reprendre):
             raise ConfigError(
                 "reprendre", f"Exécution {reprendre} déjà terminée : rien à reprendre"
             )
         run_id = reprendre
     else:  # contenu du Corpus, du Scénario et du Catalogue, comparé à une reprise
-        entrees = empreintes_entrees(experience, wl_home)
+        entrees = empreintes_entrees(experience, bench_home)
     if run_id is None:
         run_id = new_run_id(sha16(canonical_json(experience.model_dump(mode="json"))))
     # Le verrou est pris d'abord, puis les réservations orphelines sont réglées à leur estimation
     # (`Ledger(recover_orphans=True)`) : une reprise après arrêt brutal repart d'un registre sain.
     with Context.from_experiment(
-        experience, wl_home=wl_home, run_id=run_id, providers=providers, execution=True
+        experience, bench_home=bench_home, run_id=run_id, providers=providers, execution=True
     ) as ctx:
         if reprendre is None:
             dossier = create_run_dir(
-                wl_home, run_id, experience, freeze_sha256=questions.freeze_sha256, inputs=entrees
+                bench_home,
+                run_id,
+                experience,
+                freeze_sha256=questions.freeze_sha256,
+                inputs=entrees,
             )
         else:
-            dossier = wl_home / "runs" / run_id
+            dossier = bench_home / "runs" / run_id
             reopen_run_dir(dossier, experience.budget, experience.max_error_rate)
         handler: logging.Handler | None = None
         paquet = logging.getLogger("librarian_bench")

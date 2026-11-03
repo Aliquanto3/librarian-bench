@@ -18,7 +18,7 @@ from librarian_bench.config.experiment import (
     ResolvedExperiment,
     RetrySettings,
 )
-from librarian_bench.core.errors import ConfigError, WlError
+from librarian_bench.core.errors import ConfigError, LibrarianBenchError
 from librarian_bench.llm.budget import Ledger
 from librarian_bench.ports.components import ComponentSpec, Embedder
 from librarian_bench.ports.context import RunContext
@@ -29,8 +29,8 @@ from librarian_bench.runner.lock import RunLock
 
 
 @pytest.fixture
-def ctx(wl_home: Path) -> Iterator[Context]:
-    with Context.from_profile("test", wl_home=wl_home, run_id="run-a", seed=42) as c:
+def ctx(bench_home: Path) -> Iterator[Context]:
+    with Context.from_profile("test", bench_home=bench_home, run_id="run-a", seed=42) as c:
         yield c
 
 
@@ -76,24 +76,24 @@ def test_passerelle_mesuree_avec_le_provider_du_catalogue(ctx: Context) -> None:
     assert span["gen_ai.provider.name"] == "fake"
     assert span["wl.run_id"] == "run-a"
     # hors Exécution : traces à part, jamais mêlées à celles d'une Exécution de `runs/`
-    assert ctx.run_dir == ctx.wl_home / "hors-execution" / "run-a"
+    assert ctx.run_dir == ctx.bench_home / "hors-execution" / "run-a"
 
 
 def test_appel_hors_scope_refuse_avant_de_payer(ctx: Context) -> None:
-    with pytest.raises(WlError, match="Poste de coût non fixé"):
+    with pytest.raises(LibrarianBenchError, match="Poste de coût non fixé"):
         ctx.gateway.complete(_req())
-    with pytest.raises(WlError, match="Poste de coût non fixé"):
+    with pytest.raises(LibrarianBenchError, match="Poste de coût non fixé"):
         _ = ctx.post
     assert not (ctx.run_dir / "traces.jsonl").exists()  # aucun span : l'appel n'a pas eu lieu
 
 
 @pytest.mark.parametrize("run_id", ["../evade", "a/b", "a\\b", "", ".."])
-def test_run_id_invalide_refuse(wl_home: Path, run_id: str) -> None:
+def test_run_id_invalide_refuse(bench_home: Path, run_id: str) -> None:
     with pytest.raises(ValueError, match="run_id invalide"):
-        Context.from_profile("test", wl_home=wl_home, run_id=run_id)
+        Context.from_profile("test", bench_home=bench_home, run_id=run_id)
 
 
-def test_contexte_d_experience_reprend_graine_plafonds_et_parser(wl_home: Path) -> None:
+def test_contexte_d_experience_reprend_graine_plafonds_et_parser(bench_home: Path) -> None:
     experience = ResolvedExperiment.model_construct(
         seed=7,
         profile_settings=load_profile("test"),
@@ -112,12 +112,12 @@ def test_contexte_d_experience_reprend_graine_plafonds_et_parser(wl_home: Path) 
             ),
         ),
     )
-    with Context.from_experiment(experience, wl_home=wl_home, run_id="run-e") as c:
+    with Context.from_experiment(experience, bench_home=bench_home, run_id="run-e") as c:
         assert (c.seed, c.config_id, c.parser) == (7, "cfg-1", "markdown")
-        assert c.run_dir == wl_home / "runs" / "run-e"
-        assert (wl_home / "run.lock").exists()
+        assert c.run_dir == bench_home / "runs" / "run-e"
+        assert (bench_home / "run.lock").exists()
         with pytest.raises(ValueError):
-            Context.from_experiment(experience, wl_home=wl_home, run_id="r", config_id="zzz")
+            Context.from_experiment(experience, bench_home=bench_home, run_id="r", config_id="zzz")
 
 
 # --- AC 2 : scope ----------------------------------------------------------------------------
@@ -131,7 +131,7 @@ def test_scope_pose_les_valeurs_dans_le_span_puis_les_restaure(ctx: Context) -> 
             assert (ctx.post, ctx.question_id) == ("judging", "q-001")
         assert (ctx.post, ctx.question_id) == ("evalset", "q-001")
     assert ctx.question_id is None
-    with pytest.raises(WlError):  # Poste initial : aucun
+    with pytest.raises(LibrarianBenchError):  # Poste initial : aucun
         _ = ctx.post
     (span,) = _spans(ctx)
     assert span["wl.post"] == "evalset" and span["wl.question_id"] == "q-001"
@@ -175,9 +175,9 @@ def test_build_refuse_un_composant_inconnu(ctx: Context) -> None:
 # --- AC 4 : rng ------------------------------------------------------------------------------
 
 
-def test_rng_meme_graine_meme_suite_autre_graine_autre_suite(wl_home: Path) -> None:
+def test_rng_meme_graine_meme_suite_autre_graine_autre_suite(bench_home: Path) -> None:
     def tirage(seed: int) -> list[float]:
-        with Context.from_profile("test", wl_home=wl_home, run_id=f"r{seed}", seed=seed) as c:
+        with Context.from_profile("test", bench_home=bench_home, run_id=f"r{seed}", seed=seed) as c:
             r = c.rng("split", "factual")
             return [r.random() for _ in range(10)]
 
@@ -193,28 +193,28 @@ def test_rng_depend_des_cles(ctx: Context) -> None:
 # --- AC 5 : run.lock -------------------------------------------------------------------------
 
 
-def test_second_contexte_d_execution_echoue(wl_home: Path) -> None:
-    with Context.from_profile("test", wl_home=wl_home, run_id="hors"):  # sans verrou
-        assert not (wl_home / "run.lock").exists()
+def test_second_contexte_d_execution_echoue(bench_home: Path) -> None:
+    with Context.from_profile("test", bench_home=bench_home, run_id="hors"):  # sans verrou
+        assert not (bench_home / "run.lock").exists()
     prem = Context(
-        profile=load_profile("test"), catalog=_catalogue(), wl_home=wl_home, run_id="run-1",
+        profile=load_profile("test"), catalog=_catalogue(), bench_home=bench_home, run_id="run-1",
         execution=True,
     )  # fmt: skip
     try:
-        with pytest.raises(WlError, match="Exécution run-1 en cours"):
+        with pytest.raises(LibrarianBenchError, match="Exécution run-1 en cours"):
             Context(
-                profile=load_profile("test"), catalog=_catalogue(), wl_home=wl_home,
+                profile=load_profile("test"), catalog=_catalogue(), bench_home=bench_home,
                 run_id="run-2", execution=True,
             )  # fmt: skip
         # une commande hors Exécution ne prend pas le verrou et n'est pas gênée
-        with Context.from_profile("test", wl_home=wl_home, run_id="hors-2") as c:
+        with Context.from_profile("test", bench_home=bench_home, run_id="hors-2") as c:
             with c.scope(post="evalset"):
                 assert c.gateway.complete(_req()).text
     finally:
         prem.close()
     # verrou libéré : une nouvelle Exécution peut démarrer
     with Context(
-        profile=load_profile("test"), catalog=_catalogue(), wl_home=wl_home, run_id="run-3",
+        profile=load_profile("test"), catalog=_catalogue(), bench_home=bench_home, run_id="run-3",
         execution=True,
     ):  # fmt: skip
         pass
@@ -226,43 +226,43 @@ def _catalogue() -> Any:
     return load_catalog()
 
 
-def test_verrou_detenu_par_un_autre_processus(wl_home: Path) -> None:
+def test_verrou_detenu_par_un_autre_processus(bench_home: Path) -> None:
     code = (
         "import sys; from pathlib import Path; from librarian_bench.runner.lock import RunLock\n"
         "verrou = RunLock(Path(sys.argv[1]), 'run-fils'); verrou.acquire()\n"
         "print('pris', flush=True); sys.stdin.read()\n"
     )
     fils = subprocess.Popen(
-        [sys.executable, "-c", code, str(wl_home)],
+        [sys.executable, "-c", code, str(bench_home)],
         stdin=subprocess.PIPE, stdout=subprocess.PIPE, text=True,
     )  # fmt: skip
     try:
         assert fils.stdout is not None and fils.stdout.readline().strip() == "pris"
-        with pytest.raises(WlError, match="Exécution run-fils en cours"):
-            RunLock(wl_home, "run-pere").acquire()
+        with pytest.raises(LibrarianBenchError, match="Exécution run-fils en cours"):
+            RunLock(bench_home, "run-pere").acquire()
     finally:
         fils.communicate(input="", timeout=30)  # le fils sort : l'OS libère le verrou
-    verrou = RunLock(wl_home, "run-pere")
+    verrou = RunLock(bench_home, "run-pere")
     verrou.acquire()
     verrou.release()
 
 
 def test_une_execution_ne_recupere_pas_la_reservation_d_une_commande_en_cours(
-    wl_home: Path,
+    bench_home: Path,
 ) -> None:
-    with Context.from_profile("test", wl_home=wl_home, run_id="hors-3"):
-        commande = Ledger(Budget(), "hors-3", wl_home, hors_execution=True)
-        orpheline = Ledger(Budget(), "run-mort", wl_home)
+    with Context.from_profile("test", bench_home=bench_home, run_id="hors-3"):
+        commande = Ledger(Budget(), "hors-3", bench_home, hors_execution=True)
+        orpheline = Ledger(Budget(), "run-mort", bench_home)
         try:
             en_cours = commande.reserve("anthropic", Decimal("0.10"), "USD")
             morte = orpheline.reserve("anthropic", Decimal("0.20"), "USD")
             with Context(
-                profile=load_profile("test"), catalog=_catalogue(), wl_home=wl_home,
+                profile=load_profile("test"), catalog=_catalogue(), bench_home=bench_home,
                 run_id="run-4", execution=True,
             ):  # fmt: skip
                 pass
             commande.settle(en_cours, Decimal("0.12"))  # toujours ouverte : pas « déjà close »
-            with pytest.raises(WlError, match="déjà close"):
+            with pytest.raises(LibrarianBenchError, match="déjà close"):
                 orpheline.settle(morte, Decimal("0.20"))  # réglée par la récupération
         finally:
             commande.close()
@@ -270,10 +270,10 @@ def test_une_execution_ne_recupere_pas_la_reservation_d_une_commande_en_cours(
 
 
 def test_close_libere_le_verrou_meme_si_une_fermeture_echoue(
-    wl_home: Path, monkeypatch: pytest.MonkeyPatch
+    bench_home: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:
     c = Context(
-        profile=load_profile("test"), catalog=_catalogue(), wl_home=wl_home, run_id="run-5",
+        profile=load_profile("test"), catalog=_catalogue(), bench_home=bench_home, run_id="run-5",
         execution=True,
     )  # fmt: skip
 
@@ -284,6 +284,6 @@ def test_close_libere_le_verrou_meme_si_une_fermeture_echoue(
     with pytest.raises(OSError):
         c.close()
     Context(
-        profile=load_profile("test"), catalog=_catalogue(), wl_home=wl_home, run_id="run-6",
+        profile=load_profile("test"), catalog=_catalogue(), bench_home=bench_home, run_id="run-6",
         execution=True,
     ).close()  # fmt: skip

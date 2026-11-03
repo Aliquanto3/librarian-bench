@@ -29,9 +29,9 @@ from librarian_bench.config.panel import closed_book_judge
 from librarian_bench.core.errors import (
     BudgetExceeded,
     ConfigError,
+    LibrarianBenchError,
     NonConformantOutput,
     ProviderError,
-    WlError,
 )
 from librarian_bench.core.types import (
     NA,
@@ -80,7 +80,7 @@ def calibrer(
     annotations_dir: Path,
     run_id: str,
     *,
-    wl_home: Path,
+    bench_home: Path,
     sortie: Path | None = None,
     providers: Any = None,
     reprendre: bool = False,
@@ -96,9 +96,9 @@ def calibrer(
     `fichier_verdicts` (`reprendre=True` rappelle seulement les triplets absents)."""
     if reprendre and ecraser:
         raise ConfigError("--reprendre", "incompatible avec --ecraser")
-    dossier = wl_home / "runs" / run_id
+    dossier = bench_home / "runs" / run_id
     if not dossier.is_dir() or not (dossier / "answers.jsonl").is_file():
-        raise ConfigError("--run", f"Exécution {run_id} introuvable dans {wl_home / 'runs'}")
+        raise ConfigError("--run", f"Exécution {run_id} introuvable dans {bench_home / 'runs'}")
     annotations = cal.charger_dossier(annotations_dir)
     reponses = read_answers(dossier)
     rapprochement = cal.rapprocher(annotations, reponses)
@@ -146,13 +146,13 @@ def calibrer(
     lu = _lire_verdicts(chemin_verdicts, reprendre, ecraser)  # avant tout appel payé
     # Reprise : même Registre (plafond `per_run`) et mêmes Traces que la tentative interrompue.
     id_cal = lu.id_cal or f"calibration-{datetime.now(UTC):%Y%m%d-%H%M%S}-{secrets.token_hex(3)}"
-    corpus = _Corpus(experience, wl_home)
+    corpus = _Corpus(experience, bench_home)
     verdicts_de: dict[str, dict[cal.Passe, VerdictValue]] = {m: {} for m in modeles}
     admises: dict[str, set[str]] = {m: set() for m in modeles}
     tentes: set[str] = set()  # Juges appelés au moins une fois
     appels = 0
     with Context.from_experiment(
-        experience, wl_home=wl_home, run_id=id_cal, providers=providers, execution=False
+        experience, bench_home=bench_home, run_id=id_cal, providers=providers, execution=False
     ) as ctx:
         juges = construire_juges(ctx, modeles, cache_later_passes=False)
         # Préparation sans appel : items, Juges concernés et empreinte des requêtes.
@@ -260,7 +260,7 @@ def calibrer(
         trace = ctx.run_dir / "traces.jsonl"
     sans_verdict = sorted(m for m in tentes if not verdicts_de[m])
     if sans_verdict:  # toutes ses passes ont échoué : rien n'est écrit
-        raise WlError(
+        raise LibrarianBenchError(
             f"aucun verdict conforme pour le(s) Juge(s) {', '.join(sans_verdict)} : "
             "calibration non écrite"
         )
@@ -374,9 +374,9 @@ def avertissements_closed_book(
 class _Corpus:
     """Corpus dont les Ancrages donnent les textes de référence, par (parser, phase)."""
 
-    def __init__(self, experience: ResolvedExperiment, wl_home: Path) -> None:
+    def __init__(self, experience: ResolvedExperiment, bench_home: Path) -> None:
         self._exp = experience
-        self._wl_home = wl_home
+        self._bench_home = bench_home
         self._declare = declare(Path(experience.corpus))
         self._cache: dict[tuple[str, str], ParsedCorpus | None] = {}
 
@@ -384,7 +384,7 @@ class _Corpus:
         parser = conf.parser.name
         cle = (parser, a.phase)
         if cle not in self._cache:
-            base = ingest(self._declare, parser, wl_home=self._wl_home)
+            base = ingest(self._declare, parser, bench_home=self._bench_home)
             if a.phase == "after_update":
                 try:
                     if self._exp.scenario is None:

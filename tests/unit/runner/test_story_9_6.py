@@ -70,14 +70,14 @@ def _wl(*args: str, code: int = 0) -> Any:
     return res
 
 
-def _source(tmp_path: Path, jeu: Path, wl_home: Path, **champs: Any) -> Path:
+def _source(tmp_path: Path, jeu: Path, bench_home: Path, **champs: Any) -> Path:
     _wl("run", str(_experience(tmp_path, jeu, "source.yaml", **champs)))
-    (dossier,) = [d for d in (wl_home / "runs").iterdir() if d.is_dir()]
+    (dossier,) = [d for d in (bench_home / "runs").iterdir() if d.is_dir()]
     return dossier
 
 
-def _autres(wl_home: Path, source: Path) -> list[Path]:
-    return [d for d in (wl_home / "runs").iterdir() if d.is_dir() and d != source]
+def _autres(bench_home: Path, source: Path) -> list[Path]:
+    return [d for d in (bench_home / "runs").iterdir() if d.is_dir() and d != source]
 
 
 def _manifeste(dossier: Path) -> dict[str, Any]:
@@ -118,13 +118,13 @@ def _faux(sortie: Any = _juge_d_dit_non) -> FakeProvider:
 
 
 def test_rejugement_copie_la_generation_et_ne_change_que_les_verdicts(
-    tmp_path: Path, jeu: Path, wl_home: Path, monkeypatch: pytest.MonkeyPatch
+    tmp_path: Path, jeu: Path, bench_home: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:
-    source = _source(tmp_path, jeu, wl_home)
+    source = _source(tmp_path, jeu, bench_home)
     _avec_faux(monkeypatch, _faux())
     exp = _experience(tmp_path, jeu, "rejuge.yaml", judges=AUTRES_JUGES)
     res = _wl("rejuger", source.name, str(exp))
-    (cible,) = _autres(wl_home, source)
+    (cible,) = _autres(bench_home, source)
     assert f"rejugement de {source.name}" in res.output and "écartées" not in res.output
 
     manifeste = _manifeste(cible)
@@ -187,10 +187,10 @@ def _sortir_du_dev(questions: Path, qid: str) -> None:
 
 
 def test_question_hors_split_courant_ecartee_et_listee(
-    tmp_path: Path, jeu: Path, wl_home: Path, monkeypatch: pytest.MonkeyPatch
+    tmp_path: Path, jeu: Path, bench_home: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:
     # Tout le split dev, comme mini-cpu : sortir une Question ne fait entrer aucune autre.
-    source = _source(tmp_path, jeu, wl_home, max_questions=None)
+    source = _source(tmp_path, jeu, bench_home, max_questions=None)
     reponses = read_answers(source)
     sortie = sorted(a.question_id for a in reponses.values())[0]
     _sortir_du_dev(jeu / "questions.yaml", sortie)
@@ -204,7 +204,7 @@ def test_question_hors_split_courant_ecartee_et_listee(
     _avec_faux(monkeypatch, _faux())
     res = _wl("rejuger", source.name, str(exp))
     assert f"écartées : {sortie}" in res.output
-    (cible,) = _autres(wl_home, source)
+    (cible,) = _autres(bench_home, source)
     manifeste = _manifeste(cible)
     assert manifeste["excluded_questions"] == [sortie]
     assert manifeste["freeze_sha256"] != manifeste["source_freeze_sha256"]
@@ -221,9 +221,9 @@ def test_question_hors_split_courant_ecartee_et_listee(
 
 
 def test_refus_configuration_modifiee_nomme_la_difference(
-    tmp_path: Path, jeu: Path, wl_home: Path
+    tmp_path: Path, jeu: Path, bench_home: Path
 ) -> None:
-    source = _source(tmp_path, jeu, wl_home)
+    source = _source(tmp_path, jeu, bench_home)
     generateur = {"generator": {"name": "llm", "params": {"max_tokens": 321}}}
     exp = _experience(
         tmp_path,
@@ -235,7 +235,7 @@ def test_refus_configuration_modifiee_nomme_la_difference(
     res = _wl("rejuger", source.name, str(exp), code=2)
     assert "configurations.bm25." in res.output
     assert "seuls judges, budget, max_error_rate peuvent changer" in res.output
-    assert _autres(wl_home, source) == []
+    assert _autres(bench_home, source) == []
 
 
 def test_refus_graine_et_split_mais_plafonds_admis(tmp_path: Path, jeu: Path) -> None:
@@ -255,8 +255,8 @@ def test_refus_graine_et_split_mais_plafonds_admis(tmp_path: Path, jeu: Path) ->
     assert differences(base, ajout) == ["configurations.sc (absente de la source)"]
 
 
-def test_refus_source_non_terminee_ou_inconnue(tmp_path: Path, jeu: Path, wl_home: Path) -> None:
-    source = _source(tmp_path, jeu, wl_home)
+def test_refus_source_non_terminee_ou_inconnue(tmp_path: Path, jeu: Path, bench_home: Path) -> None:
+    source = _source(tmp_path, jeu, bench_home)
     exp = str(_experience(tmp_path, jeu, "rejuge.yaml", judges=AUTRES_JUGES))
     assert "introuvable" in _wl("rejuger", "inconnu", exp, code=2).output
     assert "run_id invalide" in _wl("rejuger", "../x", exp, code=2).output
@@ -265,7 +265,7 @@ def test_refus_source_non_terminee_ou_inconnue(tmp_path: Path, jeu: Path, wl_hom
     (source / "manifest.json").write_text(json.dumps(manifeste), encoding="utf-8")
     res = _wl("rejuger", source.name, exp, code=2)
     assert "non terminée (statut budget_exceeded)" in res.output
-    assert _autres(wl_home, source) == []
+    assert _autres(bench_home, source) == []
 
 
 # --- AC 3 : plafond, completed_with_errors et --reprendre comme `librarian-bench run`
@@ -273,14 +273,14 @@ def test_refus_source_non_terminee_ou_inconnue(tmp_path: Path, jeu: Path, wl_hom
 
 
 def test_plafond_puis_reprise_du_rejugement(
-    tmp_path: Path, jeu: Path, wl_home: Path, monkeypatch: pytest.MonkeyPatch
+    tmp_path: Path, jeu: Path, bench_home: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:
-    source = _source(tmp_path, jeu, wl_home)
+    source = _source(tmp_path, jeu, bench_home)
     _avec_faux(monkeypatch, _faux())
     petit = {"per_run": {"fake": {"amount": "0.000001", "currency": "USD"}}}
     exp = _experience(tmp_path, jeu, "rejuge.yaml", judges=AUTRES_JUGES, budget=petit)
     _wl("rejuger", source.name, str(exp), code=3)
-    (cible,) = _autres(wl_home, source)
+    (cible,) = _autres(bench_home, source)
     assert _manifeste(cible)["status"] == "budget_exceeded"
     copie = (cible / "answers.jsonl").read_bytes()
 
@@ -297,7 +297,7 @@ def test_plafond_puis_reprise_du_rejugement(
     assert manifeste["status"] == "completed" and len(manifeste["resumptions"]) == 1
     assert manifeste["rejudged_from"] == source.name
     assert (cible / "answers.jsonl").read_bytes() == copie
-    assert _autres(wl_home, source) == [cible]
+    assert _autres(bench_home, source) == [cible]
     juges = {m for (_, m, _, _) in read_verdicts(cible)}
     assert juges == {"auto", "fake-llm-c", "fake-llm-d"}
     assert set(read_panel(cible)) == set(read_panel(source))
@@ -307,9 +307,9 @@ def test_plafond_puis_reprise_du_rejugement(
 
 
 def test_juge_en_echec_donne_completed_with_errors(
-    tmp_path: Path, jeu: Path, wl_home: Path, monkeypatch: pytest.MonkeyPatch
+    tmp_path: Path, jeu: Path, bench_home: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:
-    source = _source(tmp_path, jeu, wl_home)
+    source = _source(tmp_path, jeu, bench_home)
 
     def d_en_echec(request: LLMRequest) -> str:
         if request.model_id == "fake-llm-d":
@@ -319,7 +319,7 @@ def test_juge_en_echec_donne_completed_with_errors(
     _avec_faux(monkeypatch, _faux(d_en_echec))
     exp = _experience(tmp_path, jeu, "rejuge.yaml", judges=AUTRES_JUGES)
     res = _wl("rejuger", source.name, str(exp), code=1)
-    (cible,) = _autres(wl_home, source)
+    (cible,) = _autres(bench_home, source)
     assert f"librarian-bench rejuger {source.name} {exp} --reprendre {cible.name}" in res.output
     manifeste = _manifeste(cible)
     assert manifeste["status"] == "completed_with_errors" and manifeste["unjudged"] > 0
@@ -345,11 +345,11 @@ def _regeler(questions: Path, qid: str, **champs: Any) -> None:
 
 
 def test_catalogue_et_chemins_changes_acceptes(
-    tmp_path: Path, jeu: Path, wl_home: Path, monkeypatch: pytest.MonkeyPatch
+    tmp_path: Path, jeu: Path, bench_home: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:
     """Cas de la 9.10 : le Catalogue (fichier, date, gel des modèles) a changé depuis la source,
     et le Corpus a changé de chemin sans changer de contenu."""
-    source = _source(tmp_path, jeu, wl_home)
+    source = _source(tmp_path, jeu, bench_home)
     resolue = source / "experiment.resolved.yaml"
     donnees = yaml.safe_load(resolue.read_text(encoding="utf-8"))
     donnees |= {
@@ -364,7 +364,7 @@ def test_catalogue_et_chemins_changes_acceptes(
     _avec_faux(monkeypatch, _faux())
     exp = _experience(tmp_path, jeu, "rejuge.yaml", judges=AUTRES_JUGES, catalog=str(catalogue))
     _wl("rejuger", source.name, str(exp))
-    (cible,) = _autres(wl_home, source)
+    (cible,) = _autres(bench_home, source)
     assert (cible / "answers.jsonl").read_bytes() == (source / "answers.jsonl").read_bytes()
     assert _manifeste(cible)["status"] == "completed"
 
@@ -380,42 +380,42 @@ def test_differences_nomme_les_cles_d_une_section(tmp_path: Path, jeu: Path) -> 
 
 
 def test_refus_contenu_d_une_question_gardee_modifie(
-    tmp_path: Path, jeu: Path, wl_home: Path
+    tmp_path: Path, jeu: Path, bench_home: Path
 ) -> None:
-    source = _source(tmp_path, jeu, wl_home)
+    source = _source(tmp_path, jeu, bench_home)
     gardee = sorted(a.question_id for a in read_answers(source).values())[0]
     _regeler(jeu / "questions.yaml", gardee, reference_answer="autre chose")
     exp = _experience(tmp_path, jeu, "rejuge.yaml", judges=AUTRES_JUGES)
     res = _wl("rejuger", source.name, str(exp), code=2)
     assert "diffère du Gel de l'Exécution" in res.output
-    assert _autres(wl_home, source) == []
+    assert _autres(bench_home, source) == []
 
 
 def test_refus_question_entree_dans_le_split_sans_reponse(
-    tmp_path: Path, jeu: Path, wl_home: Path
+    tmp_path: Path, jeu: Path, bench_home: Path
 ) -> None:
     """Avec `max_questions`, sortir une Question du dev en fait entrer une autre, jamais posée."""
-    source = _source(tmp_path, jeu, wl_home)
+    source = _source(tmp_path, jeu, bench_home)
     posees = sorted({a.question_id for a in read_answers(source).values()})
     _sortir_du_dev(jeu / "questions.yaml", posees[0])
     exp = _experience(tmp_path, jeu, "rejuge.yaml", judges=AUTRES_JUGES)
     res = _wl("rejuger", source.name, str(exp), code=2)
     assert "sans Réponse dans l'Exécution" in res.output
-    assert _autres(wl_home, source) == []
+    assert _autres(bench_home, source) == []
 
 
-def test_refus_source_sans_reponse(tmp_path: Path, jeu: Path, wl_home: Path) -> None:
-    source = _source(tmp_path, jeu, wl_home)
+def test_refus_source_sans_reponse(tmp_path: Path, jeu: Path, bench_home: Path) -> None:
+    source = _source(tmp_path, jeu, bench_home)
     (source / "answers.jsonl").unlink()
     exp = _experience(tmp_path, jeu, "rejuge.yaml", judges=AUTRES_JUGES)
     assert "sans Réponse : rien à rejuger" in _wl("rejuger", source.name, str(exp), code=2).output
-    assert _autres(wl_home, source) == []
+    assert _autres(bench_home, source) == []
 
 
 def test_tolerer_erreurs_sur_un_rejugement(
-    tmp_path: Path, jeu: Path, wl_home: Path, monkeypatch: pytest.MonkeyPatch
+    tmp_path: Path, jeu: Path, bench_home: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:
-    source = _source(tmp_path, jeu, wl_home)
+    source = _source(tmp_path, jeu, bench_home)
 
     def d_en_echec(request: LLMRequest) -> str:
         if request.model_id == "fake-llm-d":
@@ -425,5 +425,5 @@ def test_tolerer_erreurs_sur_un_rejugement(
     _avec_faux(monkeypatch, _faux(d_en_echec))
     exp = _experience(tmp_path, jeu, "rejuge.yaml", judges=AUTRES_JUGES)
     _wl("rejuger", source.name, str(exp), "--tolerer-erreurs")
-    (cible,) = _autres(wl_home, source)
+    (cible,) = _autres(bench_home, source)
     assert _manifeste(cible)["status"] == "completed_with_errors"

@@ -10,7 +10,7 @@ status: done
 
 - `src/librarian_bench/components/parsers/_sections.py` : `SectionBuilder` commun (pile de titres, slugs, suffixe ordinal, Blocks et Ancrages dans l'ordre).
 - `src/librarian_bench/components/parsers/markdown.py`, `text.py`, `html.py` : Parsers `markdown` (markdown-it-py, commonmark + tableaux), `text`, `html` (beautifulsoup4, analyseur `html.parser`), enregistrés au `kind` `parser` avec leurs `formats`.
-- `src/librarian_bench/corpus/ingest.py` : `ingest(corpus, parser="auto", *, wl_home=None) -> ParsedCorpus`, `parsers_par_format(formats, parser)` (table format -> Parser concret, report de 2.1), `nom_parser_resolu(...)`.
+- `src/librarian_bench/corpus/ingest.py` : `ingest(corpus, parser="auto", *, bench_home=None) -> ParsedCorpus`, `parsers_par_format(formats, parser)` (table format -> Parser concret, report de 2.1), `nom_parser_resolu(...)`.
 - Tests : `tests/unit/corpus/test_ingest.py`. Aucune modification de `cli.py` ni de `pyproject.toml`.
 
 ## Design Notes
