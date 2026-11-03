@@ -14,12 +14,12 @@ import pytest
 import yaml
 from typer.testing import CliRunner
 
-from wavelibrarian.cli import app
-from wavelibrarian.components.judges.llm import LLMJudge
-from wavelibrarian.core.types import Criterion
-from wavelibrarian.ports.components import JudgeInput
-from wavelibrarian.runner.execute import _Runner
-from wavelibrarian.runner.rundir import read_answers, read_panel, read_verdicts
+from librarian_bench.cli import app
+from librarian_bench.components.judges.llm import LLMJudge
+from librarian_bench.core.types import Criterion
+from librarian_bench.ports.components import JudgeInput
+from librarian_bench.runner.execute import _Runner
+from librarian_bench.runner.rundir import read_answers, read_panel, read_verdicts
 
 RACINE = Path(__file__).resolve().parents[3] / "corpora" / "minicorpus"
 BM25 = {"id": "bm25", "architecture": "bm25_only"}
@@ -222,7 +222,8 @@ def test_calibration_fidelite_na_sans_appel_et_accords_na_comptes(
 def test_rejugement_produit_les_na_de_fidelite(
     run: tuple[Path, Path, list[tuple[str, tuple[str, ...]]]], wl_home: Path
 ) -> None:
-    """`wl rejuger` (story 9.6) passe par `juger` : une abstention y reçoit aussi `na` sans Juge."""
+    """`librarian-bench rejuger` (story 9.6) passe par `juger` : une abstention y reçoit aussi `na`
+    sans Juge."""
     exp, source, appels = run
     appels.clear()
     _wl("rejuger", source.name, str(exp))

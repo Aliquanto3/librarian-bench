@@ -1,6 +1,6 @@
 [project]
-name = "wavelibrarian"
-version = "0.2.0"
+name = "librarian-bench"
+version = "0.3.0"
 description = "Banc de comparaison des architectures de recherche documentaire IA (RAG, GraphRAG, LLM Wiki, recherche agentique)."
 readme = "README.md"
 license = "Apache-2.0"
@@ -42,7 +42,7 @@ docling = [
 ]
 
 [project.scripts]
-wl = "wavelibrarian.cli:app"
+librarian-bench = "librarian_bench.cli:app"
 
 [build-system]
 requires = ["uv_build>=0.12.23,<0.13.0"]
@@ -86,81 +86,81 @@ markers = [
 include = ["src", "tests"]
 
 [tool.importlinter]
-root_package = "wavelibrarian"
+root_package = "librarian_bench"
 include_external_packages = true
 
 [[tool.importlinter.contracts]]
 name = "Couches (AD-1)"
 type = "layers"
 layers = [
-    "wavelibrarian.cli",
-    "wavelibrarian.runner | wavelibrarian.report",
-    "wavelibrarian.architectures",
-    "wavelibrarian.components",
-    "wavelibrarian.evalset",
-    "wavelibrarian.scoring",
-    "wavelibrarian.corpus",
-    "wavelibrarian.llm | wavelibrarian.measure | wavelibrarian.stats",
-    "wavelibrarian.config",
-    "wavelibrarian.registry",
-    "wavelibrarian.ports",
-    "wavelibrarian.core",
+    "librarian_bench.cli",
+    "librarian_bench.runner | librarian_bench.report",
+    "librarian_bench.architectures",
+    "librarian_bench.components",
+    "librarian_bench.evalset",
+    "librarian_bench.scoring",
+    "librarian_bench.corpus",
+    "librarian_bench.llm | librarian_bench.measure | librarian_bench.stats",
+    "librarian_bench.config",
+    "librarian_bench.registry",
+    "librarian_bench.ports",
+    "librarian_bench.core",
 ]
 
 [[tool.importlinter.contracts]]
 name = "anthropic, httpx et httpx2 (client du SDK) confinés à llm.providers"
 type = "forbidden"
-source_modules = ["wavelibrarian"]
+source_modules = ["librarian_bench"]
 forbidden_modules = ["anthropic", "httpx", "httpx2"]
 unmatched_ignore_imports_alerting = "none"
 ignore_imports = [
-    "wavelibrarian.llm.providers -> anthropic",
-    "wavelibrarian.llm.providers -> httpx",
-    "wavelibrarian.llm.providers.** -> anthropic",
-    "wavelibrarian.llm.providers.** -> httpx",
-    "wavelibrarian.llm.providers -> httpx2",
-    "wavelibrarian.llm.providers.** -> httpx2",
+    "librarian_bench.llm.providers -> anthropic",
+    "librarian_bench.llm.providers -> httpx",
+    "librarian_bench.llm.providers.** -> anthropic",
+    "librarian_bench.llm.providers.** -> httpx",
+    "librarian_bench.llm.providers -> httpx2",
+    "librarian_bench.llm.providers.** -> httpx2",
 ]
 
 [[tool.importlinter.contracts]]
 name = "sentence_transformers confiné aux embedders"
 type = "forbidden"
-source_modules = ["wavelibrarian"]
+source_modules = ["librarian_bench"]
 forbidden_modules = ["sentence_transformers"]
 unmatched_ignore_imports_alerting = "none"
 ignore_imports = [
-    "wavelibrarian.components.embedders -> sentence_transformers",
-    "wavelibrarian.components.embedders.** -> sentence_transformers",
+    "librarian_bench.components.embedders -> sentence_transformers",
+    "librarian_bench.components.embedders.** -> sentence_transformers",
 ]
 
 [[tool.importlinter.contracts]]
 name = "Mesure confinée à measure (ecologits aussi pour le provider anthropic)"
 type = "forbidden"
-source_modules = ["wavelibrarian"]
+source_modules = ["librarian_bench"]
 forbidden_modules = ["opentelemetry", "codecarbon", "ecologits"]
 unmatched_ignore_imports_alerting = "none"
 ignore_imports = [
-    "wavelibrarian.measure -> opentelemetry",
-    "wavelibrarian.measure -> codecarbon",
-    "wavelibrarian.measure -> ecologits",
-    "wavelibrarian.measure.** -> opentelemetry",
-    "wavelibrarian.measure.** -> codecarbon",
-    "wavelibrarian.measure.** -> ecologits",
-    "wavelibrarian.llm.providers.anthropic -> ecologits",
+    "librarian_bench.measure -> opentelemetry",
+    "librarian_bench.measure -> codecarbon",
+    "librarian_bench.measure -> ecologits",
+    "librarian_bench.measure.** -> opentelemetry",
+    "librarian_bench.measure.** -> codecarbon",
+    "librarian_bench.measure.** -> ecologits",
+    "librarian_bench.llm.providers.anthropic -> ecologits",
 ]
 
-# Type `protected` et non `forbidden` : un contrat `forbidden` dont la source (`wavelibrarian`)
+# Type `protected` et non `forbidden` : un contrat `forbidden` dont la source (`librarian_bench`)
 # contient le module interdit saute la paire (modules qui se recouvrent) et ne vérifie rien.
 [[tool.importlinter.contracts]]
 name = "Providers atteints par la seule passerelle (AD-3)"
 type = "protected"
 # `as_packages = false` : en mode paquet, import-linter exige que `llm.gateway` et `llm.preflight`
 # existent déjà ; les jokers couvrent les sous-modules de `providers`.
-protected_modules = ["wavelibrarian.llm.providers", "wavelibrarian.llm.providers.**"]
+protected_modules = ["librarian_bench.llm.providers", "librarian_bench.llm.providers.**"]
 allowed_importers = [
-    "wavelibrarian.llm.gateway",
-    "wavelibrarian.llm.preflight",
-    "wavelibrarian.llm.providers",
-    "wavelibrarian.llm.providers.**",
+    "librarian_bench.llm.gateway",
+    "librarian_bench.llm.preflight",
+    "librarian_bench.llm.providers",
+    "librarian_bench.llm.providers.**",
 ]
 as_packages = false

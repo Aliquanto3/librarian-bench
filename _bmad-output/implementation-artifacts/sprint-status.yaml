@@ -30,7 +30,7 @@
 # - Retrospective appends its action items to action_items; the status view surfaces open ones
 generated: 10-17-2026 20:53
 last_updated: 10-26-2026 08:45
-project: wavelibrarian
+project: librarian-bench
 project_key: NOKEY
 tracking_system: file-system
 story_location: _bmad-output/implementation-artifacts
@@ -157,7 +157,7 @@ action_items:
     ref: "_bmad-output/implementation-artifacts/epics-1-7-retro-2026-10-18.md"
   - id: "epic-7-retro-item-3-créer-les-stories-v0-2-0-a-à-d-statut-wl"
     epic: 7
-    action: "Créer les stories v0.2.0 A à D (statut wl run, coûts factices, PageIndex
+    action: "Créer les stories v0.2.0 A à D (statut librarian-bench run, coûts factices, PageIndex
       CPU, calibration réelle)"
     owner: "Anaël + PM"
     status: done

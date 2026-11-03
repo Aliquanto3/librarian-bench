@@ -11,16 +11,16 @@ import yaml
 from pydantic import BaseModel, ConfigDict
 from typer.testing import CliRunner
 
-from wavelibrarian import registry
-from wavelibrarian.cli import app
-from wavelibrarian.config.catalog import load_catalog
-from wavelibrarian.config.load import load_experiment
-from wavelibrarian.config.panel import closed_book_judge, excluded_judges, form_panel
-from wavelibrarian.config.validate import validate_experiment, validate_file
-from wavelibrarian.core.errors import ConfigError, ValidationFailed
-from wavelibrarian.core.types import ModelRefMeta
-from wavelibrarian.ports.architecture import ArchCapabilities
-from wavelibrarian.ports.components import ComponentSpec, StoreCapabilities
+from librarian_bench import registry
+from librarian_bench.cli import app
+from librarian_bench.config.catalog import load_catalog
+from librarian_bench.config.load import load_experiment
+from librarian_bench.config.panel import closed_book_judge, excluded_judges, form_panel
+from librarian_bench.config.validate import validate_experiment, validate_file
+from librarian_bench.core.errors import ConfigError, ValidationFailed
+from librarian_bench.core.types import ModelRefMeta
+from librarian_bench.ports.architecture import ArchCapabilities
+from librarian_bench.ports.components import ComponentSpec, StoreCapabilities
 
 
 class _Params(BaseModel):
@@ -233,7 +233,7 @@ def test_cache_de_prompt_non_satisfait(
     ecrire: Callable[..., Path], tmp_path: Path, wl_home: Path
 ) -> None:
     catalogue = yaml.safe_load(
-        (Path(__file__).parents[3] / "src/wavelibrarian/defaults/models.yaml").read_text("utf-8")
+        (Path(__file__).parents[3] / "src/librarian_bench/defaults/models.yaml").read_text("utf-8")
     )
     for m in catalogue["models"]:
         if m["id"] == "fake-llm-a":
@@ -300,7 +300,7 @@ def test_wl_home_pris_dans_l_environnement(ecrire: Callable[..., Path], wl_home:
     _manifeste(wl_home, "k1", {"embedder_dim": 384})
     chemin = ecrire(_reuse("k1"))
     with pytest.raises(ValidationFailed):
-        validate_file(chemin)  # WL_HOME fixé par la fixture
+        validate_file(chemin)  # LIBRARIAN_BENCH_HOME fixé par la fixture
 
 
 # --- AC 4 : Panel ---
@@ -537,7 +537,7 @@ def test_cli_experience_valide(
 ) -> None:
     from types import SimpleNamespace
 
-    from wavelibrarian import cli
+    from librarian_bench import cli
 
     # Validation seule : l'Exécution (story 4.4) est testée dans `test_story_4_4.py`.
     issue = SimpleNamespace(

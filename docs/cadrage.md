@@ -1,10 +1,10 @@
-# Cadrage — WaveLibrarian, banc de comparaison de recherche documentaire IA
+# Cadrage — LibrarianBench, banc de comparaison de recherche documentaire IA
 
 Oct 17, 2026 · @Anaël Yahi
 
 ## Objectifs et livrables
 
-WaveLibrarian livre une conviction mesurée, un outil de mission et une plateforme pédagogique ; la publication est un bonus.
+LibrarianBench livre une conviction mesurée, un outil de mission et une plateforme pédagogique ; la publication est un bonus.
 
 | Livrable | Contenu | Critère de réussite |
 | --- | --- | --- |
@@ -273,7 +273,7 @@ Classées par échéance. D1 à D5 sont tranchées (17 octobre 2026) : plus rien
 | # | Décision | Options | Ce que ça change | Recommandation | Échéance |
 | --- | --- | --- | --- | --- | --- |
 | D1 | Taille et annotation du jeu d'évaluation | 100, 150 ou 200 questions par corpus ; annotation par toi seul ou avec un second annotateur | Plus de questions = écarts plus fins détectables, mais des jours d'annotation ; sans second annotateur, pas de plafond d'accord humain | Décidé : 150 questions par corpus, dont 50 annotées aussi par un collègue | Avant la phase 1 |
-| D2 | Budget cloud | Plafond mensuel ; clés personnelles, budget Wavestone ou crédits fournisseurs | Fixe la profondeur des niveaux 1 à 3 et le nombre de juges | Décidé : 50 €/mois sur Azure AI Foundry (Wavestone) et 50 $/mois sur l'API Anthropic (personnel). Conséquences : modèles serverless seulement, pas de VM GPU ; juges peu coûteux en masse, juge frontière réservé à la calibration ; API batch et cache de prompt ; génération et embeddings en local quand possible ; arrêt automatique au plafond | Avant la phase 1 |
+| D2 | Budget cloud | Plafond mensuel ; clés personnelles ou crédits fournisseurs | Fixe la profondeur des niveaux 1 à 3 et le nombre de juges | Décidé : 50 €/mois sur Azure AI Foundry et 50 $/mois sur l'API Anthropic. Conséquences : modèles serverless seulement, pas de VM GPU ; juges peu coûteux en masse, juge frontière réservé à la calibration ; API batch et cache de prompt ; génération et embeddings en local quand possible ; arrêt automatique au plafond | Avant la phase 1 |
 | D3 | Hyperscaler de départ | AWS, Azure AI Foundry ou GCP Vertex, selon les accès confirmés | Un seul au départ divise l'effort d'infrastructure ; les autres arrivent par la passerelle de modèles | Décidé : Azure (AI Foundry) | Avant la phase 1 |
 | D4 | Socle logiciel | LlamaIndex, Haystack, ou code minimal maison autour d'interfaces + Optuna | Un framework accélère le départ mais impose ses abstractions ; le maison garantit la flexibilité des composants | Décidé : code minimal maison et Optuna ; les frameworks entrent comme composants comparés | Avant la phase 1 |
 | D5 | Corpus sous droits et cloud | Envoyer ou non les PDF CO et tes notes personnelles à des API cloud | Droits d'auteur et confidentialité contre puissance des modèles frontière | Décidé : aucune contrainte de droits à prévoir, tous les corpus peuvent passer par des API cloud | Avant la phase 1 |
@@ -284,7 +284,7 @@ Classées par échéance. D1 à D5 sont tranchées (17 octobre 2026) : plus rien
 | D10 | Plateforme WaveStack : articulation avec la V2 | Fusionner CAP-1 à CAP-4 et CAP-7/8 dans le lot, ou les livrer d'abord | CAP-1 (jeu de questions) est un prérequis de la vue évaluation | Livrer CAP-1 d'abord, fusionner le reste | Avant la spec du lot |
 | D11 | Plateforme WaveStack : corpus et GraphRAG | Enrichir Exemplia ou nouveau corpus ; GraphRAG et LLM Wiki maison ou via bibliothèque | Cohérence et traductions existantes ; lisibilité pédagogique contre fidélité | Enrichir Exemplia (multi-sauts, versions, interlingue, document piégé) ; implémentations maison simplifiées | Avant la spec du lot |
 | D12 | Budget par défaut du mode mission | Forfaits en euros et en heures | Ce que l'outil promet à un client | Fixer après la phase 7, sur mesures réelles | Phase 7 |
-| D13 | Publication | Corpus publiables (notes MTG ?), cible (arXiv, atelier, blog Wavestone) | Les corpus sous droits ne peuvent pas être publiés | arXiv et blog Wavestone ; atelier si les résultats H3, H7, H12 ou H13 sont nets | Phase 8 |
+| D13 | Publication | Corpus publiables (notes MTG ?), cible (arXiv, atelier, blog) | Les corpus sous droits ne peuvent pas être publiés | arXiv et blog ; atelier si les résultats H3, H7, H12 ou H13 sont nets | Phase 8 |
 | D14 | Mutualisation avec le moteur local et le banc SLM | Partager le harnais d'évaluation, la mesure d'énergie, le code applicatif | Gain de temps contre couplage entre projets | Partager l'évaluation et la mesure d'énergie, pas le code applicatif | Phase 1 |
 
 Décidé : plateforme pédagogique en extension de WaveStack (17 octobre 2026) ; optimisation bayésienne avec évaluation progressive plutôt que recuit simulé.

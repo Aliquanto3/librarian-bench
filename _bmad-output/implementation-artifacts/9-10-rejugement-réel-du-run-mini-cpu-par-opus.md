@@ -10,7 +10,7 @@ Exigences : FR-36, FR-39, FR-40, SM-5. Story réelle (API Anthropic), menée par
 
 ## Réalisé
 
-- `wl rejuger 20261018-115941-a2a512 experiments/mini-cpu.yaml` (Opus Juge unique) : Exécution `20261026-093758-1afc6b`, `completed`, 18 Questions dev, 72 Réponses, 0 Critère sans verdict, 0,43 USD (47 verdicts sur 72 servis par le Cache de la calibration 9.9), 1 min 13, sans Ollama.
+- `librarian-bench rejuger 20261018-115941-a2a512 experiments/mini-cpu.yaml` (Opus Juge unique) : Exécution `20261026-093758-1afc6b`, `completed`, 18 Questions dev, 72 Réponses, 0 Critère sans verdict, 0,43 USD (47 verdicts sur 72 servis par le Cache de la calibration 9.9), 1 min 13, sans Ollama.
 - Scores par Configuration avec IC, `na`, comparaison aux Juges granite et qwen de la 8.8, coût et durée : `verifications-reelles-2026-10-26-v0.3.0.md` (b).
 
 ## Reports

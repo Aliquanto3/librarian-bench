@@ -1,4 +1,4 @@
-"""Registre de Composants et commande `wl registre` (story 1.3)."""
+"""Registre de Composants et commande `librarian-bench registre` (story 1.3)."""
 
 import sys
 import textwrap
@@ -10,11 +10,11 @@ import pytest
 from pydantic import BaseModel, ConfigDict, Field
 from typer.testing import CliRunner
 
-import wavelibrarian.architectures as paquet_architectures
-import wavelibrarian.components as paquet_components
-from wavelibrarian import registry
-from wavelibrarian.cli import app
-from wavelibrarian.core.errors import ConfigError
+import librarian_bench.architectures as paquet_architectures
+import librarian_bench.components as paquet_components
+from librarian_bench import registry
+from librarian_bench.cli import app
+from librarian_bench.core.errors import ConfigError
 
 
 @pytest.fixture(autouse=True)
@@ -123,7 +123,7 @@ def test_discover_recursif_et_idempotent(
     (sous / "module_decouvert.py").write_text(
         textwrap.dedent(
             """
-            from wavelibrarian.registry import register
+            from librarian_bench.registry import register
 
             from pydantic import BaseModel, ConfigDict, Field
 

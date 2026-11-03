@@ -1,4 +1,4 @@
-# WaveLibrarian
+# LibrarianBench
 
 Banc de comparaison des architectures de recherche documentaire IA. Cadrage : `docs/cadrage.md`.
 
@@ -10,6 +10,6 @@ Banc de comparaison des architectures de recherche documentaire IA. Cadrage : `d
 - Contrôle rapide (avant chaque rapport de dev-story) : `py .claude/cost-kit/controle_rapide.py`
 
 ## Conventions
-- Python ≥ 3.12, gestion par `uv`, code dans `src/wavelibrarian/`, tests dans `tests/`.
+- Python ≥ 3.12, gestion par `uv`, code dans `src/librarian_bench/`, tests dans `tests/`.
 - Dépôt public : aucun secret, aucune donnée client, aucun corpus sous licence restrictive dans le dépôt.
 - Enchaînement par story : `agent-cost-kit:dev-story` → `second-avis` → `reviewer` → intégration.

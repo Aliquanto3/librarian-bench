@@ -8,12 +8,12 @@ status: done
 
 ## Code Map
 
-- `src/wavelibrarian/core/types.py` : types de `contracts.md` §1 (pydantic `frozen=True, extra="forbid"`), `ParsedCorpus.resolve` / `anchor_text`, `CorpusProfile.tokens_for`, `ModelRefMeta` / `ModelRef`, Literals.
-- `src/wavelibrarian/ports/components.py` : `KINDS` (14 `kind`), `ComponentSpec`, Protocols des Composants, `SearchIndex`, `Context`, `GenerationResult`, `JudgeInput`.
-- `src/wavelibrarian/ports/architecture.py` : `ArchitectureBase`, `ArchCapabilities`, `Applicability`, `CorpusChange`.
-- `src/wavelibrarian/ports/gateway.py` : `LLMRole`, `Message`, `LLMRequest`, `LLMResult`, `ModelGateway`.
-- `src/wavelibrarian/ports/measure.py` : `Tokenizer`, `Tracer`, `EnergyMeter`, `EnergyEstimator`.
-- `src/wavelibrarian/ports/context.py` : Protocol `RunContext`.
+- `src/librarian_bench/core/types.py` : types de `contracts.md` §1 (pydantic `frozen=True, extra="forbid"`), `ParsedCorpus.resolve` / `anchor_text`, `CorpusProfile.tokens_for`, `ModelRefMeta` / `ModelRef`, Literals.
+- `src/librarian_bench/ports/components.py` : `KINDS` (14 `kind`), `ComponentSpec`, Protocols des Composants, `SearchIndex`, `Context`, `GenerationResult`, `JudgeInput`.
+- `src/librarian_bench/ports/architecture.py` : `ArchitectureBase`, `ArchCapabilities`, `Applicability`, `CorpusChange`.
+- `src/librarian_bench/ports/gateway.py` : `LLMRole`, `Message`, `LLMRequest`, `LLMResult`, `ModelGateway`.
+- `src/librarian_bench/ports/measure.py` : `Tokenizer`, `Tracer`, `EnergyMeter`, `EnergyEstimator`.
+- `src/librarian_bench/ports/context.py` : Protocol `RunContext`.
 - `tests/unit/core/test_types.py`, `tests/unit/ports/test_ports.py`.
 
 ## Design Notes

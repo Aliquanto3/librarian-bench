@@ -4,8 +4,8 @@ from pathlib import Path
 
 import pytest
 
-from wavelibrarian.core.errors import ConfigError
-from wavelibrarian.scoring.calibration import (
+from librarian_bench.core.errors import ConfigError
+from librarian_bench.scoring.calibration import (
     answer_ids_de_answers_jsonl,
     charger_dossier,
     rapprocher,

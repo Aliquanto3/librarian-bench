@@ -8,10 +8,10 @@ status: done
 
 ## Code Map
 
-- `src/wavelibrarian/runner/execute.py` : `_Runner.poser` (Question posée dans `ctx.scope(post="query", question_id=...)`, span `local` `answer` émis par le runner avec `wl.invalid_citations`, `Answer.latency_s`) et `_Runner.energie_de_phase` (relevé du mesureur par phase et par Configuration). Le mesureur vient de `make_meter(profil.energy)`.
-- `src/wavelibrarian/measure/tracing.py` : `Tracer.begin_phase` / `end_phase(kwh, méthode)` (retient les spans locaux d'une phase, les répartit par `spread_energy`, puis les écrit) et `Tracer.latency_total` (latence cumulée de tous les spans).
-- `src/wavelibrarian/runner/index_cache.py` : `load` passe sous le Poste `indexing` ; la latence du span `index` exclut celle des spans déjà tracés pendant la construction.
-- `src/wavelibrarian/runner/context.py` : `Context.traceur` (Tracer concret réservé au runner ; `Context.tracer` garde le type du port).
+- `src/librarian_bench/runner/execute.py` : `_Runner.poser` (Question posée dans `ctx.scope(post="query", question_id=...)`, span `local` `answer` émis par le runner avec `wl.invalid_citations`, `Answer.latency_s`) et `_Runner.energie_de_phase` (relevé du mesureur par phase et par Configuration). Le mesureur vient de `make_meter(profil.energy)`.
+- `src/librarian_bench/measure/tracing.py` : `Tracer.begin_phase` / `end_phase(kwh, méthode)` (retient les spans locaux d'une phase, les répartit par `spread_energy`, puis les écrit) et `Tracer.latency_total` (latence cumulée de tous les spans).
+- `src/librarian_bench/runner/index_cache.py` : `load` passe sous le Poste `indexing` ; la latence du span `index` exclut celle des spans déjà tracés pendant la construction.
+- `src/librarian_bench/runner/context.py` : `Context.traceur` (Tracer concret réservé au runner ; `Context.tracer` garde le type du port).
 - Tests : `tests/unit/runner/test_story_4_5.py`.
 
 ## Design Notes
@@ -21,7 +21,7 @@ status: done
 - Latence : le span `answer` porte le temps propre de `answer` (durée murale moins la latence des spans tracés pendant l'appel : passerelle, embedding). `Answer.latency_s` = latence de ces spans + temps propre, c'est-à-dire la somme des `wl.latency_s` des spans `query` de la Question. Aucun double compte, ni de la latence, ni de l'énergie. Même règle pour le span `index`.
 - Une Question en `error` émet son span `answer` (`wl.status=error`, `invalid_citations` 0) et garde sa latence. Un `BudgetExceeded` n'émet pas de span `answer` (le span `budget_refused` de la passerelle suffit) et la phase se ferme. Les Réponses `inapplicable` et les Configurations en échec n'émettent pas de span et ont une latence de 0.
 - Énergie sans valeur : `wl.energy_method=unknown`, pas de `wl.energy_kwh` (contrat §6). Énergie relevée mais aucune durée (somme des latences nulle) : répartie à parts égales (revue).
-- Rejeu : les caches d'index et de réponses de `WL_HOME` font le travail. Un hit du Cache de réponses retrace la latence de l'appel d'origine (colonne `latency_s` de `llm_cache.sqlite`, review-reconcile §1) ; `Tracer.elapsed_total` (temps réellement passé, hits exclus) sert au temps propre et au prorata d'énergie, `Tracer.latency_total` à `Answer.latency_s`.
+- Rejeu : les caches d'index et de réponses de `LIBRARIAN_BENCH_HOME` font le travail. Un hit du Cache de réponses retrace la latence de l'appel d'origine (colonne `latency_s` de `llm_cache.sqlite`, review-reconcile §1) ; `Tracer.elapsed_total` (temps réellement passé, hits exclus) sert au temps propre et au prorata d'énergie, `Tracer.latency_total` à `Answer.latency_s`.
 
 ## Tâches et critères
 

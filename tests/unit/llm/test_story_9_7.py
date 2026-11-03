@@ -7,16 +7,16 @@ import pytest
 import yaml
 from pydantic import ValidationError
 
-from wavelibrarian.components.deciders.llm import SYSTEM
-from wavelibrarian.config.catalog import load_catalog
-from wavelibrarian.config.defaults import load_profile
-from wavelibrarian.config.experiment import Experiment, LlmCacheSettings, ResolvedExperiment
-from wavelibrarian.config.resolve import fingerprint, to_yaml, write_resolved
-from wavelibrarian.config.validate import validate_file
-from wavelibrarian.llm.cache import cache_key, role_marker
-from wavelibrarian.llm.providers.fake import FakeProvider
-from wavelibrarian.ports.gateway import LLMRequest, Message
-from wavelibrarian.runner.context import Context
+from librarian_bench.components.deciders.llm import SYSTEM
+from librarian_bench.config.catalog import load_catalog
+from librarian_bench.config.defaults import load_profile
+from librarian_bench.config.experiment import Experiment, LlmCacheSettings, ResolvedExperiment
+from librarian_bench.config.resolve import fingerprint, to_yaml, write_resolved
+from librarian_bench.config.validate import validate_file
+from librarian_bench.llm.cache import cache_key, role_marker
+from librarian_bench.llm.providers.fake import FakeProvider
+from librarian_bench.ports.gateway import LLMRequest, Message
+from librarian_bench.runner.context import Context
 
 EXPERIENCES = Path(__file__).resolve().parents[3] / "experiments"
 

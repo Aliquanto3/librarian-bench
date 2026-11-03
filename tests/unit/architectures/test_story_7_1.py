@@ -6,16 +6,16 @@ from typing import Any
 
 import pytest
 
-from wavelibrarian import registry
-from wavelibrarian.architectures._passages import lire_passages
-from wavelibrarian.architectures.raptor import Raptor
-from wavelibrarian.core.errors import ConfigError
-from wavelibrarian.core.ids import sha16
-from wavelibrarian.core.types import ParsedCorpus, Passage, QuestionInput
-from wavelibrarian.llm.providers.fake import FakeProvider
-from wavelibrarian.ports.architecture import CorpusChange
-from wavelibrarian.ports.components import ComponentSpec
-from wavelibrarian.runner.context import Context as RunCtx
+from librarian_bench import registry
+from librarian_bench.architectures._passages import lire_passages
+from librarian_bench.architectures.raptor import Raptor
+from librarian_bench.core.errors import ConfigError
+from librarian_bench.core.ids import sha16
+from librarian_bench.core.types import ParsedCorpus, Passage, QuestionInput
+from librarian_bench.llm.providers.fake import FakeProvider
+from librarian_bench.ports.architecture import CorpusChange
+from librarian_bench.ports.components import ComponentSpec
+from librarian_bench.runner.context import Context as RunCtx
 
 PETITS = {"name": "fixed_tokens", "params": {"size": 40, "overlap": 5}}
 

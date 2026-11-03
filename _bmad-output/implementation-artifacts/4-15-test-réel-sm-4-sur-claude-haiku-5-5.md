@@ -29,7 +29,7 @@ Exigences : SM-4, FR-29, FR-30, FR-33, NFR-2, NFR-3 ; AD-9, AD-16. Dépend de 4.
 ## Acceptance Criteria
 
 1. Sans `ANTHROPIC_API_KEY`, le test est sauté ; `uv run pytest` (suite par défaut) ne le sélectionne jamais.
-2. Avec la clé, `wl run` sur l'Expérience du test sort en code 0 (jamais 3), sous le plafond.
+2. Avec la clé, `librarian-bench run` sur l'Expérience du test sort en code 0 (jamais 3), sous le plafond.
 3. Pour chaque span `gen_ai.provider.name == anthropic` non servi par le Cache de réponses, `Decimal(wl.cost) == catalog.cost(model, Usage(tokens des attributs))`, exactement.
 4. La somme des spans payants égale, à 0,005 USD près, la dépense réglée du Registre (`ledger.sqlite`, `provider='anthropic'`, `status='settled'`) pour ce `run_id`.
 5. La somme de `cost_eur_real` de `report/costs.csv` égale, à 0,005 EUR près, la somme des spans convertie au taux `costs.fx` du dossier d'état.
@@ -56,7 +56,7 @@ Reports, hors de l'AC SM-4 :
 - Kappas au Rapport : l'AC ne les demande pas et aucune calibration n'existe (epic 5) ; à relire quand une calibration réelle est ajoutée.
 - Délai dépassé après envoi (appel interrompu réel) : exige de provoquer un timeout réel ; non bloquant.
 - `response.impacts` EcoLogits : l'énergie des spans Anthropic reste estimée ; sans appel dédié au tracer patché.
-- `wl questions generer` sur Haiku 5.5 réel (3.3) : commande à lancer à part, touche `cli.py` / `evalset`.
+- `librarian-bench questions generer` sur Haiku 5.5 réel (3.3) : commande à lancer à part, touche `cli.py` / `evalset`.
 - CAG avec Corpus > 512 tokens (6.5) : le Mini-corpus est plus court (écriture de cache non exercée) ; demande un Corpus plus long.
 
 ## Revue

@@ -17,5 +17,5 @@ wheels/
 .env
 
 
-.wl/
+.librarian-bench/
 results/

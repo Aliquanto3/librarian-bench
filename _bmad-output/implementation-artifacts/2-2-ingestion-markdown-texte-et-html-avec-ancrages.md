@@ -8,9 +8,9 @@ status: done
 
 ## Code Map
 
-- `src/wavelibrarian/components/parsers/_sections.py` : `SectionBuilder` commun (pile de titres, slugs, suffixe ordinal, Blocks et Ancrages dans l'ordre).
-- `src/wavelibrarian/components/parsers/markdown.py`, `text.py`, `html.py` : Parsers `markdown` (markdown-it-py, commonmark + tableaux), `text`, `html` (beautifulsoup4, analyseur `html.parser`), enregistrés au `kind` `parser` avec leurs `formats`.
-- `src/wavelibrarian/corpus/ingest.py` : `ingest(corpus, parser="auto", *, wl_home=None) -> ParsedCorpus`, `parsers_par_format(formats, parser)` (table format -> Parser concret, report de 2.1), `nom_parser_resolu(...)`.
+- `src/librarian_bench/components/parsers/_sections.py` : `SectionBuilder` commun (pile de titres, slugs, suffixe ordinal, Blocks et Ancrages dans l'ordre).
+- `src/librarian_bench/components/parsers/markdown.py`, `text.py`, `html.py` : Parsers `markdown` (markdown-it-py, commonmark + tableaux), `text`, `html` (beautifulsoup4, analyseur `html.parser`), enregistrés au `kind` `parser` avec leurs `formats`.
+- `src/librarian_bench/corpus/ingest.py` : `ingest(corpus, parser="auto", *, wl_home=None) -> ParsedCorpus`, `parsers_par_format(formats, parser)` (table format -> Parser concret, report de 2.1), `nom_parser_resolu(...)`.
 - Tests : `tests/unit/corpus/test_ingest.py`. Aucune modification de `cli.py` ni de `pyproject.toml`.
 
 ## Design Notes
@@ -19,7 +19,7 @@ status: done
 - Titres frères de même slug : le premier garde le slug, les suivants prennent `-2`, `-3`... ; si le suffixe collisionne avec un autre titre frère, on continue à incrémenter. `ParsedCorpus.resolve` cherche d'abord le chemin de titres bruts (espaces normalisés), puis le chemin de slugs : un vrai titre « Note 2 » est retrouvé, et pour des doublons exacts le premier ; les suivants s'adressent par `anchor_id`. Titre sans caractère alphanumérique : slug `section`.
 - Markdown : un Block `text` par paragraphe, liste, citation ou bloc de code ; `table` (lignes `a | b`) ; `image` (texte alternatif, sinon `src`) émis après le texte de son paragraphe. HTML : même découpage ; tampon de texte en ligne vidé aux frontières de blocs ; `script`, `style`, `head`, `template` ignorés.
 - `parser: auto` : table `AUTO` dans `ingest.py` (`markdown`, `text`, `html`, `pdf` -> `pdf_text`). Un format sans Parser enregistré (PDF avant la story 2.3) ou un Parser explicite qui ne couvre pas un format présent lève `ConfigError("parser", ...)` plutôt que d'ignorer les Documents. Le runner (epic 4) appelle `parsers_par_format(corpus.formats, "auto")` puis `nom_parser_resolu` pour écrire un nom concret.
-- Cache `<WL_HOME>/parse_cache/<parser>/<doc_id>.json` (écriture atomique). Il est par contenu : à la relecture, `source_path`, `lang` et `meta` sont repris du Document déclaré (renommage sûr). Fichier corrompu : reparse. Un Document dont le Parser lève `OSError`/`ValueError` est signalé et ignoré.
+- Cache `<LIBRARIAN_BENCH_HOME>/parse_cache/<parser>/<doc_id>.json` (écriture atomique). Il est par contenu : à la relecture, `source_path`, `lang` et `meta` sont repris du Document déclaré (renommage sûr). Fichier corrompu : reparse. Un Document dont le Parser lève `OSError`/`ValueError` est signalé et ignoré.
 - `ParsedCorpus` trié par `source_path`, `fingerprint = sha16` des couples `(source_path, doc_id)` triés. `ingest.py` n'importe pas `components` : `registry.discover()` puis `registry.get("parser", nom)`.
 
 ## Tâches et critères
@@ -38,7 +38,7 @@ status: done
 
 Tests ciblés : 12 verts. Suite complète : 312 verts. Pyright et contrôle rapide : sans erreur.
 
-Reports : ancrage des doublons non adressable par `resolve` (hors périmètre, suffixe documenté) ; Parser `pdf_text` à la story 2.3 (jusque-là `auto` refuse un Corpus contenant des PDF) ; `cli.py` (`wl corpus profiler`) à la story 2.4.
+Reports : ancrage des doublons non adressable par `resolve` (hors périmètre, suffixe documenté) ; Parser `pdf_text` à la story 2.3 (jusque-là `auto` refuse un Corpus contenant des PDF) ; `cli.py` (`librarian-bench corpus profiler`) à la story 2.4.
 
 ## Revue
 

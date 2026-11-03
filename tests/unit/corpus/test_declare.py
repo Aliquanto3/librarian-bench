@@ -7,9 +7,9 @@ from pathlib import Path
 import pytest
 import yaml
 
-from wavelibrarian.core.errors import ConfigError
-from wavelibrarian.core.ids import sha16_bytes
-from wavelibrarian.corpus.declare import declare
+from librarian_bench.core.errors import ConfigError
+from librarian_bench.core.ids import sha16_bytes
+from librarian_bench.corpus.declare import declare
 
 BASE = {
     "corpus_id": "demo",
@@ -133,7 +133,7 @@ def test_publiable_dans_depot_accepte(tmp_path: Path):
 
 def test_hors_depot_constate_sans_git(tmp_path: Path):
     # Garde du test précédent : tmp_path ne doit être sous aucun dépôt git.
-    from wavelibrarian.corpus.declare import _depot_englobant
+    from librarian_bench.corpus.declare import _depot_englobant
 
     assert _depot_englobant(tmp_path) is None
     _depot(tmp_path)
@@ -141,7 +141,7 @@ def test_hors_depot_constate_sans_git(tmp_path: Path):
 
 
 def test_non_publiable_git_en_erreur_refuse(tmp_path: Path, monkeypatch: pytest.MonkeyPatch):
-    import wavelibrarian.corpus.declare as mod
+    import librarian_bench.corpus.declare as mod
 
     _depot(tmp_path)
     (tmp_path / ".gitignore").write_text("docs/\n", encoding="utf-8")
@@ -206,7 +206,7 @@ def test_licence_restrictive_dans_depot_refusee(tmp_path: Path, licence: str):
     ],
 )
 def test_licence_ouverte(licence: str):
-    from wavelibrarian.corpus.declare import licence_restrictive
+    from librarian_bench.corpus.declare import licence_restrictive
 
     assert not licence_restrictive(licence)
 
@@ -232,7 +232,7 @@ def test_licence_restrictive_ignoree_ou_hors_depot_declaree_puis_ingeree(
 ):
     # AC 2 (story 8.1) : comme `publishable: false`, un Corpus `CC-BY-NC-4.0` hors du dépôt
     # ou dans un dossier ignoré reste déclarable puis ingérable.
-    from wavelibrarian.corpus.ingest import ingest
+    from librarian_bench.corpus.ingest import ingest
 
     hors = tmp_path / "hors"
     hors.mkdir()

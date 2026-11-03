@@ -1,6 +1,6 @@
 # Guide de recette du lot v0.3.0 (epic 9)
 
-Durée : 20 à 30 min. Aucune dépense obligatoire ; un seul contrôle facultatif coûte ~0,70 USD (étape 6). Commandes depuis la racine du dépôt, `main` à jour. `WL_HOME` désigne `C:/Users/Utilisateur/Documents/GitHub/wl-runs-v0.2.0`.
+Durée : 20 à 30 min. Aucune dépense obligatoire ; un seul contrôle facultatif coûte ~0,70 USD (étape 6). Commandes depuis la racine du dépôt, `main` à jour. `LIBRARIAN_BENCH_HOME` désigne `C:/Users/Utilisateur/Documents/GitHub/wl-runs-v0.2.0`.
 
 ## 1. Suite et outillage
 
@@ -10,11 +10,11 @@ uv run pytest -q --tb=short
 uv run ruff check . ; uv run pyright
 ```
 
-Attendu : 1406 passed (9 deselected), ruff et pyright sans erreur. Les commandes réelles demandent `--extra energy` (`uv run --extra energy wl …`), sinon `wl` s'arrête au démarrage, avant tout appel.
+Attendu : 1406 passed (9 deselected), ruff et pyright sans erreur. Les commandes réelles demandent `--extra energy` (`uv run --extra energy wl …`), sinon `librarian-bench` s'arrête au démarrage, avant tout appel.
 
 ## 2. Scores jugés par Opus (9.5, 9.6, 9.10)
 
-Ouvrir `WL_HOME/runs/20261026-093758-1afc6b/report/report.md`.
+Ouvrir `LIBRARIAN_BENCH_HOME/runs/20261026-093758-1afc6b/report/report.md`.
 
 Attendu :
 - l'en-tête dit « Rejugement de l'Exécution `20261018-115941-a2a512` », avec q-044 écartée ;
@@ -39,8 +39,8 @@ Les chiffres et la comparaison avec les Juges locaux de la 8.8 sont dans `verifi
   - le bloc fidélité porte la consigne stricte ;
   - trois boutons Oui, Non et Sans objet.
 - Remplir 2 ou 3 lignes, exporter, puis importer sur une copie :
-  `uv run wl annotations importer <copie de annotateur2.yaml> verdicts-annotateur2.json`. Seules les lignes `verdict` et `note` changent.
-- `wl annotations exporter --help` montre `--depuis` et le tirage stratifié. Sur le run réel, le paquet fait -56 % de caractères par Réponse, sans aucun Passage tronqué.
+  `uv run librarian-bench annotations importer <copie de annotateur2.yaml> verdicts-annotateur2.json`. Seules les lignes `verdict` et `note` changent.
+- `librarian-bench annotations exporter --help` montre `--depuis` et le tirage stratifié. Sur le run réel, le paquet fait -56 % de caractères par Réponse, sans aucun Passage tronqué.
 
 ## 5. Énergie et Cache (9.7, 9.8)
 
@@ -58,7 +58,7 @@ Double annotation (9.12) : suivre `corpora/minicorpus/annotations-a-faire/LISEZM
 3. **Plafond de `calibration-opus.yaml`** : 5 USD au lieu de 4 USD (A2). Le coût mesuré a été de 3,32 USD.
 4. **Juge unique**. La validation exige un kappa sur les 3 Critères, même si toutes les Questions sont courtes, parce qu'elle ne lit pas les Questions. Avec plusieurs passes, la majorité se calcule sur toutes les voix, comme avant.
 5. **Seuil de LazyGraphRAG** (9.11, faite à 14:27 après ton feu vert). Avec granite, les notes du Decider sont presque toutes à 0 ou au-dessus de 0,7 : les seuils 0,1, 0,3 et 0,5 retiennent les mêmes Passages, à un près, et les scores ne se distinguent pas (McNemar p = 1,00). Je recommande de garder 0,1 (non modifié). L'écart de latence (41 s contre 9 s) vient du cache de préfixe d'Ollama, pas du seuil. Détail : `verifications-reelles-2026-10-26-v0.3.0.md` (c).
-6. **Exécutions v0.2.0**. Leur Rapport compte encore la fidélité des Réponses vides comme oui. Seul `wl rejuger` recalcule les `na`.
+6. **Exécutions v0.2.0**. Leur Rapport compte encore la fidélité des Réponses vides comme oui. Seul `librarian-bench rejuger` recalcule les `na`.
 
 ## Résultat attendu de la recette
 

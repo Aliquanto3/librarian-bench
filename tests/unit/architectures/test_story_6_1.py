@@ -7,18 +7,18 @@ from typing import Any
 import numpy as np
 import pytest
 
-from wavelibrarian import registry
-from wavelibrarian.architectures.naive_rag import NaiveRag
-from wavelibrarian.components.retrievers.dense import DenseRetriever
-from wavelibrarian.components.vector_stores.numpy_exact import NumpyExactStore
-from wavelibrarian.core.errors import WlError
-from wavelibrarian.core.types import ParsedCorpus, ParsedDocument, QuestionInput
-from wavelibrarian.llm.providers.fake import FakeProvider
-from wavelibrarian.ports.architecture import CorpusChange
-from wavelibrarian.ports.components import ComponentSpec, SearchIndex
-from wavelibrarian.ports.gateway import LLMRequest
-from wavelibrarian.runner.context import Context as RunCtx
-from wavelibrarian.runner.index_cache import IndexCache
+from librarian_bench import registry
+from librarian_bench.architectures.naive_rag import NaiveRag
+from librarian_bench.components.retrievers.dense import DenseRetriever
+from librarian_bench.components.vector_stores.numpy_exact import NumpyExactStore
+from librarian_bench.core.errors import WlError
+from librarian_bench.core.types import ParsedCorpus, ParsedDocument, QuestionInput
+from librarian_bench.llm.providers.fake import FakeProvider
+from librarian_bench.ports.architecture import CorpusChange
+from librarian_bench.ports.components import ComponentSpec, SearchIndex
+from librarian_bench.ports.gateway import LLMRequest
+from librarian_bench.runner.context import Context as RunCtx
+from librarian_bench.runner.index_cache import IndexCache
 
 PETITS = {"name": "fixed_tokens", "params": {"size": 40, "overlap": 5}}
 
@@ -286,7 +286,7 @@ def test_naive_rag_update_scenario_reel_depuis_le_cache(
 ) -> None:
     """Scénario réel (le `doc_id` d'un Document modifié change) : index servi par l'IndexCache,
     `update` sur une instance neuve, puis `load` sur une autre et recherche."""
-    from wavelibrarian.corpus.scenario import appliquer_fichier
+    from librarian_bench.corpus.scenario import appliquer_fichier
 
     scenario = Path(__file__).resolve().parents[3] / "corpora/minicorpus/scenario/scenario.yaml"
     change, apres = appliquer_fichier(minicorpus, scenario, parser="markdown")

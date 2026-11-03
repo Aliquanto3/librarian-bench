@@ -1,4 +1,5 @@
-"""Story 9.6 : `wl rejuger <run_id> <experience.yaml>` (Faux LLM, profil `test`, sans réseau)."""
+"""Story 9.6 : `librarian-bench rejuger <run_id> <experience.yaml>` (Faux LLM, profil `test`, sans
+réseau)."""
 
 import json
 import shutil
@@ -9,19 +10,21 @@ import pytest
 import yaml
 from typer.testing import CliRunner
 
-from wavelibrarian import cli
-from wavelibrarian.cli import app
-from wavelibrarian.config.validate import validate_file
-from wavelibrarian.evalset import io
-from wavelibrarian.evalset.freeze import empreinte
-from wavelibrarian.llm.providers.fake import FakeProvider, default_output
-from wavelibrarian.ports.gateway import LLMRequest
-from wavelibrarian.runner.rejuger import differences
-from wavelibrarian.runner.rejuger import rejuger as rejugement
-from wavelibrarian.runner.rundir import read_answers, read_panel, read_verdicts
+from librarian_bench import cli
+from librarian_bench.cli import app
+from librarian_bench.config.validate import validate_file
+from librarian_bench.evalset import io
+from librarian_bench.evalset.freeze import empreinte
+from librarian_bench.llm.providers.fake import FakeProvider, default_output
+from librarian_bench.ports.gateway import LLMRequest
+from librarian_bench.runner.rejuger import differences
+from librarian_bench.runner.rejuger import rejuger as rejugement
+from librarian_bench.runner.rundir import read_answers, read_panel, read_verdicts
 
 RACINE = Path(__file__).resolve().parents[3] / "corpora" / "minicorpus"
-MODELES = Path(__file__).resolve().parents[3] / "src" / "wavelibrarian" / "defaults" / "models.yaml"
+MODELES = (
+    Path(__file__).resolve().parents[3] / "src" / "librarian_bench" / "defaults" / "models.yaml"
+)
 BM25 = {"id": "bm25", "architecture": "bm25_only"}
 SOURCE_JUGES = {"pool": ["fake-llm-c", "fake-llm-b"], "panel_size": 2}
 AUTRES_JUGES = {"pool": ["fake-llm-d", "fake-llm-c"], "panel_size": 2}
@@ -193,7 +196,8 @@ def test_question_hors_split_courant_ecartee_et_listee(
     _sortir_du_dev(jeu / "questions.yaml", sortie)
     exp = _experience(tmp_path, jeu, "source.yaml", max_questions=None)  # Gel seul différent
 
-    # `wl run --reprendre` reste refusé sur l'ancien Gel (limite (iii) de fix-arbitrages-8-3-8-8).
+    # `librarian-bench run --reprendre` reste refusé sur l'ancien Gel (limite (iii) de
+    # fix-arbitrages-8-3-8-8).
     refus = _wl("run", str(exp), "--reprendre", source.name, code=2)
     assert "Gel" in refus.output
 
@@ -264,7 +268,8 @@ def test_refus_source_non_terminee_ou_inconnue(tmp_path: Path, jeu: Path, wl_hom
     assert _autres(wl_home, source) == []
 
 
-# --- AC 3 : plafond, completed_with_errors et --reprendre comme `wl run` ---------------------
+# --- AC 3 : plafond, completed_with_errors et --reprendre comme `librarian-bench run`
+# ---------------------
 
 
 def test_plafond_puis_reprise_du_rejugement(
@@ -315,7 +320,7 @@ def test_juge_en_echec_donne_completed_with_errors(
     exp = _experience(tmp_path, jeu, "rejuge.yaml", judges=AUTRES_JUGES)
     res = _wl("rejuger", source.name, str(exp), code=1)
     (cible,) = _autres(wl_home, source)
-    assert f"wl rejuger {source.name} {exp} --reprendre {cible.name}" in res.output
+    assert f"librarian-bench rejuger {source.name} {exp} --reprendre {cible.name}" in res.output
     manifeste = _manifeste(cible)
     assert manifeste["status"] == "completed_with_errors" and manifeste["unjudged"] > 0
     assert (cible / "report" / "report.md").is_file()

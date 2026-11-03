@@ -1,4 +1,5 @@
-"""Story 9.5 (revue) : Juge unique calibré dans `panels_de` et `wl rejuger` (Faux LLM)."""
+"""Story 9.5 (revue) : Juge unique calibré dans `panels_de` et `librarian-bench rejuger` (Faux
+LLM)."""
 
 import json
 import shutil
@@ -9,13 +10,13 @@ import pytest
 import yaml
 from typer.testing import CliRunner
 
-from wavelibrarian.cli import app
-from wavelibrarian.config.validate import validate_file
-from wavelibrarian.core.errors import ConfigError
-from wavelibrarian.evalset import io
-from wavelibrarian.evalset.freeze import empreinte
-from wavelibrarian.runner.execute import panels_de
-from wavelibrarian.runner.rundir import read_panel, read_verdicts
+from librarian_bench.cli import app
+from librarian_bench.config.validate import validate_file
+from librarian_bench.core.errors import ConfigError
+from librarian_bench.evalset import io
+from librarian_bench.evalset.freeze import empreinte
+from librarian_bench.runner.execute import panels_de
+from librarian_bench.runner.rundir import read_panel, read_verdicts
 
 RACINE = Path(__file__).resolve().parents[3] / "corpora" / "minicorpus"
 TROIS = ("correctness", "completeness", "faithfulness")

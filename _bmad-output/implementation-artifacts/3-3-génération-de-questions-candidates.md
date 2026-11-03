@@ -8,15 +8,15 @@ status: done
 
 ## Code Map
 
-- `src/wavelibrarian/evalset/generate.py` : `parse_repartition`, `echantillon_ancrages(ctx, corpus, n)`, `generer(ctx, corpus, existant, repartition, modele) -> Generation` (fichier complété, Questions ajoutées, rejets, surplus, manques, coût, indicateur de cache). N'écrit rien : l'appelant sauvegarde.
-- `src/wavelibrarian/cli.py` : `wl questions generer <corpus.yaml> --repartition … [--modele] [--questions] [--cible] [--profil] [--graine]` ; `_contexte_hors_execution` (Contexte hors Exécution, remplaçable en test).
-- `src/wavelibrarian/runner/context.py` : `Context.from_profile` accepte `budget` (plafonds d'une commande hors Exécution).
+- `src/librarian_bench/evalset/generate.py` : `parse_repartition`, `echantillon_ancrages(ctx, corpus, n)`, `generer(ctx, corpus, existant, repartition, modele) -> Generation` (fichier complété, Questions ajoutées, rejets, surplus, manques, coût, indicateur de cache). N'écrit rien : l'appelant sauvegarde.
+- `src/librarian_bench/cli.py` : `librarian-bench questions generer <corpus.yaml> --repartition … [--modele] [--questions] [--cible] [--profil] [--graine]` ; `_contexte_hors_execution` (Contexte hors Exécution, remplaçable en test).
+- `src/librarian_bench/runner/context.py` : `Context.from_profile` accepte `budget` (plafonds d'une commande hors Exécution).
 - Tests : `tests/unit/evalset/test_generate.py` (Faux LLM, profil `test`).
 
 ## Design Notes
 
 - Un seul appel `question_gen` par génération (`inputs` : `anchors` = `[{anchor_id, text}]`, `types` = répartition). L'échantillon compte autant d'Ancrages que de Questions demandées, tirés par `ctx.rng("questions", "ancrages", corpus_id)` parmi les Ancrages au texte non vide triés : même graine, même échantillon ; même requête, donc Cache de réponses.
-- Le Poste `evalset` est fixé par `generer` lui-même (`ctx.scope`), la passerelle du Contexte refusant sinon l'appel. Traces dans `WL_HOME/hors-execution/<run_id>/`.
+- Le Poste `evalset` est fixé par `generer` lui-même (`ctx.scope`), la passerelle du Contexte refusant sinon l'appel. Traces dans `LIBRARIAN_BENCH_HOME/hors-execution/<run_id>/`.
 - Tri de la sortie : Type inconnu, texte vide, Ancrage hors Corpus (ou qui ne se résout pas sur le même `anchor_id`), aucun Ancrage hors `unanswerable` : « rejetées à la génération ». Une `unanswerable` perd les Ancrages cités par le modèle (elle n'en porte pas). Au-delà de la répartition d'un Type : « écartées en surplus » ; Types non atteints : « manquantes ». Le Faux LLM ignore `types` (une `factual` par Ancrage) : seules les `factual` demandées sont retenues, les autres Types sont signalés manquants.
 - Ancrages écrits `{doc, page}` ou `{doc, headings}` (AD-5). `id` : `q-NNN`, après le plus grand numéro existant et jamais un `id` déjà présent (rejetées comprises). `lang` : langue du Document du premier Ancrage.
 - Plafond atteint : `BudgetExceeded` avant tout appel, code 3, fichier non réécrit (aucune écriture partielle). Un jeu gelé est refusé (code 2), comme un `corpus_id` différent. `question_gen_model` (ou `--modele`) est contrôlé au Catalogue avant tout appel (code 2) : report RUN-STATUS traité pour `generer`.
@@ -25,7 +25,7 @@ status: done
 
 ## Tâches et critères
 
-- [x] `wl questions generer` ajoute des Questions `generated`, `origin: {kind: model, name}`, `id` neuf, `split: null` ; existantes conservées : `test_questions_ajoutees_generated_et_existantes_conservees`, `test_nouveau_fichier_cree_a_cote_du_corpus`, `test_faux_llm_par_defaut_respecte_la_repartition`, `test_modele_explicite_trace_dans_origin`.
+- [x] `librarian-bench questions generer` ajoute des Questions `generated`, `origin: {kind: model, name}`, `id` neuf, `split: null` ; existantes conservées : `test_questions_ajoutees_generated_et_existantes_conservees`, `test_nouveau_fichier_cree_a_cote_du_corpus`, `test_faux_llm_par_defaut_respecte_la_repartition`, `test_modele_explicite_trace_dans_origin`.
 - [x] `anchor_id` absent écarté et compté ; Ancrages écrits `{doc, page}` / `{doc, headings}` : `test_anchor_id_absent_du_corpus_ecarte`, `test_ancrage_page_ecrit_en_doc_page`.
 - [x] Rôle `question_gen`, `inputs` `anchors` et `types`, span `wl.post=evalset`, seconde génération servie par le Cache à coût nul : `test_role_inputs_et_poste_evalset_puis_cache`, `test_generer_fixe_lui_meme_le_poste`.
 - [x] Plafond insuffisant : code 3, rien d'écrit, Questions validées intactes : `test_plafond_insuffisant_code_3_sans_ecriture`.

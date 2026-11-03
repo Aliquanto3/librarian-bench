@@ -4,8 +4,8 @@ from pathlib import Path
 
 import yaml
 
-from wavelibrarian.config.defaults import load_profile
-from wavelibrarian.config.validate import validate_file
+from librarian_bench.config.defaults import load_profile
+from librarian_bench.config.validate import validate_file
 
 RACINE = Path(__file__).resolve().parents[2]
 MINI_CPU = RACINE / "experiments" / "mini-cpu.yaml"

@@ -1,4 +1,5 @@
-"""Story 8.3 : statut `completed_with_errors` de `wl run` (P9), en Faux LLM (profil `test`)."""
+"""Story 8.3 : statut `completed_with_errors` de `librarian-bench run` (P9), en Faux LLM (profil
+`test`)."""
 
 import json
 from pathlib import Path
@@ -8,14 +9,14 @@ import pytest
 import yaml
 from typer.testing import CliRunner
 
-from wavelibrarian.cli import app
-from wavelibrarian.core.bilan import causes_execution, decrire_cause
-from wavelibrarian.core.errors import BudgetExceeded
-from wavelibrarian.llm.providers.fake import FakeProvider, default_output
-from wavelibrarian.ports.gateway import LLMRequest
-from wavelibrarian.runner.execute import run_experiment
-from wavelibrarian.runner.resume import deja_terminee
-from wavelibrarian.runner.rundir import read_answers, read_panel
+from librarian_bench.cli import app
+from librarian_bench.core.bilan import causes_execution, decrire_cause
+from librarian_bench.core.errors import BudgetExceeded
+from librarian_bench.llm.providers.fake import FakeProvider, default_output
+from librarian_bench.ports.gateway import LLMRequest
+from librarian_bench.runner.execute import run_experiment
+from librarian_bench.runner.resume import deja_terminee
+from librarian_bench.runner.rundir import read_answers, read_panel
 
 RACINE = Path(__file__).resolve().parents[3] / "corpora" / "minicorpus"
 BM25 = {"id": "bm25", "architecture": "bm25_only"}
@@ -61,7 +62,7 @@ def _manifeste(dossier: Path) -> dict[str, Any]:
 
 
 def _avec_faux(monkeypatch: pytest.MonkeyPatch, faux: FakeProvider) -> None:
-    from wavelibrarian import cli
+    from librarian_bench import cli
 
     def lancer(*a: Any, **k: Any) -> Any:
         return run_experiment(*a, providers={"fake": faux}, **k)
@@ -134,7 +135,7 @@ def test_max_error_rate_hors_bornes_refuse_code_2(
 
 
 def test_max_error_rate_defaut_0_2_dans_l_experience_resolue(tmp_path: Path) -> None:
-    from wavelibrarian.config.validate import validate_file
+    from librarian_bench.config.validate import validate_file
 
     assert validate_file(_experience(tmp_path)).resolved.max_error_rate == 0.2
     assert validate_file(_experience(tmp_path, max_error_rate=1)).resolved.max_error_rate == 1.0
@@ -220,7 +221,7 @@ def test_scenario_sain_completed_code_0(tmp_path: Path, wl_home: Path) -> None:
 def test_plafond_prime_sur_les_erreurs(
     tmp_path: Path, wl_home: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:
-    from wavelibrarian.architectures.bm25_only import Bm25Only
+    from librarian_bench.architectures.bm25_only import Bm25Only
 
     reel = Bm25Only.answer
 
@@ -245,8 +246,8 @@ def test_plafond_prime_sur_les_erreurs(
 def test_reprise_repose_les_erreurs_et_rejuge(
     tmp_path: Path, wl_home: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:
-    from wavelibrarian.architectures.bm25_only import Bm25Only
-    from wavelibrarian.components.judges.llm import LLMJudge
+    from librarian_bench.architectures.bm25_only import Bm25Only
+    from librarian_bench.components.judges.llm import LLMJudge
 
     etat = {"panne": True}
     reel_answer, reel_juge = Bm25Only.answer, LLMJudge.judge

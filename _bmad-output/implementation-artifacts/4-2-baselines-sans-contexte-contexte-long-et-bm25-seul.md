@@ -8,13 +8,13 @@ status: done
 
 ## Code Map
 
-- `src/wavelibrarian/architectures/no_context.py` : `NoContext` (`("architecture", "no_context")`, `retrieval_method: none`).
-- `src/wavelibrarian/architectures/long_context.py` : `LongContext` (`full_corpus_in_prompt`, `retrieval_method: cited`, `check(profile)`).
-- `src/wavelibrarian/architectures/bm25_only.py` : `Bm25Only` (`k: 5`, `query_params = {k}`).
-- `src/wavelibrarian/architectures/_passages.py` : écriture et lecture de `passages.jsonl` (UTF-8, LF).
-- `src/wavelibrarian/components/lexical_indexes/bm25.py` : `Bm25Index` (`("lexical_index", "bm25")`, bm25s).
-- `src/wavelibrarian/components/retrievers/lexical.py` : `LexicalRetriever` (`("retriever", "lexical")`).
-- `src/wavelibrarian/components/generators/llm.py` : paramètre `cache_system` (Contexte dans le system, mis en cache).
+- `src/librarian_bench/architectures/no_context.py` : `NoContext` (`("architecture", "no_context")`, `retrieval_method: none`).
+- `src/librarian_bench/architectures/long_context.py` : `LongContext` (`full_corpus_in_prompt`, `retrieval_method: cited`, `check(profile)`).
+- `src/librarian_bench/architectures/bm25_only.py` : `Bm25Only` (`k: 5`, `query_params = {k}`).
+- `src/librarian_bench/architectures/_passages.py` : écriture et lecture de `passages.jsonl` (UTF-8, LF).
+- `src/librarian_bench/components/lexical_indexes/bm25.py` : `Bm25Index` (`("lexical_index", "bm25")`, bm25s).
+- `src/librarian_bench/components/retrievers/lexical.py` : `LexicalRetriever` (`("retriever", "lexical")`).
+- `src/librarian_bench/components/generators/llm.py` : paramètre `cache_system` (Contexte dans le system, mis en cache).
 - Tests : `tests/unit/architectures/test_story_4_2.py` (Faux LLM, profil `test`).
 
 ## Design Notes

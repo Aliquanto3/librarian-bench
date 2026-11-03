@@ -6,15 +6,15 @@ from pathlib import Path
 import pytest
 import yaml
 
-from wavelibrarian import registry
-from wavelibrarian.components.parsers.html import HtmlParser
-from wavelibrarian.components.parsers.markdown import MarkdownParser
-from wavelibrarian.components.parsers.text import TextParser
-from wavelibrarian.core.errors import ConfigError
-from wavelibrarian.core.ids import sha16_bytes
-from wavelibrarian.core.types import DocMeta, ParsedCorpus
-from wavelibrarian.corpus.declare import declare
-from wavelibrarian.corpus.ingest import ingest, nom_parser_resolu, parsers_par_format
+from librarian_bench import registry
+from librarian_bench.components.parsers.html import HtmlParser
+from librarian_bench.components.parsers.markdown import MarkdownParser
+from librarian_bench.components.parsers.text import TextParser
+from librarian_bench.core.errors import ConfigError
+from librarian_bench.core.ids import sha16_bytes
+from librarian_bench.core.types import DocMeta, ParsedCorpus
+from librarian_bench.corpus.declare import declare
+from librarian_bench.corpus.ingest import ingest, nom_parser_resolu, parsers_par_format
 
 MD = b"""Intro avant titre.
 

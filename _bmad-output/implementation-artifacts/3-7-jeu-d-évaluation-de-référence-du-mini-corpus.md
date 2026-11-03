@@ -15,7 +15,7 @@ status: done
 
 ## Design Notes
 
-- Écriture : Questions et Réponses de référence rédigées à la main à partir des Documents du Mini-corpus, sans appel LLM ; le fichier a été produit par `evalset.io.save` (ordre de clés du contrat §4.5), puis gelé par `wl questions geler --dev-ratio 0.4 --graine 42`. Le Gel est déterministe et n'appelle aucun modèle : le profil `test` n'a donc pas été nécessaire. Le Filtre closed-book n'est pas demandé par les critères et n'a pas été lancé (`contaminated_by: []` partout) ; avec le Faux LLM il ne contaminerait de toute façon rien.
+- Écriture : Questions et Réponses de référence rédigées à la main à partir des Documents du Mini-corpus, sans appel LLM ; le fichier a été produit par `evalset.io.save` (ordre de clés du contrat §4.5), puis gelé par `librarian-bench questions geler --dev-ratio 0.4 --graine 42`. Le Gel est déterministe et n'appelle aucun modèle : le profil `test` n'a donc pas été nécessaire. Le Filtre closed-book n'est pas demandé par les critères et n'a pas été lancé (`contaminated_by: []` partout) ; avec le Faux LLM il ne contaminerait de toute façon rien.
 - Répartition : factual 21, multi_hop 7, temporal 7, comparison 5, global 3, unanswerable 2, knowledge_trap 2. Partie dev / test : factual 8/13, multi_hop 3/4, comparison 2/3, temporal 3/4, global 1/2, unanswerable 1/1, knowledge_trap 1/1 (19 dev, 28 test).
 - Types particuliers : 3 suivis (historique d'un tour), 5 interlingues (Question française sur Documents anglais, et l'inverse ; un test vérifie que la langue de la Question diffère de celle de chaque Document ancré), 4 `scenario_target` (`op-1` et deux `op-2` à l'état `after`, `op-3` à l'état `before` sur la note supprimée), 2 `unanswerable` sans Ancrage (fait absent : capitaine du Petit Sarnoux ; tarif Keld – Brumeval), 2 `knowledge_trap` (quarantaine de onze jours au lieu de quarante ; courant qui s'inverse tous les quarante-deux jours et non plusieurs fois par jour).
 - Réponses courtes : 18 Questions `factual` sur 21 en `short`, dont quatre citent une page de PDF (`convention-douane.pdf` pages 1 et 2, `tarifs-passeurs.pdf`, `lettre-torvane.pdf`).
@@ -26,7 +26,7 @@ status: done
 
 ## Tâches et critères
 
-- [x] `wl questions controler` avec `--scenario` sort en 0, au moins 40 Questions `validated`, `origin` `claude-code-dev-agent`, `target_count: 40` : `test_controle_complet_avec_scenario`, `test_commande_controler_avec_scenario`, `test_effectif_origine_et_cible`.
+- [x] `librarian-bench questions controler` avec `--scenario` sort en 0, au moins 40 Questions `validated`, `origin` `claude-code-dev-agent`, `target_count: 40` : `test_controle_complet_avec_scenario`, `test_commande_controler_avec_scenario`, `test_effectif_origine_et_cible`.
 - [x] Tous les Types sauf `visual` et `numeric_aggregation`, deux `follow_up` avec historique, deux `cross_lingual`, trois `scenario_target` valides : `test_types_suivis_interlingues_et_scenario`, `test_interlingue_langue_de_la_question_differente_du_document`.
 - [x] Une `unanswerable` sur fait absent, une `knowledge_trap` : `test_unanswerable_sans_ancrage_et_piege_ancre`.
 - [x] Au moins cinq `factual` en `short`, une citant une page de PDF : `test_questions_factuelles_courtes_et_page_de_pdf`.
@@ -50,4 +50,4 @@ Revue Opus du 2026-10-18, après rebase sur `main` (caef354). Toutes les Questio
 - low, second avis 4, rejeté : `q-001` reprend son Ancrage à dessein, c'est la Question de conformité (87,5 % de mots communs, exigés par l'AC et par la story 4.14).
 - low, second avis 5, corrigé : ajout de `test_reponses_factuelles_courtes_presentes_dans_leurs_ancrages` et de `test_questions_hors_scenario_sans_document_modifie_ou_supprime` (liste `stables` explicite pour `q-022`). Le test de répartition reste un contrôle de cohérence avec `nb_dev`, pas un oracle indépendant.
 - low, second avis 6, consigné : `from conftest import` repose sur l'import de `tests/conftest.py` par pytest en mode `prepend` (dossier `tests/` sans `__init__.py`) ; il casserait avec `--import-mode=importlib`. La story 4.14 devra en tenir compte.
-- Re-Gel : `wl questions geler --dev-ratio 0.4 --graine 42` sans `--forcer` (aucune partie ne change), nouvelle empreinte `76fa20b7…`. Un ajout `op-1` qui change un fait existant n'est pas détectable mécaniquement : à relire à chaque nouveau Scénario.
+- Re-Gel : `librarian-bench questions geler --dev-ratio 0.4 --graine 42` sans `--forcer` (aucune partie ne change), nouvelle empreinte `76fa20b7…`. Un ajout `op-1` qui change un fait existant n'est pas détectable mécaniquement : à relire à chaque nouveau Scénario.

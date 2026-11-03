@@ -1,15 +1,15 @@
 ---
 story: "2.7"
-title: Paliers de volume et commande `wl corpus paliers`
+title: Paliers de volume et commande `librarian-bench corpus paliers`
 status: done
 ---
 
-# Story 2.7 : Paliers de volume et commande `wl corpus paliers`
+# Story 2.7 : Paliers de volume et commande `librarian-bench corpus paliers`
 
 ## Code Map
 
-- `src/wavelibrarian/corpus/tiers.py` : `tirer_chemins(chemins, tiers, required_paths)` -> `{taille: source_path triés}`, `sous_corpus(parsed, chemins)`, `tirer(parsed, tiers, required_paths)` -> `{taille: ParsedCorpus}`.
-- `src/wavelibrarian/cli.py` : commande `wl corpus paliers <corpus.yaml>` (seul ajout).
+- `src/librarian_bench/corpus/tiers.py` : `tirer_chemins(chemins, tiers, required_paths)` -> `{taille: source_path triés}`, `sous_corpus(parsed, chemins)`, `tirer(parsed, tiers, required_paths)` -> `{taille: ParsedCorpus}`.
+- `src/librarian_bench/cli.py` : commande `librarian-bench corpus paliers <corpus.yaml>` (seul ajout).
 - `tests/unit/corpus/test_tiers.py` : tests de la story.
 
 ## Design Notes
@@ -35,7 +35,7 @@ Voir le rapport de l'agent (suite complète, pyright et contrôle rapide).
 
 ## Revue
 
-- medium, second avis 2 : corrigé. La CLI tirait sur les Documents déclarés alors que l'ingestion écarte les illisibles ; un seul Document écarté change tout le mélange, donc les Paliers affichés différaient de `tirer(parsed)`. La commande ingère désormais (comme `wl corpus profiler`) ; `test_commande_document_illisible_hors_paliers` échoue sans le correctif.
+- medium, second avis 2 : corrigé. La CLI tirait sur les Documents déclarés alors que l'ingestion écarte les illisibles ; un seul Document écarté change tout le mélange, donc les Paliers affichés différaient de `tirer(parsed)`. La commande ingère désormais (comme `librarian-bench corpus profiler`) ; `test_commande_document_illisible_hors_paliers` échoue sans le correctif.
 - medium, second avis 1 : reporté (epic 4, runner). L'AC de la commande ne demande pas de `required_paths`, et `tirer(parsed, tiers, required_paths)` les gère déjà. À vérifier : le runner déduit cette liste des Ancrages des Questions et la passe à `tirer`.
 - low, second avis 3 : rejeté. `random.Random(int(sha16(str(seed), "tiers"), 16))` reprend exactement `Context.rng` (`runner/context.py`), que AD-20 autorise.
 - low, second avis 4 : corrigé. Le test de graine vérifie aussi l'indépendance à l'ordre d'entrée, un tirage figé (graine 42) et quatre Paliers 5 distincts pour quatre graines.

@@ -12,14 +12,14 @@ import pytest
 import yaml
 from typer.testing import CliRunner
 
-from wavelibrarian.cli import app
-from wavelibrarian.core.errors import ConfigError
-from wavelibrarian.core.types import Answer
-from wavelibrarian.measure.tco import possession_cost
-from wavelibrarian.report.couts import calculer_couts, quantile
-from wavelibrarian.report.generer import construire_markdown, generer_rapport
-from wavelibrarian.report.lecture import Execution, charger
-from wavelibrarian.report.scores import QUALITE, LignePaire, Resultats
+from librarian_bench.cli import app
+from librarian_bench.core.errors import ConfigError
+from librarian_bench.core.types import Answer
+from librarian_bench.measure.tco import possession_cost
+from librarian_bench.report.couts import calculer_couts, quantile
+from librarian_bench.report.generer import construire_markdown, generer_rapport
+from librarian_bench.report.lecture import Execution, charger
+from librarian_bench.report.scores import QUALITE, LignePaire, Resultats
 
 RACINE = Path(__file__).resolve().parents[3] / "corpora" / "minicorpus"
 USD = Decimal("0.8938")
@@ -235,14 +235,14 @@ def test_energie_mixte_a_part_et_judging_hors_configuration(run_dir: Path, tmp_p
 
 
 def test_costs_csv_ajoute_les_colonnes_mixtes_en_fin(run_dir: Path) -> None:
-    from wavelibrarian.report.couts import ENTETE_COUTS, ligne_csv
+    from librarian_bench.report.couts import ENTETE_COUTS, ligne_csv
 
     assert ENTETE_COUTS[-2:] == ["kwh_mixed", "co2e_g_mixed"]
     assert ENTETE_COUTS[:8] == [
         "config_id", "post", "cost_eur_real", "cost_eur_uncached", "kwh_measured",
         "kwh_estimated", "co2e_g", "n_calls",
     ]  # fmt: skip
-    from wavelibrarian.report.couts import LigneCout
+    from librarian_bench.report.couts import LigneCout
 
     ligne = LigneCout(("a", "standard", None, "base", "query"))
     ligne.kwh_mixed = Decimal("0.5")

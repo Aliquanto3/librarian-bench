@@ -13,24 +13,24 @@ import pytest
 import yaml
 from typer.testing import CliRunner
 
-from wavelibrarian.architectures.bm25_only import Bm25Only
-from wavelibrarian.architectures.long_context import LongContext
-from wavelibrarian.architectures.no_context import NoContext
-from wavelibrarian.cli import app
-from wavelibrarian.core.errors import BudgetExceeded, WlError
-from wavelibrarian.core.types import Answer, ArchAnswer, QuestionInput, Usage
-from wavelibrarian.corpus.declare import declare
-from wavelibrarian.corpus.ingest import ingest
-from wavelibrarian.evalset import io
-from wavelibrarian.evalset.freeze import select_questions
-from wavelibrarian.llm.providers.base import ProviderResponse
-from wavelibrarian.llm.providers.fake import FakeProvider
-from wavelibrarian.measure.energy import FakeMeter
-from wavelibrarian.ports.architecture import ArchitectureBase
-from wavelibrarian.ports.components import ComponentSpec
-from wavelibrarian.runner.context import Context
-from wavelibrarian.runner.execute import _Runner
-from wavelibrarian.runner.index_cache import IndexCache
+from librarian_bench.architectures.bm25_only import Bm25Only
+from librarian_bench.architectures.long_context import LongContext
+from librarian_bench.architectures.no_context import NoContext
+from librarian_bench.cli import app
+from librarian_bench.core.errors import BudgetExceeded, WlError
+from librarian_bench.core.types import Answer, ArchAnswer, QuestionInput, Usage
+from librarian_bench.corpus.declare import declare
+from librarian_bench.corpus.ingest import ingest
+from librarian_bench.evalset import io
+from librarian_bench.evalset.freeze import select_questions
+from librarian_bench.llm.providers.base import ProviderResponse
+from librarian_bench.llm.providers.fake import FakeProvider
+from librarian_bench.measure.energy import FakeMeter
+from librarian_bench.ports.architecture import ArchitectureBase
+from librarian_bench.ports.components import ComponentSpec
+from librarian_bench.runner.context import Context
+from librarian_bench.runner.execute import _Runner
+from librarian_bench.runner.index_cache import IndexCache
 
 RACINE = Path(__file__).resolve().parents[3] / "corpora" / "minicorpus"
 CONFIGS = ("sans-contexte", "contexte-long", "bm25")
@@ -459,7 +459,7 @@ def test_hit_du_cache_hors_temps_ecoule_et_hors_energie(tmp_path: Path) -> None:
 
 
 def test_temps_propre_negatif_ramene_a_zero_et_signale(caplog: pytest.LogCaptureFixture) -> None:
-    from wavelibrarian.measure.tracing import temps_propre
+    from librarian_bench.measure.tracing import temps_propre
 
     assert temps_propre(1.0, 0.25) == 0.75
     with caplog.at_level("WARNING"):

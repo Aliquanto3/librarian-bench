@@ -8,7 +8,7 @@ status: done
 
 ## Code Map
 
-- `src/wavelibrarian/architectures/raptor.py` : `Raptor(NaiveRag)` enregistrée `("architecture", "raptor")`, `incremental_update: false`, `retrieval_method: ranked`. Params ajoutés : `group_min = 5`, `group_max = 10`, `max_depth = 3`, `summary_model`, `summary_max_tokens`. `query_params` hérité (`k`). `load` et `answer` sont ceux de `naive_rag` : l'arbre aplati est dans `passages.jsonl` et dans le store `numpy_exact`.
+- `src/librarian_bench/architectures/raptor.py` : `Raptor(NaiveRag)` enregistrée `("architecture", "raptor")`, `incremental_update: false`, `retrieval_method: ranked`. Params ajoutés : `group_min = 5`, `group_max = 10`, `max_depth = 3`, `summary_model`, `summary_max_tokens`. `query_params` hérité (`k`). `load` et `answer` sont ceux de `naive_rag` : l'arbre aplati est dans `passages.jsonl` et dans le store `numpy_exact`.
 - `tests/unit/architectures/test_story_7_1.py` : tests de la story.
 - Aucun changement de `roles.py`, `fake.py`, `scoring/`, runner, ni du suivi.
 

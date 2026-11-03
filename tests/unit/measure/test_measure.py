@@ -10,12 +10,12 @@ from typing import Any
 
 import pytest
 
-from wavelibrarian.config.catalog import load_catalog
-from wavelibrarian.config.defaults import load_costs, load_profile
-from wavelibrarian.core.errors import WlError
-from wavelibrarian.core.types import Condition, CostPost, Phase, Usage
-from wavelibrarian.measure import energy, tokenizers
-from wavelibrarian.measure.energy import (
+from librarian_bench.config.catalog import load_catalog
+from librarian_bench.config.defaults import load_costs, load_profile
+from librarian_bench.core.errors import WlError
+from librarian_bench.core.types import Condition, CostPost, Phase, Usage
+from librarian_bench.measure import energy, tokenizers
+from librarian_bench.measure.energy import (
     CodecarbonMeter,
     EcoLogitsEstimator,
     FakeEstimator,
@@ -25,15 +25,15 @@ from wavelibrarian.measure.energy import (
     make_meter,
     spread_energy,
 )
-from wavelibrarian.measure.tco import possession_cost
-from wavelibrarian.measure.tokenizers import (
+from librarian_bench.measure.tco import possession_cost
+from librarian_bench.measure.tokenizers import (
     ApproxTokenizer,
     ReferenceTokenizer,
     ScaledTokenizer,
     make_tokenizer,
     tokenizer_for,
 )
-from wavelibrarian.measure.tracing import Tracer
+from librarian_bench.measure.tracing import Tracer
 
 
 class _Ctx:
@@ -189,7 +189,7 @@ def test_reference_sans_encodage_local_ne_telecharge_pas(
     monkeypatch.setenv("TIKTOKEN_CACHE_DIR", str(tmp_path))
     tok = ReferenceTokenizer()
     assert tok.name == "reference"
-    with pytest.raises(WlError, match="wl installer"):
+    with pytest.raises(WlError, match="librarian-bench installer"):
         tok.count("bonjour")
 
 
@@ -203,7 +203,7 @@ def test_reference_avec_cache_illisible(tmp_path: Path, monkeypatch: pytest.Monk
     (tmp_path / cle).write_text("x", encoding="utf-8")
     # Hachage faux : refusé avant tiktoken, qui supprimerait le fichier puis retéléchargerait.
     assert not tokenizers.encodage_installe()
-    with pytest.raises(WlError, match="wl installer"):
+    with pytest.raises(WlError, match="librarian-bench installer"):
         ReferenceTokenizer().count("bonjour")
     assert (tmp_path / cle).read_text(encoding="utf-8") == "x"  # tiktoken jamais appelé
 
@@ -214,7 +214,7 @@ def test_reference_cache_desactive(monkeypatch: pytest.MonkeyPatch) -> None:
     monkeypatch.setenv("DATA_GYM_CACHE_DIR", "ailleurs")
     assert tokenizers._dossier_cache_tiktoken() is None
     assert not tokenizers.encodage_installe()
-    with pytest.raises(WlError, match="wl installer"):
+    with pytest.raises(WlError, match="librarian-bench installer"):
         ReferenceTokenizer().count("bonjour")
 
 
@@ -282,14 +282,14 @@ def test_adaptateurs_sans_extra_energy(nom: str, monkeypatch: pytest.MonkeyPatch
 def test_import_paresseux_des_adaptateurs() -> None:
     # Importer le module d'énergie (processus neuf) ne charge ni codecarbon ni ecologits.
     code = (
-        "import sys, wavelibrarian.measure.energy as e; "
+        "import sys, librarian_bench.measure.energy as e; "
         "print(sorted(m for m in sys.modules if m.split('.')[0] in ('codecarbon', 'ecologits')))"
     )
     sortie = subprocess.run(
         [sys.executable, "-c", code], capture_output=True, text=True, check=True
     ).stdout
     assert sortie.strip() == "[]"
-    assert energy.CodecarbonMeter.__module__ == "wavelibrarian.measure.energy"
+    assert energy.CodecarbonMeter.__module__ == "librarian_bench.measure.energy"
 
 
 def test_codecarbon_double_sans_gpu(monkeypatch: pytest.MonkeyPatch) -> None:

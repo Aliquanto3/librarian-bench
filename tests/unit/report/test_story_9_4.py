@@ -9,19 +9,19 @@ import pytest
 import yaml
 from typer.testing import CliRunner
 
-from wavelibrarian.cli import app
-from wavelibrarian.core.errors import ConfigError
-from wavelibrarian.report.importer import importer_verdicts
-from wavelibrarian.report.lecture import lire_reponses
-from wavelibrarian.report.page_annotation import donnees_de_page, generer_page
-from wavelibrarian.report.paquet import (
+from librarian_bench.cli import app
+from librarian_bench.core.errors import ConfigError
+from librarian_bench.report.importer import importer_verdicts
+from librarian_bench.report.lecture import lire_reponses
+from librarian_bench.report.page_annotation import donnees_de_page, generer_page
+from librarian_bench.report.paquet import (
     DONNEES_DE_REPONSE,
     exporter_depuis,
     exporter_paquet,
     lire_paquet,
     repartir,
 )
-from wavelibrarian.scoring.calibration import charger_dossier, charger_fichier, lire_yaml
+from librarian_bench.scoring.calibration import charger_dossier, charger_fichier, lire_yaml
 
 RACINE = Path(__file__).resolve().parents[3] / "corpora" / "minicorpus"
 ANAEL = RACINE / "annotations" / "anael.yaml"
@@ -53,7 +53,7 @@ def run_dir(tmp_path_factory: pytest.TempPathFactory) -> Path:
     chemin = base / "exp.yaml"
     chemin.write_text(yaml.safe_dump(DONNEES, allow_unicode=True), encoding="utf-8")
     mp = pytest.MonkeyPatch()
-    mp.setenv("WL_HOME", str(home))
+    mp.setenv("LIBRARIAN_BENCH_HOME", str(home))
     try:
         res = CliRunner().invoke(app, ["run", str(chemin)])
         assert res.exit_code == 0, res.output
@@ -239,7 +239,7 @@ def test_depuis_refus(run_dir: Path, tmp_path: Path) -> None:
 
 def test_cli_depuis_et_repartition(run_dir: Path, tmp_path: Path, monkeypatch: Any) -> None:
     home = run_dir.parent.parent
-    monkeypatch.setenv("WL_HOME", str(home))
+    monkeypatch.setenv("LIBRARIAN_BENCH_HOME", str(home))
     r = CliRunner().invoke(
         app,
         ["annotations", "exporter", run_dir.name, "--vers", str(tmp_path / "p"), "--nombre", "6"],
@@ -709,7 +709,7 @@ def test_import_entree_sans_answer_id_en_tete_refusee(tmp_path: Path) -> None:
 def test_table_collision_de_cle_courte_deterministe(monkeypatch: pytest.MonkeyPatch) -> None:
     """Deux Passages dont les empreintes partagent 8 caractères : le second prend 16 caractères,
     dans l'ordre d'insertion, et chacun se relit à l'identique."""
-    import wavelibrarian.report.paquet as mod
+    import librarian_bench.report.paquet as mod
 
     empreintes = {"un": "abcdef0011111111", "deux": "abcdef0022222222"}
     monkeypatch.setattr(mod, "sha16", lambda _p, _a, texte: empreintes[texte])
@@ -736,7 +736,7 @@ def test_import_aller_retour_table_multiligne(tmp_path: Path) -> None:
     """Table `passages` à textes multilignes et caractères YAML spéciaux (y compris des lignes
     qui ressemblent à `- answer_id:` ou `verdict:`) : seules les lignes verdict et note changent,
     les Passages se relisent à l'identique."""
-    from wavelibrarian.report.paquet import ENTETE, TablePassages, _Dumper
+    from librarian_bench.report.paquet import ENTETE, TablePassages, _Dumper
 
     t = TablePassages()
     ctx = [

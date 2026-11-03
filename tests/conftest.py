@@ -4,9 +4,9 @@ from pathlib import Path
 
 import pytest
 
-from wavelibrarian.core.types import ParsedCorpus
-from wavelibrarian.corpus.declare import declare
-from wavelibrarian.corpus.ingest import ingest
+from librarian_bench.core.types import ParsedCorpus
+from librarian_bench.corpus.declare import declare
+from librarian_bench.corpus.ingest import ingest
 
 CORPUS_MINICORPUS = (
     Path(__file__).resolve().parent.parent / "corpora" / "minicorpus" / "corpus.yaml"
@@ -20,10 +20,10 @@ CONFORMANCE_QUESTION_ID = "q-001"
 
 @pytest.fixture
 def wl_home(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> Path:
-    """Dossier d'état local isolé, exposé par la variable `WL_HOME`."""
+    """Dossier d'état local isolé, exposé par la variable `LIBRARIAN_BENCH_HOME`."""
     dossier = tmp_path / "wl_home"
     dossier.mkdir()
-    monkeypatch.setenv("WL_HOME", str(dossier))
+    monkeypatch.setenv("LIBRARIAN_BENCH_HOME", str(dossier))
     return dossier
 
 

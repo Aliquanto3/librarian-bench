@@ -18,7 +18,7 @@ Permettre à Anaël de comparer aux Baselines cinq Architectures du niveau 1 : R
 
 - Aucun réseau ni API dans les tests : Faux LLM (`fake-llm-a/b/c`), faux embedder (dim 64), profil `test`.
 - `sentence-transformers` et `torch` ne sont pas installés (extra `local`) : les tests n'utilisent que le faux embedder.
-- Ollama et GPU seulement après le go d'Anaël (pas de `pytest -m real_local`, pas de `wl run` sur `mini-cpu.yaml`).
+- Ollama et GPU seulement après le go d'Anaël (pas de `pytest -m real_local`, pas de `librarian-bench run` sur `mini-cpu.yaml`).
 - Pas d'extra lourd ni de téléchargement de plus de 1 Go ; `OMP_NUM_THREADS=4`, RAM ≤ 6 Go, pas de pytest parallèle.
 
 ## Requirements & Constraints
@@ -59,4 +59,4 @@ Permettre à Anaël de comparer aux Baselines cinq Architectures du niveau 1 : R
 - Passerelle : `cache_write_1h` n'est pas facturé, `Usage` n'a pas de poste 1 h ; à garder en tête pour les coûts CAG (1.4).
 - Arbitrages en attente touchant les coûts : AC 3 de 1.4 (palier ×5 contre 0,60), AC 2 de 1.8 (plafond de période).
 - `check(profile)` pour CAG : tokens estimés avec le facteur du Catalogue, comme `long_context` (4.2).
-- Quand Ollama et le GPU seront libres : `uv sync --extra local`, `wl installer --profil cpu`, `pytest -m real_local` (embedders réels ; 1.12).
+- Quand Ollama et le GPU seront libres : `uv sync --extra local`, `librarian-bench installer --profil cpu`, `pytest -m real_local` (embedders réels ; 1.12).

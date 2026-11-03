@@ -4,14 +4,14 @@
 
 ## Goal
 
-Permettre à Anaël de lancer `wl run` sur une Expérience qui compare les trois Baselines (sans contexte, contexte long, BM25 seul), en Condition standard et contexte parfait, avec Scénario de mise à jour et Paliers de volume. L'Exécution s'arrête proprement au plafond de dépense et reprend sans repayer. Elle produit un Rapport complet : scores par Critère avec IC, comparaisons appariées, coûts et énergie par Poste, latence, point mort, Fraîcheur, fronts de Pareto exportables. L'epic pose aussi la suite de conformité commune qui valide toute Architecture future.
+Permettre à Anaël de lancer `librarian-bench run` sur une Expérience qui compare les trois Baselines (sans contexte, contexte long, BM25 seul), en Condition standard et contexte parfait, avec Scénario de mise à jour et Paliers de volume. L'Exécution s'arrête proprement au plafond de dépense et reprend sans repayer. Elle produit un Rapport complet : scores par Critère avec IC, comparaisons appariées, coûts et énergie par Poste, latence, point mort, Fraîcheur, fronts de Pareto exportables. L'epic pose aussi la suite de conformité commune qui valide toute Architecture future.
 
 ## Stories
 
 - Story 4.1: Découpage, contexte étiqueté et Generator LLM
 - Story 4.2: Baselines sans contexte, contexte long et BM25 seul
 - Story 4.3: Cache d'index et dossier d'Exécution
-- Story 4.4: Exécution d'une Expérience par `wl run`
+- Story 4.4: Exécution d'une Expérience par `librarian-bench run`
 - Story 4.5: Mesure de l'Exécution : postes, latence, énergie et rejeu
 - Story 4.6: Condition contexte parfait et Paliers de volume
 - Story 4.7: Phase après mise à jour
@@ -28,8 +28,8 @@ Permettre à Anaël de lancer `wl run` sur une Expérience qui compare les trois
 
 - Aucun réseau ni API dans les tests : Faux LLM (`fake-llm-a/b/c`), faux embedder, profil `test`.
 - Seule la story 4.15 appelle la vraie API Anthropic (Haiku 5.5, 5 Questions, plafond 5 $), avec Juges et embedder factices.
-- Ollama et GPU seulement après le go d'Anaël (`/api/tags` toléré au préflight) ; pas de `pytest -m real_local`, pas de `wl run` sur `mini-cpu.yaml`.
-- Pas d'extra lourd (`local`, `docling`), pas de `wl installer`, pas de téléchargement de plus de 1 Go ; `OMP_NUM_THREADS=4`, RAM ≤ 6 Go, pas de pytest parallèle.
+- Ollama et GPU seulement après le go d'Anaël (`/api/tags` toléré au préflight) ; pas de `pytest -m real_local`, pas de `librarian-bench run` sur `mini-cpu.yaml`.
+- Pas d'extra lourd (`local`, `docling`), pas de `librarian-bench installer`, pas de téléchargement de plus de 1 Go ; `OMP_NUM_THREADS=4`, RAM ≤ 6 Go, pas de pytest parallèle.
 
 ## Requirements & Constraints
 
@@ -47,7 +47,7 @@ Permettre à Anaël de lancer `wl run` sur une Expérience qui compare les trois
 
 ## Technical Decisions
 
-- Couches : `runner` et `report` sont indépendants (`runner` n'importe jamais `report`) ; c'est `cli.py` qui enchaîne `wl run` puis le Rapport, y compris partiel avant le code 3. Seul le runner écrit les JSONL de l'Exécution (ajout seulement, UTF-8, LF).
+- Couches : `runner` et `report` sont indépendants (`runner` n'importe jamais `report`) ; c'est `cli.py` qui enchaîne `librarian-bench run` puis le Rapport, y compris partiel avant le code 3. Seul le runner écrit les JSONL de l'Exécution (ajout seulement, UTF-8, LF).
 - Architecture (`ports/architecture.py`) : `index(corpus, dir)`, `load(dir)`, `update(change, corpus_after, old_dir, new_dir)`, `answer(QuestionInput)`, `answer_with_context`, `check(profile)`, `index_key()`, `query_params`. Une Architecture ne reçoit que `QuestionInput` (jamais la Réponse de référence) ; le runner complète `ArchAnswer` en `Answer`. Elle ne trace jamais ; les spans LLM viennent de la passerelle.
 - Cycle de vie piloté par le runner : parsing, `index` dans `.tmp-<clé>/`, `manifest.json`, `os.replace`, puis instance neuve + `load` (chemins cache présent et absent identiques) ; pour un Scénario, `update` vers la nouvelle clé sans toucher l'ancienne.
 - `index_key = sha16(canonical_json({corpus_fingerprint, architecture, index_key()}))` ; défaut = Params moins `query_params`, plus parser résolu et nom du tokenizer. Dossier d'index : `passages.jsonl` + `manifest.json`.
@@ -56,12 +56,12 @@ Permettre à Anaël de lancer `wl run` sur une Expérience qui compare les trois
 - Fichiers d'Exécution (`runs/<run_id>/`) : `experiment.resolved.yaml`, `experiment.sha256`, `manifest.json`, `corpus_profile.json`, `answers.jsonl`, `verdicts.jsonl`, `panel.jsonl`, `traces.jsonl`, `applicability.json`, `run.log`, `report/` (`report.md`, `scores.csv`, `pairs.csv`, `pareto.csv`, `costs.csv`, `retrieval.csv`). `traces.jsonl` n'est jamais réécrit ; la reprise relit `answers.jsonl` et `verdicts.jsonl`.
 - Modules : `components/chunkers/fixed_tokens`, `components/context/` (`labeled`, `build_arch_answer`), `components/generators/llm`, `components/lexical_indexes/bm25` (bm25s), retriever `lexical`, `runner/` (`index_cache`, `rundir`, `context`), `scoring/` (`retrieval`, `answer`, `panel`), `stats/` (`bootstrap`, `mcnemar`, `pareto`), `report/` (dont `export.py`). Baselines : `no_context`, `long_context` (`cache_system`, `retrieval_method: cited`), `bm25_only` (`k: 5`, `k` dans `query_params`).
 - Panel (AD-14) : Juges hors Famille des `answer_producer` et hors exclus de la calibration (`calibration.json`) ; `JudgeInput` construit avec `context_texts`.
-- Commandes : `wl run <exp> [--reprendre <run_id>]`, `wl rapport <run_id> [--exporter-front qualite-cout --vers <fichier>]` (liste `configurations:` acceptée par `config/load.py`). Codes de sortie 0, 1, 2, 3, 4 ; messages en français.
+- Commandes : `librarian-bench run <exp> [--reprendre <run_id>]`, `librarian-bench rapport <run_id> [--exporter-front qualite-cout --vers <fichier>]` (liste `configurations:` acceptée par `config/load.py`). Codes de sortie 0, 1, 2, 3, 4 ; messages en français.
 - Livrables de test : `tests/conformance/test_architectures.py` (paramétré sur tout le registre, utilise `CONFORMANCE_QUESTION_ID`), `tests/e2e/test_sm3.py`, `tests/real/test_sm4.py` (`real_api`, sauté sans `ANTHROPIC_API_KEY`) ; `experiments/mini-test.yaml` (une Configuration par Architecture enregistrée, vérifié par test), `mini-cpu.yaml`, `mini-real-haiku.yaml` (Juges `[fake-llm-b, fake-llm-c]`, embedder `fake`, `max_questions: 5`, 5,00 USD).
 
 ## Cross-Story Dependencies
 
-- 4.1 (Generator, contexte) précède 4.2 (Baselines) ; 4.3 (cache d'index, dossier) et 4.2 précèdent 4.4 (`wl run`) ; 4.4 est requis par 4.5 à 4.9.
+- 4.1 (Generator, contexte) précède 4.2 (Baselines) ; 4.3 (cache d'index, dossier) et 4.2 précèdent 4.4 (`librarian-bench run`) ; 4.4 est requis par 4.5 à 4.9.
 - 4.9 dépend du Juge LLM (3.4) et du Gel (3.6, `verify_frozen`, `select_questions`) ; 4.4 dépend de 3.6 et du `RunContext` concret (3.2).
 - 4.6 dépend de `tirer` (2.7) ; 4.7 du Scénario (2.6) et de la Question de conformité (3.7).
 - 4.10 est indépendante (fonctions pures) et précède 4.11 à 4.13 ; 4.11 précède 4.12 et 4.13.
@@ -73,9 +73,9 @@ Permettre à Anaël de lancer `wl run` sur une Expérience qui compare les trois
 - Runner, 4.3 / 4.4 : remplacer `parser: auto` par le parser concret (`markdown`, `text`, `html`, `pdf_text`) avant `write_resolved` et `RunContext.parser` ; vérifier qu'`experiment.resolved.yaml` ne contient plus `auto` (1.2, 1.5, 2.1, 2.2).
 - Runner, `RunContext` concret : exposer `tokenizer_for(model_id, catalog, reference)`, appeler `runner/wiring.py::build_gateway`, câbler `make_tokenizer(profil.tokenizer)` et le `Tracer`, appliquer `token_factor` à l'estimation, poser `wl.energy_*` via `FakeEstimator` / `EcoLogitsEstimator` (1.9, 1.7).
 - Runner : refuser à la validation un plafond `ollama` hors EUR ; répartir l'énergie locale par phase (1.9).
-- Runner, Faux LLM : construire `FakeProvider` et le passer à `build_gateway(providers={"fake": ...})` ; isoler le Cache de réponses des runs scénarisés (`script`) pour qu'une sortie scénarisée ne persiste pas dans `WL_HOME` (1.10).
+- Runner, Faux LLM : construire `FakeProvider` et le passer à `build_gateway(providers={"fake": ...})` ; isoler le Cache de réponses des runs scénarisés (`script`) pour qu'une sortie scénarisée ne persiste pas dans `LIBRARIAN_BENCH_HOME` (1.10).
 - Runner, journaux : créer le handler de `run.log` et appeler `limiter_journaux(handler)` après l'import du SDK (1.11).
-- Runner, verrou et registre : prendre `run.lock` puis ouvrir le `Ledger` avec `recover_orphans=True` ; tester qu'un second `wl run` ne règle pas les réservations du premier (1.8).
+- Runner, verrou et registre : prendre `run.lock` puis ouvrir le `Ledger` avec `recover_orphans=True` ; tester qu'un second `librarian-bench run` ne règle pas les réservations du premier (1.8).
 - Runner, contexte : garder le `RunContext` vivant (`with`) pendant toute l'Exécution sinon le GC libère `run.lock` ; fixer `parser` depuis la Configuration ; écrire `manifest.json`, `run.log`, `experiment.resolved.yaml` ; prévoir une libération manuelle d'une réservation `hors_execution` orpheline (3.2).
 - Runner, Scénario : passer à `corpus_apres` la langue par défaut du `corpus.yaml` (`lang`) et le Parser de la base (`parser`) (2.6).
 - Runner, Paliers : déduire les `required_paths` des Ancrages des Questions et les passer à `tirer(parsed, tiers, required_paths)` (2.7).
@@ -84,9 +84,9 @@ Permettre à Anaël de lancer `wl run` sur une Expérience qui compare les trois
 - Panel, Juge closed-book : refuser une justification vide si le contrat l'exige (`CriterionVerdict`) ; choisir le Juge par défaut avec filtre de Famille (AD-14) au lieu de `judge_pool[0]` (3.4).
 - Passerelle, 1.9 : `cache_write_1h` n'est pas facturé, `Usage` n'a pas de poste 1 h ; à garder en tête pour les coûts du Rapport (1.4).
 - Story 4.15 (`real_api`) : vérifier que l'API accepte `temperature` via `extra_body` et l'outil de sortie imposé (1.11).
-- Story 4.15 (`real_api`) : vérifier `wl questions generer` sur `claude-haiku-5-5` réel (répartition des Types, Ancrages hors échantillon rejetés) (3.3).
+- Story 4.15 (`real_api`) : vérifier `librarian-bench questions generer` sur `claude-haiku-5-5` réel (répartition des Types, Ancrages hors échantillon rejetés) (3.3).
 - Story 4.15 / providers : un délai dépassé après envoi doit régler à l'estimation au lieu de libérer, à vérifier sur un vrai appel interrompu ; vérifier `response.impacts` (EcoLogits, `llm_impacts` en ecologits 0.11.3) (1.11).
 - Après le pilote, `energy` : vérifier `gpu_ids=[]` (pas de NVML), les noms `_hardware`/`_mode` de codecarbon 3.3.1, `estimated` sous Windows, règle CPU estimé / GPU mesuré (1.7).
-- Préflight de `wl run` : code 4 avec Ollama arrêté puis démarré, une fois Ollama libre (1.12).
+- Préflight de `librarian-bench run` : code 4 avec Ollama arrêté puis démarré, une fois Ollama libre (1.12).
 - Extraction d'entités : l'heuristique rate les noms en début de phrase ; à revoir si des Questions multi-hop en dépendent (2.5).
 - Arbitrages en attente touchant les coûts : AC 3 de 1.4 (palier ×5 contre 0,60) et AC 2 de 1.8 (plafond de période) (1.4, 1.8).

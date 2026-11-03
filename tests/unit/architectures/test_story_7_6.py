@@ -7,14 +7,14 @@ from typing import Any
 
 import pytest
 
-from wavelibrarian import registry
-from wavelibrarian.architectures._passages import lire_passages
-from wavelibrarian.architectures.graphrag import GraphRag
-from wavelibrarian.core.types import ParsedCorpus, QuestionInput
-from wavelibrarian.llm.providers.fake import FakeProvider
-from wavelibrarian.ports.architecture import CorpusChange
-from wavelibrarian.ports.components import ComponentSpec
-from wavelibrarian.runner.context import Context as RunCtx
+from librarian_bench import registry
+from librarian_bench.architectures._passages import lire_passages
+from librarian_bench.architectures.graphrag import GraphRag
+from librarian_bench.core.types import ParsedCorpus, QuestionInput
+from librarian_bench.llm.providers.fake import FakeProvider
+from librarian_bench.ports.architecture import CorpusChange
+from librarian_bench.ports.components import ComponentSpec
+from librarian_bench.runner.context import Context as RunCtx
 
 
 @pytest.fixture
@@ -462,16 +462,14 @@ def test_global_map_refus_explicite_filtre(ctx: RunCtx, index: Path) -> None:
     avant = len(_spans(ctx, "generate"))
     _, rep = _repondre(ctx, index, search="global")
     assert rep.abstained and rep.citations == () and len(_spans(ctx, "generate")) == avant
-    assert (
-        "AUCUN_POINT_UTILE"
-        in __import__("wavelibrarian.architectures.graphrag", fromlist=["_SYSTEM_MAP"])._SYSTEM_MAP
-    )
+    graphrag = __import__("librarian_bench.architectures.graphrag", fromlist=["_SYSTEM_MAP"])
+    assert "AUCUN_POINT_UTILE" in graphrag._SYSTEM_MAP
 
 
 def test_global_map_ne_cite_que_les_rapports_lus(
     ctx: RunCtx, index: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:
-    import wavelibrarian.architectures.graphrag as module
+    import librarian_bench.architectures.graphrag as module
 
     rapports = [p for p in lire_passages(index) if p.level == 1][:3]
     premier = f"[R1] {rapports[0].text}"

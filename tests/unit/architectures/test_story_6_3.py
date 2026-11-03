@@ -7,16 +7,16 @@ from typing import Any
 import numpy as np
 import pytest
 
-from wavelibrarian import registry
-from wavelibrarian.architectures.hyde import Hyde
-from wavelibrarian.architectures.naive_rag import NaiveRag
-from wavelibrarian.core.errors import ConfigError
-from wavelibrarian.core.types import ParsedCorpus, QuestionInput
-from wavelibrarian.llm.providers.fake import FakeProvider
-from wavelibrarian.ports.components import ComponentSpec
-from wavelibrarian.ports.gateway import LLMRequest
-from wavelibrarian.runner.context import Context as RunCtx
-from wavelibrarian.runner.index_cache import IndexCache
+from librarian_bench import registry
+from librarian_bench.architectures.hyde import Hyde
+from librarian_bench.architectures.naive_rag import NaiveRag
+from librarian_bench.core.errors import ConfigError
+from librarian_bench.core.types import ParsedCorpus, QuestionInput
+from librarian_bench.llm.providers.fake import FakeProvider
+from librarian_bench.ports.components import ComponentSpec
+from librarian_bench.ports.gateway import LLMRequest
+from librarian_bench.runner.context import Context as RunCtx
+from librarian_bench.runner.index_cache import IndexCache
 
 PETITS = {"name": "fixed_tokens", "params": {"size": 40, "overlap": 5}}
 MARQUEUR = "zorglubien"
@@ -238,6 +238,6 @@ def test_repli_sur_la_question_est_journalise(
 ) -> None:
     ctx.provider.script("hyde", "hyde", "")  # type: ignore[attr-defined]
     arch = _construire(ctx, minicorpus, tmp_path)
-    with caplog.at_level("WARNING", logger="wavelibrarian.architectures.hyde"):
+    with caplog.at_level("WARNING", logger="librarian_bench.architectures.hyde"):
         _repondre(arch, ctx)
     assert any("q-001" in r.getMessage() for r in caplog.records)

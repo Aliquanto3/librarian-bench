@@ -8,9 +8,9 @@ from typing import Any
 import yaml
 from typer.testing import CliRunner
 
-from wavelibrarian.cli import app
-from wavelibrarian.report.generer import _juge_unique, _juges, generer_rapport
-from wavelibrarian.report.lecture import charger
+from librarian_bench.cli import app
+from librarian_bench.report.generer import _juge_unique, _juges, generer_rapport
+from librarian_bench.report.lecture import charger
 
 RACINE = Path(__file__).resolve().parents[3] / "corpora" / "minicorpus"
 

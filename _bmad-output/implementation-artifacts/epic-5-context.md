@@ -4,12 +4,12 @@
 
 ## Goal
 
-Permettre à Anaël de vérifier que les Juges du Panel s'accordent avec un humain et restent stables. Il annote des Réponses dans un fichier YAML par annotateur, lance `wl calibrer`, et obtient pour chaque Juge et chaque Critère le kappa juge-humain, le kappa entre annotateurs et le taux d'instabilité sur au moins 5 passes. Les Juges sous le seuil (0,6) sont exclus des Rapports suivants, qui le mentionnent.
+Permettre à Anaël de vérifier que les Juges du Panel s'accordent avec un humain et restent stables. Il annote des Réponses dans un fichier YAML par annotateur, lance `librarian-bench calibrer`, et obtient pour chaque Juge et chaque Critère le kappa juge-humain, le kappa entre annotateurs et le taux d'instabilité sur au moins 5 passes. Les Juges sous le seuil (0,6) sont exclus des Rapports suivants, qui le mentionnent.
 
 ## Stories
 
 - Story 5.1: Annotations humaines et kappa de Cohen
-- Story 5.2: Commande `wl calibrer` et exclusion des Juges
+- Story 5.2: Commande `librarian-bench calibrer` et exclusion des Juges
 
 ## Requirements & Constraints
 
@@ -19,7 +19,7 @@ Permettre à Anaël de vérifier que les Juges du Panel s'accordent avec un huma
 - Kappa juge-humain : verdict de la passe 0 contre l'annotation, chaque annotateur compté séparément. Instabilité : part des Réponses dont les verdicts diffèrent entre passes. Kappa entre annotateurs : par Critère, sur les Réponses doublement annotées.
 - Exclusion : kappa sous `kappa_threshold` (0,6 par défaut) = `excluded: true` avec raison, affichée en français. Un kappa `None` n'exclut pas mais est signalé.
 - `calibration_judge` optionnel : ne note que les Réponses doublement annotées, résultats à part.
-- Une nouvelle Expérience avec `judges.excluded_from: <calibration.json>` écarte le Juge exclu du Panel ; le Rapport mentionne l'exclusion avec la date du fichier. Si ce Juge a servi au Filtre closed-book, `wl calibrer` avertit de relancer `wl questions closed-book`.
+- Une nouvelle Expérience avec `judges.excluded_from: <calibration.json>` écarte le Juge exclu du Panel ; le Rapport mentionne l'exclusion avec la date du fichier. Si ce Juge a servi au Filtre closed-book, `librarian-bench calibrer` avertit de relancer `librarian-bench questions closed-book`.
 - Dossier sans annotation valide ou `run_id` inconnu : code de sortie 2, message en français.
 
 Contraintes du run autonome :
@@ -29,11 +29,11 @@ Contraintes du run autonome :
 
 ## Technical Decisions
 
-- Modules : `scoring/calibration.py` (chargement, rapprochement, calcul), `stats/kappa.py` (fonction pure, AD-22), commande `wl calibrer <experience.yaml> --annotations <dossier> --run <run_id>` dans `cli.py` (messages en français, `click`/`typer` d'usage encore en anglais, voir reports).
+- Modules : `scoring/calibration.py` (chargement, rapprochement, calcul), `stats/kappa.py` (fonction pure, AD-22), commande `librarian-bench calibrer <experience.yaml> --annotations <dossier> --run <run_id>` dans `cli.py` (messages en français, `click`/`typer` d'usage encore en anglais, voir reports).
 - Le Panel se forme dans `config/panel.py` (AD-14) : les `panel_size` premiers modèles du réservoir `judges.pool` hors Famille des `answer_producer` et hors exclus par `calibration.json` ; moins de 2 = refus à la validation. Le Juge est `components/judges/llm.py` (story 3.4), qui note tous les Critères en un seul appel et refait une passe hors cache par `pass_id`.
-- Réglages `judges` : `calibration_passes: 5`, `kappa_threshold: 0.6`, `calibration_judge`, `excluded_from`. `wl calibrer` impose au moins `calibration_passes`.
+- Réglages `judges` : `calibration_passes: 5`, `kappa_threshold: 0.6`, `calibration_judge`, `excluded_from`. `librarian-bench calibrer` impose au moins `calibration_passes`.
 - Format `calibration.json` retenu en story 1.6, validé strictement : par Juge, `excluded` booléen strict et `criteria` (par Critère : kappa, instabilité, nombre d'items), plus le kappa inter-annotateurs. Réutiliser le modèle de validation existant plutôt qu'en créer un second.
-- Coût : toute commande hors Exécution ouvre `ctx.scope(post="judging")` avant tout appel LLM (la passerelle refuse sinon) ; traces dans `WL_HOME/hors-execution/<run_id>/`. Passerelle, Plafond et Cache de réponses s'appliquent (`pass_id` contourne le cache).
+- Coût : toute commande hors Exécution ouvre `ctx.scope(post="judging")` avant tout appel LLM (la passerelle refuse sinon) ; traces dans `LIBRARIAN_BENCH_HOME/hors-execution/<run_id>/`. Passerelle, Plafond et Cache de réponses s'appliquent (`pass_id` contourne le cache).
 - `JudgeInput` se construit avec les textes des Ancrages et les `context_texts` réellement fournis au Generator (`faithfulness`).
 - Couches (AD-1) : `scoring` ne dépend pas de `report` ni de `runner`.
 

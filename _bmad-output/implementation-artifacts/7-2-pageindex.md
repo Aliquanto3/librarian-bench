@@ -8,7 +8,7 @@ status: done
 
 ## Code Map
 
-- `src/wavelibrarian/architectures/pageindex.py` : `PageIndex(ArchitectureBase)` enregistrée `("architecture", "pageindex")`, `retrieval_method: provided`, `incremental_update: true`. Params : `max_nodes_read = 8`, `summary_model`, `summary_max_tokens`, `select_model`, `select_max_tokens`, `generator`, `context_builder`. `query_params` : `max_nodes_read`, `select_model`, `select_max_tokens`. Aucun embedder (`embedder_dim()` reste `None`).
+- `src/librarian_bench/architectures/pageindex.py` : `PageIndex(ArchitectureBase)` enregistrée `("architecture", "pageindex")`, `retrieval_method: provided`, `incremental_update: true`. Params : `max_nodes_read = 8`, `summary_model`, `summary_max_tokens`, `select_model`, `select_max_tokens`, `generator`, `context_builder`. `query_params` : `max_nodes_read`, `select_model`, `select_max_tokens`. Aucun embedder (`embedder_dim()` reste `None`).
 - Index : `tree.json` dans le dossier d'index (nœuds : `node_id`, `doc_id`, `anchor_id`, `title`, `text`, `parent`, `children`, `summary`).
 - `tests/unit/architectures/test_story_7_2.py` : tests de la story.
 - Aucun changement de `roles.py`, `fake.py`, runner, `scoring/`, ni du suivi.
@@ -25,7 +25,7 @@ status: done
 - Sémantique de navigation : un nœud choisi est lu même si `done` est faux (ses enfants sont alors proposés) ; pas de retour arrière vers un niveau déjà parcouru.
 - `update` : arbres des Documents inchangés conservés, seuls les Documents ajoutés ou modifiés sont résumés (Poste `update` fixé par le runner), ordre de `corpus_after`. Un Document inchangé absent de l'ancien index est reconstruit (avertissement).
 - Report : `experiments/mini-test.yaml`, `tests/conformance/test_architectures.py` et `tests/e2e/test_sm3.py` n'existent pas dans ce commit de base (story 4.14 en attente) ; la Configuration `pageindex` et le passage de conformité restent à ajouter avec 4.14.
-- Report, hérité du cache d'index : isoler `WL_HOME` quand un Faux LLM scénarisé indexe (les tests le font).
+- Report, hérité du cache d'index : isoler `LIBRARIAN_BENCH_HOME` quand un Faux LLM scénarisé indexe (les tests le font).
 
 ## Tâches et critères
 

@@ -9,15 +9,15 @@ import pytest
 import yaml
 from typer.testing import CliRunner
 
-from wavelibrarian.cli import app
-from wavelibrarian.components.generators.llm import LLMGenerator
-from wavelibrarian.core.types import Passage, Question, QuestionInput
-from wavelibrarian.corpus.declare import declare
-from wavelibrarian.corpus.ingest import ingest
-from wavelibrarian.evalset import io
-from wavelibrarian.evalset.freeze import select_questions
-from wavelibrarian.ports.architecture import ArchitectureBase
-from wavelibrarian.runner.execute import chemins_requis
+from librarian_bench.cli import app
+from librarian_bench.components.generators.llm import LLMGenerator
+from librarian_bench.core.types import Passage, Question, QuestionInput
+from librarian_bench.corpus.declare import declare
+from librarian_bench.corpus.ingest import ingest
+from librarian_bench.evalset import io
+from librarian_bench.evalset.freeze import select_questions
+from librarian_bench.ports.architecture import ArchitectureBase
+from librarian_bench.runner.execute import chemins_requis
 
 RACINE = Path(__file__).resolve().parents[3] / "corpora" / "minicorpus"
 BASELINES = [
@@ -99,7 +99,7 @@ def espion(monkeypatch: pytest.MonkeyPatch) -> dict[str, list[Any]]:
 
     monkeypatch.setattr(ArchitectureBase, "answer_with_context", avec_contexte)
     # `long_context` redéfinit `answer_with_context` : on espionne aussi sa version
-    from wavelibrarian.architectures.long_context import LongContext
+    from librarian_bench.architectures.long_context import LongContext
 
     original_lc = LongContext.answer_with_context
 
@@ -237,7 +237,7 @@ def test_long_context_en_contexte_parfait_sans_cache_du_system(
 def test_contexte_parfait_sans_index_ni_check(
     tmp_path: Path, wl_home: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:
-    from wavelibrarian.architectures.long_context import LongContext
+    from librarian_bench.architectures.long_context import LongContext
 
     appels_check: list[str] = []
 
@@ -339,8 +339,8 @@ def test_palier_inapplicable_long_context_est_juge_sur_son_sous_corpus(
     tmp_path: Path, wl_home: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:
     """`check()` reçoit le Profil du Palier : la clé d'applicabilité porte le Palier."""
-    from wavelibrarian.architectures.long_context import LongContext
-    from wavelibrarian.ports.architecture import Applicability
+    from librarian_bench.architectures.long_context import LongContext
+    from librarian_bench.ports.architecture import Applicability
 
     def check(self: Any, profile: Any) -> Applicability:
         return Applicability(applicable=profile.n_documents >= 10, reason="trop petit")
@@ -395,8 +395,8 @@ def test_palier_unique_ne_requiert_pas_le_plus_petit_palier(tmp_path: Path, wl_h
     assert dossier is not None
     reponses = _jsonl(dossier / "answers.jsonl")
     assert {a["tier"] for a in reponses} == {20} and len(reponses) == len(_dev())
-    from wavelibrarian.corpus.declare import declare as declarer
-    from wavelibrarian.corpus.tiers import tirer_chemins
+    from librarian_bench.corpus.declare import declare as declarer
+    from librarian_bench.corpus.tiers import tirer_chemins
 
     tiers = declarer(RACINE / "corpus.yaml").spec.tiers
     assert tiers is not None
@@ -456,8 +456,8 @@ def test_answer_with_context_par_defaut_tronque_et_garde_les_blocs_cites() -> No
     reprend les Passages fournis dans l'ordre (méthode `provided`)."""
     from types import SimpleNamespace
 
-    from wavelibrarian.core.types import Citation
-    from wavelibrarian.ports.components import Context, GenerationResult
+    from librarian_bench.core.types import Citation
+    from librarian_bench.ports.components import Context, GenerationResult
 
     passages = [
         Passage(passage_id=f"p{i}", doc_id="d", text="mot " * 5000, anchor_ids=(f"d#a{i}",))

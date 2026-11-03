@@ -8,7 +8,7 @@ status: done
 
 ## Code Map
 
-- `src/wavelibrarian/architectures/agentic.py` : `Agentic(ArchitectureBase)` enregistrée `("architecture", "agentic")`, `retrieval_method: provided`, `incremental_update: false` (réindexation complète). Params : `max_steps = 8`, `max_cost_per_question = {amount: "0.05", currency: USD}`, `k = 5`, `agent_model`, `agent_max_tokens = 512` (tous `query_params`), `chunker` (`fixed_tokens`), `lexical_index` (`bm25`), `context_builder`, `generator` (requis par la Condition contexte parfait, non appelé par `answer`). Aucun embedder.
+- `src/librarian_bench/architectures/agentic.py` : `Agentic(ArchitectureBase)` enregistrée `("architecture", "agentic")`, `retrieval_method: provided`, `incremental_update: false` (réindexation complète). Params : `max_steps = 8`, `max_cost_per_question = {amount: "0.05", currency: USD}`, `k = 5`, `agent_model`, `agent_max_tokens = 512` (tous `query_params`), `chunker` (`fixed_tokens`), `lexical_index` (`bm25`), `context_builder`, `generator` (requis par la Condition contexte parfait, non appelé par `answer`). Aucun embedder.
 - Index : `passages.jsonl`, `lexical/` (BM25), `agentic.json` (texte de chaque Ancrage, Documents).
 - `AgentStep(AgentStepOutput)` : valide les `args` selon l'action (sinon sortie non conforme).
 - `tests/unit/architectures/test_story_7_4.py`. Aucun changement de `roles.py` ni de `fake.py` (le rôle `agent_step` et son comportement par défaut conviennent).

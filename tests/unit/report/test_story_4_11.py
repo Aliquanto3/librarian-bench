@@ -12,18 +12,18 @@ import yaml
 from scipy.stats import binomtest
 from typer.testing import CliRunner
 
-from wavelibrarian.cli import app
-from wavelibrarian.config.validate import validate_file
-from wavelibrarian.core.ids import sha16
-from wavelibrarian.core.jsonl import lire_jsonl, terminer_ligne
-from wavelibrarian.report.ancrages import resolveur_de
-from wavelibrarian.report.generer import construire_markdown, generer_rapport
-from wavelibrarian.report.lecture import charger, lire_panel, lire_reponses
-from wavelibrarian.report.scores import LignePaire, evaluer
-from wavelibrarian.runner.execute import load_questions, run_experiment
-from wavelibrarian.runner.rundir import JsonlWriter, read_answers
-from wavelibrarian.scoring.retrieval import retrieval_metrics
-from wavelibrarian.stats.bootstrap import bootstrap_ci, graine_derivee
+from librarian_bench.cli import app
+from librarian_bench.config.validate import validate_file
+from librarian_bench.core.ids import sha16
+from librarian_bench.core.jsonl import lire_jsonl, terminer_ligne
+from librarian_bench.report.ancrages import resolveur_de
+from librarian_bench.report.generer import construire_markdown, generer_rapport
+from librarian_bench.report.lecture import charger, lire_panel, lire_reponses
+from librarian_bench.report.scores import LignePaire, evaluer
+from librarian_bench.runner.execute import load_questions, run_experiment
+from librarian_bench.runner.rundir import JsonlWriter, read_answers
+from librarian_bench.scoring.retrieval import retrieval_metrics
+from librarian_bench.stats.bootstrap import bootstrap_ci, graine_derivee
 
 RACINE = Path(__file__).resolve().parents[3] / "corpora" / "minicorpus"
 BM25 = {"id": "bm25", "architecture": "bm25_only"}
@@ -469,7 +469,7 @@ def test_aucun_score_global_dans_les_colonnes(run_complet: Path) -> None:
 
 
 def test_exporteur_de_traces_termine_la_ligne_tronquee_a_la_reprise(tmp_path: Path) -> None:
-    from wavelibrarian.measure.tracing import JsonlSpanExporter
+    from librarian_bench.measure.tracing import JsonlSpanExporter
 
     chemin = tmp_path / "traces.jsonl"
     chemin.write_bytes(b'{"name": "a"}\n{"name": "tr')
@@ -501,7 +501,7 @@ def test_corpus_modifie_depuis_l_execution_recherche_non_mesuree_et_signalee(
 
 
 def test_ancrage_non_resolu_compte_et_signale(run_complet: Path) -> None:
-    from wavelibrarian.core.types import AnchorRef
+    from librarian_bench.core.types import AnchorRef
 
     ex = charger(run_complet)
     resoudre = resolveur_de(ex.experience, run_complet.parent.parent)
@@ -534,7 +534,7 @@ def test_echec_du_rapport_ne_masque_pas_le_code_de_l_execution(
     def casse(*_: Any, **__: Any) -> Path:
         raise RuntimeError("panne inattendue")
 
-    monkeypatch.setattr("wavelibrarian.cli.generer_rapport", casse)
+    monkeypatch.setattr("librarian_bench.cli.generer_rapport", casse)
     plafond = _plafond_pour(tmp_path, 5)
     chemin = _experience(
         tmp_path,
@@ -597,7 +597,7 @@ def test_paire_continue_avec_questions_communes(run_complet: Path) -> None:
 def test_exporteur_de_traces_termine_la_ligne_apres_une_ecriture_partielle(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:
-    from wavelibrarian.measure import tracing
+    from librarian_bench.measure import tracing
 
     chemin = tmp_path / "traces.jsonl"
     exporteur = tracing.JsonlSpanExporter(chemin)

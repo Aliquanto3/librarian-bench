@@ -9,18 +9,20 @@ import pytest
 import yaml
 from typer.testing import CliRunner
 
-from wavelibrarian.cli import app
-from wavelibrarian.components.judges.llm import LLMJudge
-from wavelibrarian.core.errors import BudgetExceeded
-from wavelibrarian.core.types import Criterion, Question
-from wavelibrarian.evalset import io
-from wavelibrarian.evalset.freeze import select_questions
-from wavelibrarian.ports.components import JudgeInput
-from wavelibrarian.runner.rundir import read_answers, read_panel, read_verdicts
-from wavelibrarian.scoring.answer import exact_match
+from librarian_bench.cli import app
+from librarian_bench.components.judges.llm import LLMJudge
+from librarian_bench.core.errors import BudgetExceeded
+from librarian_bench.core.types import Criterion, Question
+from librarian_bench.evalset import io
+from librarian_bench.evalset.freeze import select_questions
+from librarian_bench.ports.components import JudgeInput
+from librarian_bench.runner.rundir import read_answers, read_panel, read_verdicts
+from librarian_bench.scoring.answer import exact_match
 
 RACINE = Path(__file__).resolve().parents[3] / "corpora" / "minicorpus"
-MODELES = Path(__file__).resolve().parents[3] / "src" / "wavelibrarian" / "defaults" / "models.yaml"
+MODELES = (
+    Path(__file__).resolve().parents[3] / "src" / "librarian_bench" / "defaults" / "models.yaml"
+)
 BM25 = {"id": "bm25", "architecture": "bm25_only"}
 SANS_CONTEXTE = {"id": "sans-contexte", "architecture": "no_context"}
 PANEL = {"fake-llm-c", "fake-llm-b"}  # réservoir [c, b, a] du profil test, Generator fake-llm-a
@@ -235,7 +237,7 @@ def test_budget_exceeded_non_juge(
 
 
 def test_erreur_non_jugee(tmp_path: Path, wl_home: Path, monkeypatch: pytest.MonkeyPatch) -> None:
-    from wavelibrarian.architectures.bm25_only import Bm25Only
+    from librarian_bench.architectures.bm25_only import Bm25Only
 
     reel = Bm25Only.answer
 

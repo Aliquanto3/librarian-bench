@@ -1,4 +1,5 @@
-"""Story 8.11 : `wl calibrer` avec des Juges `provider: anthropic` (SDK factice, aucun réseau)."""
+"""Story 8.11 : `librarian-bench calibrer` avec des Juges `provider: anthropic` (SDK factice, aucun
+réseau)."""
 
 import json
 from decimal import Decimal
@@ -12,20 +13,20 @@ import pytest
 import yaml
 from typer.testing import CliRunner
 
-from wavelibrarian.cli import app
-from wavelibrarian.config.catalog import load_catalog
-from wavelibrarian.config.validate import validate_file
-from wavelibrarian.core.errors import BudgetExceeded
-from wavelibrarian.evalset import io
-from wavelibrarian.evalset.freeze import select_questions
-from wavelibrarian.llm.providers.anthropic import (
+from librarian_bench.cli import app
+from librarian_bench.config.catalog import load_catalog
+from librarian_bench.config.validate import validate_file
+from librarian_bench.core.errors import BudgetExceeded
+from librarian_bench.evalset import io
+from librarian_bench.evalset.freeze import select_questions
+from librarian_bench.llm.providers.anthropic import (
     CONSIGNE_OUTIL,
     OUTIL_SORTIE,
     AnthropicProvider,
 )
-from wavelibrarian.runner.calibrer import calibrer, fichier_verdicts
-from wavelibrarian.runner.rundir import read_answers
-from wavelibrarian.scoring.panel import criteres_juges
+from librarian_bench.runner.calibrer import calibrer, fichier_verdicts
+from librarian_bench.runner.rundir import read_answers
+from librarian_bench.scoring.panel import criteres_juges
 
 RACINE = Path(__file__).resolve().parents[3]
 MINI = RACINE / "corpora" / "minicorpus"

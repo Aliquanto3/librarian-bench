@@ -1,15 +1,15 @@
-"""Paliers de volume et commande `wl corpus paliers` (story 2.7)."""
+"""Paliers de volume et commande `librarian-bench corpus paliers` (story 2.7)."""
 
 from pathlib import Path
 
 import pytest
 from typer.testing import CliRunner
 
-from wavelibrarian.cli import app
-from wavelibrarian.core.errors import ConfigError
-from wavelibrarian.core.types import ParsedCorpus
-from wavelibrarian.corpus.declare import TiersSpec
-from wavelibrarian.corpus.tiers import tirer, tirer_chemins
+from librarian_bench.cli import app
+from librarian_bench.core.errors import ConfigError
+from librarian_bench.core.types import ParsedCorpus
+from librarian_bench.corpus.declare import TiersSpec
+from librarian_bench.corpus.tiers import tirer, tirer_chemins
 
 MINI = Path(__file__).resolve().parents[3] / "corpora" / "minicorpus"
 REQUIS = ["atlas-vaelmor.md", "phare-de-keld.md", "lettre-torvane.pdf"]

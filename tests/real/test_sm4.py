@@ -21,10 +21,10 @@ from typing import Any
 import pytest
 from typer.testing import CliRunner
 
-from wavelibrarian.cli import app
-from wavelibrarian.config.catalog import load_catalog
-from wavelibrarian.config.defaults import charger_yaml, load_costs
-from wavelibrarian.core.types import Usage
+from librarian_bench.cli import app
+from librarian_bench.config.catalog import load_catalog
+from librarian_bench.config.defaults import charger_yaml, load_costs
+from librarian_bench.core.types import Usage
 
 RACINE = Path(__file__).resolve().parents[2]
 EXPERIENCE = RACINE / "experiments" / "mini-real-haiku.yaml"
@@ -54,7 +54,7 @@ def _usage(span: dict[str, Any]) -> Usage:
 
 
 def _verifier_run(experience: Path, wl_home: Path) -> list[dict[str, Any]]:
-    """Lance `wl run`, vérifie les AC 2 à 6 et renvoie les spans payants."""
+    """Lance `librarian-bench run`, vérifie les AC 2 à 6 et renvoie les spans payants."""
     # Garde du plafond : l'Expérience doit porter un plafond Anthropic d'au plus 5 $.
     plafond = charger_yaml(experience)["budget"]["per_run"]["anthropic"]
     assert Decimal(plafond["amount"]) <= PLAFOND_USD and plafond["currency"] == "USD"
@@ -132,10 +132,10 @@ def test_sm4_temperature_et_outil_impose_acceptes() -> None:
     """L'outil `emit_output` imposé est accepté, et `accepts_temperature` du Catalogue dit vrai :
     `false` (Haiku 5.5) si l'API refuse `temperature` (HTTP 400, envoyée par `extra_body`, SDK
     1.15), `true` si elle l'accepte. La requête effective suit la capacité, comme la passerelle."""
-    from wavelibrarian.core.errors import ProviderError
-    from wavelibrarian.llm.providers.anthropic import AnthropicProvider
-    from wavelibrarian.llm.roles import GradeRelevanceOutput
-    from wavelibrarian.ports.gateway import LLMRequest, Message
+    from librarian_bench.core.errors import ProviderError
+    from librarian_bench.llm.providers.anthropic import AnthropicProvider
+    from librarian_bench.llm.roles import GradeRelevanceOutput
+    from librarian_bench.ports.gateway import LLMRequest, Message
 
     requete = LLMRequest(
         model_id="claude-haiku-5-5",
@@ -165,10 +165,10 @@ def test_sm4_majorant_schema_couvre_count_tokens() -> None:
     import anthropic
     from anthropic.types import MessageParam
 
-    from wavelibrarian.llm.providers.anthropic import OUTIL_SORTIE, AnthropicProvider
-    from wavelibrarian.llm.providers.secrets import load_secret
-    from wavelibrarian.llm.roles import GradeRelevanceOutput
-    from wavelibrarian.measure.tokenizers import ReferenceTokenizer
+    from librarian_bench.llm.providers.anthropic import OUTIL_SORTIE, AnthropicProvider
+    from librarian_bench.llm.providers.secrets import load_secret
+    from librarian_bench.llm.roles import GradeRelevanceOutput
+    from librarian_bench.measure.tokenizers import ReferenceTokenizer
 
     cle = load_secret("ANTHROPIC_API_KEY")
     assert cle is not None

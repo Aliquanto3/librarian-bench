@@ -5,15 +5,15 @@ from typing import Any
 
 import pytest
 
-from wavelibrarian import registry
-from wavelibrarian.architectures.bm25_only import Bm25Only
-from wavelibrarian.architectures.long_context import LongContext
-from wavelibrarian.architectures.no_context import NoContext
-from wavelibrarian.components.chunkers.fixed_tokens import FixedTokenChunker
-from wavelibrarian.components.lexical_indexes.bm25 import Bm25Index
-from wavelibrarian.components.retrievers.lexical import LexicalRetriever
-from wavelibrarian.core.errors import ConfigError
-from wavelibrarian.core.types import (
+from librarian_bench import registry
+from librarian_bench.architectures.bm25_only import Bm25Only
+from librarian_bench.architectures.long_context import LongContext
+from librarian_bench.architectures.no_context import NoContext
+from librarian_bench.components.chunkers.fixed_tokens import FixedTokenChunker
+from librarian_bench.components.lexical_indexes.bm25 import Bm25Index
+from librarian_bench.components.retrievers.lexical import LexicalRetriever
+from librarian_bench.core.errors import ConfigError
+from librarian_bench.core.types import (
     Anchor,
     Block,
     CorpusProfile,
@@ -21,11 +21,11 @@ from wavelibrarian.core.types import (
     ParsedDocument,
     QuestionInput,
 )
-from wavelibrarian.llm.providers.fake import FakeProvider
-from wavelibrarian.ports.architecture import ArchitectureBase
-from wavelibrarian.ports.components import ComponentSpec, LexicalIndex
-from wavelibrarian.ports.gateway import LLMRequest
-from wavelibrarian.runner.context import Context as RunCtx
+from librarian_bench.llm.providers.fake import FakeProvider
+from librarian_bench.ports.architecture import ArchitectureBase
+from librarian_bench.ports.components import ComponentSpec, LexicalIndex
+from librarian_bench.ports.gateway import LLMRequest
+from librarian_bench.runner.context import Context as RunCtx
 
 
 @pytest.fixture
@@ -49,7 +49,7 @@ def _question(texte: str = "Que sait-on de la guilde Orvane ?") -> QuestionInput
 
 def _espionner(ctx: RunCtx) -> list[LLMRequest]:
     """Enregistre les requêtes `generate` puis rend la sortie par défaut du Faux LLM."""
-    from wavelibrarian.llm.providers.fake import default_output
+    from librarian_bench.llm.providers.fake import default_output
 
     vues: list[LLMRequest] = []
 
@@ -283,7 +283,7 @@ def test_bm25_recherche_ordre_et_sauvegarde(
 
 
 def test_bm25_ex_aequo_departages_par_id(ctx: RunCtx) -> None:
-    from wavelibrarian.core.types import Passage
+    from librarian_bench.core.types import Passage
 
     index: LexicalIndex = ctx.build("lexical_index", ComponentSpec(name="bm25"))
     index.add(
@@ -408,7 +408,7 @@ def test_long_context_fenetre_compte_la_sortie(ctx: RunCtx) -> None:
 
 
 def test_bm25_index_sans_mot_et_ligatures(ctx: RunCtx) -> None:
-    from wavelibrarian.core.types import Passage
+    from librarian_bench.core.types import Passage
 
     vide = Bm25Index(Bm25Index.Params(), ctx)
     vide.add([Passage(passage_id="a", doc_id="d", text="!!! ...", anchor_ids=("d#x",))])
@@ -424,8 +424,8 @@ def test_bm25_index_sans_mot_et_ligatures(ctx: RunCtx) -> None:
 
 
 def test_retriever_lexical_applique_k_apres_le_filtre(ctx: RunCtx) -> None:
-    from wavelibrarian.core.types import Passage
-    from wavelibrarian.ports.components import SearchIndex
+    from librarian_bench.core.types import Passage
+    from librarian_bench.ports.components import SearchIndex
 
     passages = [
         Passage(passage_id=f"p{n}", doc_id="d", text=f"orvane {'mot ' * n}", anchor_ids=("d#x",))

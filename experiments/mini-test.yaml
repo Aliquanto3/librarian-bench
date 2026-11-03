@@ -1,6 +1,6 @@
 # Expérience de bout en bout SM-3 (story 4.14) : profil `test` (Faux LLM, embedder factice,
 # aucun réseau), toutes les Architectures du registre, Conditions standard et contexte parfait,
-# Scénario de mise à jour du Mini-corpus. `tests/e2e/test_sm3.py` la lance par `wl run` et
+# Scénario de mise à jour du Mini-corpus. `tests/e2e/test_sm3.py` la lance par `librarian-bench run` et
 # vérifie qu'elle cite une Configuration par Architecture enregistrée : chaque nouvelle
 # Architecture y ajoute la sienne.
 experiment_id: mini-test

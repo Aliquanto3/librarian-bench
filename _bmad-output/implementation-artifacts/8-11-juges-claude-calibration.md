@@ -6,12 +6,12 @@ status: review
 
 # Story 8.11 : Calibration des Juges Claude
 
-Exigences : FR-38 ; AD-14, AD-3. Dépend de 5.2 (`wl calibrer`) et 8.9 (annotations d'Anaël).
+Exigences : FR-38 ; AD-14, AD-3. Dépend de 5.2 (`librarian-bench calibrer`) et 8.9 (annotations d'Anaël).
 
 ## Réalisé
 
 - `defaults/models.yaml` : entrée `claude-opus-5-5` (tarifs relevés le 2026-10-26, aucun palier de long contexte), `catalog_date` au 2026-10-26. Supposés et non vérifiés en réel : `accepts_temperature: false`, `token_factor: "1.5"` (repris de Haiku 5.5), `min_cacheable_tokens: 4096` (sans effet sur les Juges, qui ne mettent rien en cache).
-- `experiments/calibration-claude.yaml` : Juges `[claude-haiku-5-5, claude-opus-5-5]`, `panel_size: 2`, `calibration_passes: 2`, plafond Anthropic de 10,00 USD ; Corpus et Configurations de `mini-cpu` (`wl calibrer` n'en lit que le Corpus, les Questions, les Configurations, le Panel et le budget).
+- `experiments/calibration-claude.yaml` : Juges `[claude-haiku-5-5, claude-opus-5-5]`, `panel_size: 2`, `calibration_passes: 2`, plafond Anthropic de 10,00 USD ; Corpus et Configurations de `mini-cpu` (`librarian-bench calibrer` n'en lit que le Corpus, les Questions, les Configurations, le Panel et le budget).
 - Le chemin des Juges gérait déjà un Juge `provider: anthropic` : aucune correction de code. `tests/unit/runner/test_story_8_11.py` le démontre (SDK factice) : outil imposé, pas de `temperature`, coût exact par appel dans `traces.jsonl`, `BudgetExceeded` (code 3) sans rien écrire.
 
 ## Reports
@@ -44,5 +44,5 @@ Appels réels à l'API (`claude-opus-5-5`, requête du Juge, 3 Critères, ~1 050
 - Complexité : 0 constat (listes de verdicts parcourues une fois ; rapprochement Critère × annotations négligeable à 92 lignes).
 
 Commande de la calibration réelle (depuis la racine du dépôt principal, où se trouve `.env`), `calibration.json` de l'Exécution laissé à la calibration Ollama :
-`WL_HOME=C:/Users/Utilisateur/Documents/GitHub/wl-runs-v0.2.0 uv run wl calibrer experiments/calibration-claude.yaml --annotations corpora/minicorpus/annotations --run 20261018-115941-a2a512 --sortie C:/Users/Utilisateur/Documents/GitHub/wl-runs-v0.2.0/runs/20261018-115941-a2a512/calibration-claude.json`
+`LIBRARIAN_BENCH_HOME=C:/Users/Utilisateur/Documents/GitHub/wl-runs-v0.2.0 uv run librarian-bench calibrer experiments/calibration-claude.yaml --annotations corpora/minicorpus/annotations --run 20261018-115941-a2a512 --sortie C:/Users/Utilisateur/Documents/GitHub/wl-runs-v0.2.0/runs/20261018-115941-a2a512/calibration-claude.json`
 → verdicts dans `calibration-claude_verdicts.jsonl` du même dossier.

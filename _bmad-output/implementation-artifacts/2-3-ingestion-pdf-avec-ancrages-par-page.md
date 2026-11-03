@@ -8,8 +8,8 @@ status: done
 
 ## Code Map
 
-- `src/wavelibrarian/components/parsers/pdf_text.py` : Parser `pdf_text` (pypdfium2), `formats = {"pdf"}`, `version = "1"`, enregistré au `kind` `parser`.
-- `src/wavelibrarian/corpus/ingest.py` : seul le commentaire d'`AUTO` change ; `pdf` -> `pdf_text` y figurait déjà, et `pdf_text` étant désormais enregistré, `auto` accepte un Corpus contenant des PDF.
+- `src/librarian_bench/components/parsers/pdf_text.py` : Parser `pdf_text` (pypdfium2), `formats = {"pdf"}`, `version = "1"`, enregistré au `kind` `parser`.
+- `src/librarian_bench/corpus/ingest.py` : seul le commentaire d'`AUTO` change ; `pdf` -> `pdf_text` y figurait déjà, et `pdf_text` étant désormais enregistré, `auto` accepte un Corpus contenant des PDF.
 - `tests/unit/components/test_pdf_text.py` : tests de la story (PDF générés par fpdf2 dans le test). `tests/unit/corpus/test_ingest.py` : l'attente « pdf_text non disponible » devient `{"pdf": "pdf_text"}`.
 
 ## Design Notes

@@ -1,4 +1,5 @@
-"""Story 4.4 : Exécution d'une Expérience par `wl run` (profil `test`, Faux LLM, Mini-corpus)."""
+"""Story 4.4 : Exécution d'une Expérience par `librarian-bench run` (profil `test`, Faux LLM,
+Mini-corpus)."""
 
 import json
 import shutil
@@ -10,17 +11,17 @@ import pytest
 import yaml
 from typer.testing import CliRunner
 
-from wavelibrarian.cli import app
-from wavelibrarian.config.validate import validate_file
-from wavelibrarian.core.errors import WlError
-from wavelibrarian.core.types import Answer
-from wavelibrarian.evalset import io
-from wavelibrarian.evalset.freeze import select_questions
-from wavelibrarian.llm.providers.fake import FakeProvider, default_output
-from wavelibrarian.ports.gateway import LLMRequest
-from wavelibrarian.runner.context import Context
-from wavelibrarian.runner.execute import load_questions, run_experiment
-from wavelibrarian.runner.lock import RunLock
+from librarian_bench.cli import app
+from librarian_bench.config.validate import validate_file
+from librarian_bench.core.errors import WlError
+from librarian_bench.core.types import Answer
+from librarian_bench.evalset import io
+from librarian_bench.evalset.freeze import select_questions
+from librarian_bench.llm.providers.fake import FakeProvider, default_output
+from librarian_bench.ports.gateway import LLMRequest
+from librarian_bench.runner.context import Context
+from librarian_bench.runner.execute import load_questions, run_experiment
+from librarian_bench.runner.lock import RunLock
 
 RACINE = Path(__file__).resolve().parents[3] / "corpora" / "minicorpus"
 BASELINES = [
@@ -287,8 +288,9 @@ def _manifest(dossier: Path) -> dict[str, Any]:
 
 
 def _wl_run_scenarise(monkeypatch: pytest.MonkeyPatch, chemin: Path, sortie: Any) -> Any:
-    """`wl run` par la CLI, avec un Faux LLM scénarisé injecté dans `run_experiment`."""
-    from wavelibrarian import cli
+    """`librarian-bench run` par la CLI, avec un Faux LLM scénarisé injecté dans
+    `run_experiment`."""
+    from librarian_bench import cli
 
     def avec_faux(*a: Any, **k: Any) -> Any:
         faux = FakeProvider()
@@ -302,7 +304,7 @@ def _wl_run_scenarise(monkeypatch: pytest.MonkeyPatch, chemin: Path, sortie: Any
 def test_jeu_non_gele_refuse_en_2_avant_le_preflight(
     tmp_path: Path, wl_home: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:
-    from wavelibrarian import cli
+    from librarian_bench import cli
 
     chemin = _questions_copiees(tmp_path)
     doc = yaml.safe_load(chemin.read_text(encoding="utf-8"))
@@ -321,7 +323,7 @@ def test_jeu_non_gele_refuse_en_2_avant_le_preflight(
 def test_plafond_atteint_code_3_et_manifeste_budget_exceeded(
     tmp_path: Path, wl_home: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:
-    from wavelibrarian.core.errors import BudgetExceeded
+    from librarian_bench.core.errors import BudgetExceeded
 
     appels: list[str] = []
 
@@ -360,7 +362,7 @@ def test_toutes_les_reponses_en_erreur_code_1_et_decompte_au_manifeste(
 def test_configuration_en_echec_ses_questions_en_erreur_les_autres_s_executent(
     tmp_path: Path, wl_home: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:
-    from wavelibrarian.architectures.bm25_only import Bm25Only
+    from librarian_bench.architectures.bm25_only import Bm25Only
 
     def check_en_panne(self: Any, profile: Any) -> Any:
         raise RuntimeError("check en panne")
@@ -388,7 +390,7 @@ def test_configuration_en_echec_ses_questions_en_erreur_les_autres_s_executent(
 def test_exception_non_rattrapee_manifeste_failed(
     tmp_path: Path, wl_home: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:
-    from wavelibrarian.runner import execute
+    from librarian_bench.runner import execute
 
     def profil_en_panne(*_a: Any, **_k: Any) -> Any:
         raise RuntimeError("profilage en panne")

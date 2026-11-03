@@ -8,12 +8,12 @@ status: review
 
 ## Code Map
 
-- `src/wavelibrarian/report/fronts.py` (nouveau) : `construire_fronts(ex, res, couts)` assemble Qualité et taux par Critère (4.11), `Couts.total_configuration` et `Couts.latences` (4.12) et appelle `stats/pareto.front_pareto` (4.10) ; `lignes_pareto` écrit `pareto.csv` (`front, config_id, x, y`).
-- `src/wavelibrarian/report/fraicheur.py` (nouveau) : `calculer_fraicheur(ex)` et `qualite_par_palier(res)`.
-- `src/wavelibrarian/report/section_fronts.py` (nouveau) : sections `report.md` « Configurations non dominées », « Résultats par Palier », « Fraîcheur ».
-- `src/wavelibrarian/report/export.py` (nouveau) : `exporter_front(run_dir, front, vers)` lit `report/pareto.csv` et `experiment.resolved.yaml`, écrit la liste `configurations:`.
-- `src/wavelibrarian/report/generer.py` : écrit `pareto.csv`, place la synthèse juste après l'en-tête, puis Paliers et Fraîcheur après les scores ; `construire_markdown(ex, res, couts, fronts, fraicheur)` (les deux derniers facultatifs, 4.11 et 4.12 inchangés).
-- `src/wavelibrarian/cli.py` : `wl rapport <run_id> [--exporter-front <front> --vers <fichier>]`.
+- `src/librarian_bench/report/fronts.py` (nouveau) : `construire_fronts(ex, res, couts)` assemble Qualité et taux par Critère (4.11), `Couts.total_configuration` et `Couts.latences` (4.12) et appelle `stats/pareto.front_pareto` (4.10) ; `lignes_pareto` écrit `pareto.csv` (`front, config_id, x, y`).
+- `src/librarian_bench/report/fraicheur.py` (nouveau) : `calculer_fraicheur(ex)` et `qualite_par_palier(res)`.
+- `src/librarian_bench/report/section_fronts.py` (nouveau) : sections `report.md` « Configurations non dominées », « Résultats par Palier », « Fraîcheur ».
+- `src/librarian_bench/report/export.py` (nouveau) : `exporter_front(run_dir, front, vers)` lit `report/pareto.csv` et `experiment.resolved.yaml`, écrit la liste `configurations:`.
+- `src/librarian_bench/report/generer.py` : écrit `pareto.csv`, place la synthèse juste après l'en-tête, puis Paliers et Fraîcheur après les scores ; `construire_markdown(ex, res, couts, fronts, fraicheur)` (les deux derniers facultatifs, 4.11 et 4.12 inchangés).
+- `src/librarian_bench/cli.py` : `librarian-bench rapport <run_id> [--exporter-front <front> --vers <fichier>]`.
 - Tests : `tests/unit/report/test_story_4_13.py`.
 
 ## Design Notes
@@ -25,7 +25,7 @@ status: review
 - Fraîcheur : parmi les Questions à `scenario_target`, part des Questions correctes (Qualité) en phase `after_update`, par (Configuration, Condition, Palier), avec IC bootstrap. `inapplicable` est retiré du dénominateur et compté à part (report 4.7 : en contexte parfait, q-047 dont l'Ancrage est supprimé) ; `error` et `budget_exceeded` aussi, et les Questions contaminées sont exclues, comme partout ailleurs dans le Rapport. Sans Scénario : une phrase.
 - Palier : tableau Qualité [IC], coût total et p95 par (Configuration, Condition, Palier), phase `base`. Les Paliers ne se mêlent jamais dans un score.
 - Citation « hors du Corpus » sur le sous-corpus du Palier (report 4.9) : pas de recalcul. Le Generator retire de `citations` toute étiquette absente du contexte étiqueté (comptée en `invalid_citations`, ce qui rend le Critère faux), et le contexte vient de l'index du Palier : une Citation conservée désigne toujours un Ancrage du sous-corpus. Lire le Critère sur le Corpus entier et sur le sous-corpus donne le même résultat ; la note est dans le Rapport. Recalculer exigerait de retirer le Palier au Rapport (`tirer`, `tiers`, Questions requises), donc de dupliquer le runner.
-- Export : `wl rapport <run_id> --exporter-front <nom> --vers <fichier>` régénère le Rapport puis écrit les `config_id` du front lus dans `pareto.csv` (même front que le Rapport), avec leurs champs `id`, `architecture`, `parser`, `params` (et `reuse_index`, clé d'index de `<WL_HOME>/index/` recopiée telle quelle, quand il est défini). `qualite-cout` ou tout nom de `pareto.csv` ; nom inconnu ou vide = code 2 avec la liste des noms ; une seule des deux options = code 2. Un Parser résolu par format (`markdown+pdf_text`, qui n'est pas un nom de Parser) redevient `auto`. Le fichier ne contient que `configurations:` : à coller dans une Expérience, où `config/load.py` l'accepte telle quelle.
+- Export : `librarian-bench rapport <run_id> --exporter-front <nom> --vers <fichier>` régénère le Rapport puis écrit les `config_id` du front lus dans `pareto.csv` (même front que le Rapport), avec leurs champs `id`, `architecture`, `parser`, `params` (et `reuse_index`, clé d'index de `<LIBRARIAN_BENCH_HOME>/index/` recopiée telle quelle, quand il est défini). `qualite-cout` ou tout nom de `pareto.csv` ; nom inconnu ou vide = code 2 avec la liste des noms ; une seule des deux options = code 2. Un Parser résolu par format (`markdown+pdf_text`, qui n'est pas un nom de Parser) redevient `auto`. Le fichier ne contient que `configurations:` : à coller dans une Expérience, où `config/load.py` l'accepte telle quelle.
 
 ## Acceptance Criteria
 
@@ -39,7 +39,7 @@ status: review
 
 - 4.14 : `mini-test.yaml` et SM-3 doivent produire `pareto.csv` avec au moins `qualite-cout` ; le test e2e peut relire `report.md` (synthèse en tête) et `--exporter-front qualite-cout`.
 - 4.14 : une Configuration `llm_wiki` ou `raptor` paie son indexation au Poste `indexing` ; vérifier sur `mini-test.yaml` que les fronts restent lisibles quand le coût fake est nul (tous à 0 € : seule la Qualité départage).
-- 4.14 : `reuse_index` est recopié tel quel ; sur un autre `WL_HOME`, `wl run` refuse la clé si son manifeste manque. Vérifier sur `mini-test.yaml` que `--exporter-front qualite-cout` relancé par `wl run` passe la validation.
+- 4.14 : `reuse_index` est recopié tel quel ; sur un autre `LIBRARIAN_BENCH_HOME`, `librarian-bench run` refuse la clé si son manifeste manque. Vérifier sur `mini-test.yaml` que `--exporter-front qualite-cout` relancé par `librarian-bench run` passe la validation.
 - Fraîcheur absente de `scores.csv` et de `pareto.csv` (le contrat ne la liste pas parmi les fichiers) ; elle n'est que dans `report.md`.
 - Les Qualités des fronts ne portent pas toutes sur les mêmes Questions si l'Exécution est partielle (plafond atteint) : la synthèse l'écrit avec les `n` ; `pareto.csv` garde le format du contrat (`front, config_id, x, y`).
 

@@ -4,8 +4,8 @@ from pathlib import Path
 
 import pytest
 
-from wavelibrarian.config.catalog import load_catalog
-from wavelibrarian.config.validate import ValidationResult, validate_file
+from librarian_bench.config.catalog import load_catalog
+from librarian_bench.config.validate import ValidationResult, validate_file
 
 EXPERIENCES = Path(__file__).resolve().parents[2] / "experiments"
 

@@ -9,21 +9,21 @@ from typing import Any
 import pytest
 from pydantic import BaseModel
 
-from wavelibrarian.config.catalog import ModelCatalog, load_catalog
-from wavelibrarian.config.defaults import load_profile
-from wavelibrarian.config.experiment import Amount, Budget, RetrySettings
-from wavelibrarian.core.errors import BudgetExceeded, NonConformantOutput, ProviderError, WlError
-from wavelibrarian.core.types import Condition, CostPost, Phase, Usage
-from wavelibrarian.llm.budget import Ledger
-from wavelibrarian.llm.cache import ResponseCache
-from wavelibrarian.llm.gateway import MeteredGateway
-from wavelibrarian.llm.providers.base import ProviderResponse
-from wavelibrarian.measure.energy import FakeEstimator
-from wavelibrarian.measure.tokenizers import ApproxTokenizer, ScaledTokenizer
-from wavelibrarian.measure.tracing import Tracer
-from wavelibrarian.ports.gateway import LLMRequest, Message
-from wavelibrarian.ports.measure import Tokenizer
-from wavelibrarian.runner.wiring import build_gateway
+from librarian_bench.config.catalog import ModelCatalog, load_catalog
+from librarian_bench.config.defaults import load_profile
+from librarian_bench.config.experiment import Amount, Budget, RetrySettings
+from librarian_bench.core.errors import BudgetExceeded, NonConformantOutput, ProviderError, WlError
+from librarian_bench.core.types import Condition, CostPost, Phase, Usage
+from librarian_bench.llm.budget import Ledger
+from librarian_bench.llm.cache import ResponseCache
+from librarian_bench.llm.gateway import MeteredGateway
+from librarian_bench.llm.providers.base import ProviderResponse
+from librarian_bench.measure.energy import FakeEstimator
+from librarian_bench.measure.tokenizers import ApproxTokenizer, ScaledTokenizer
+from librarian_bench.measure.tracing import Tracer
+from librarian_bench.ports.gateway import LLMRequest, Message
+from librarian_bench.ports.measure import Tokenizer
+from librarian_bench.runner.wiring import build_gateway
 
 D = Decimal
 USAGE = Usage(input_tokens=1000, output_tokens=500)
@@ -498,7 +498,7 @@ def test_le_schema_entre_dans_la_cle_de_cache(make_env: Callable[..., Env]) -> N
 def test_build_gateway_branche_les_providers_du_catalogue(
     wl_home: Path, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:
-    from wavelibrarian.runner import wiring
+    from librarian_bench.runner import wiring
 
     appels: list[str] = []
     monkeypatch.setattr(wiring, "make_estimator", lambda _s: FakeEstimator())

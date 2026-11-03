@@ -2,17 +2,17 @@
 status: final
 stepsCompleted: [1, 2, 3, 4]
 inputDocuments:
-  - _bmad-output/planning-artifacts/prds/prd-wavelibrarian-2026-10-17/prd.md
-  - _bmad-output/planning-artifacts/prds/prd-wavelibrarian-2026-10-17/addendum.md
-  - _bmad-output/planning-artifacts/architecture/architecture-wavelibrarian-2026-10-17/ARCHITECTURE-SPINE.md
-  - _bmad-output/planning-artifacts/architecture/architecture-wavelibrarian-2026-10-17/contracts.md
+  - _bmad-output/planning-artifacts/prds/prd-librarian-bench-2026-10-17/prd.md
+  - _bmad-output/planning-artifacts/prds/prd-librarian-bench-2026-10-17/addendum.md
+  - _bmad-output/planning-artifacts/architecture/architecture-librarian-bench-2026-10-17/ARCHITECTURE-SPINE.md
+  - _bmad-output/planning-artifacts/architecture/architecture-librarian-bench-2026-10-17/contracts.md
 ---
 
-# WaveLibrarian - Découpage en epics
+# LibrarianBench - Découpage en epics
 
 ## Vue d'ensemble
 
-Ce document découpe le MVP de WaveLibrarian (premier run de développement autonome) en epics et stories. Il part des exigences du PRD et des décisions d'architecture (AD-1 à AD-22, `contracts.md`). Le produit n'a qu'une interface en ligne de commande : il n'y a pas de document UX.
+Ce document découpe le MVP de LibrarianBench (premier run de développement autonome) en epics et stories. Il part des exigences du PRD et des décisions d'architecture (AD-1 à AD-22, `contracts.md`). Le produit n'a qu'une interface en ligne de commande : il n'y a pas de document UX.
 
 ## Inventaire des exigences
 
@@ -82,7 +82,7 @@ NFR-11 : Contre-indicateurs. Une Architecture qui ne passe pas la conformité ne
 
 ### Exigences additionnelles (architecture)
 
-- **Pas de gabarit de démarrage tiers.** Le squelette `uv` (`uv_build`, `src/wavelibrarian/`) suit le germe structurel du spine. La première story pose `pyproject.toml` avec la pile épinglée (`>=x.y,<x+1`, `uv.lock` fait foi) et les extras `local`, `energy` et `docling`, plus torch CPU par l'index `download.pytorch.org/whl/cpu` dans `[tool.uv.sources]`.
+- **Pas de gabarit de démarrage tiers.** Le squelette `uv` (`uv_build`, `src/librarian_bench/`) suit le germe structurel du spine. La première story pose `pyproject.toml` avec la pile épinglée (`>=x.y,<x+1`, `uv.lock` fait foi) et les extras `local`, `energy` et `docling`, plus torch CPU par l'index `download.pytorch.org/whl/cpu` dans `[tool.uv.sources]`.
 - **AD-1 Couches.** `cli` > `runner` | `report` > `architectures` > `components` > `evalset` > `scoring` > `corpus` > `llm` | `measure` | `stats` > `config` > `registry` > `ports` > `core`. Contrat `layers` d'`import-linter` dans `pyproject.toml`, ajouté aux `COMMANDES` du contrôle rapide. Seuls `llm/providers/` importent `anthropic` et `httpx`, seuls `components/embedders/` importent `sentence_transformers`, seul `measure/` importe `opentelemetry`, `codecarbon` et `ecologits` (sauf l'adaptateur `anthropic`, qui lit les impacts EcoLogits).
 - **AD-2 Registre.** `@register(kind, name)`, `Params` pydantic (`extra="forbid"`, `frozen=True`), docstring utilisée comme description, construction par `cls(params, ctx)`, sous-Composants par `ctx.build`. `discover()` par `pkgutil`. Liste fermée de `kind`.
 - **AD-3 Passerelle mesurée.** `MeteredGateway` est le point de passage unique, dans un ordre fixe : marqueur, cache, réservation au registre, appel avec 3 essais, coût par le Catalogue, règlement, mise en cache, span. Providers `anthropic` (SDK, `cache_control`), `ollama` (`/api/chat` par httpx, options du profil, `format` JSON) et `fake`. Les spans LLM ne viennent que de la passerelle ; Embedder et Reranker tracent leurs lots ; une Architecture ou un Retriever ne tracent jamais.
@@ -94,14 +94,14 @@ NFR-11 : Contre-indicateurs. Une Architecture qui ne passe pas la conformité ne
 - **AD-9** Montants en `Decimal` dans la devise du fournisseur. `ledger.sqlite` (réserver, puis régler ou libérer ; mois civil UTC par fournisseur) est la source du plafond, et `traces.jsonl` celle des coûts du Rapport. Conversion en euros dans `report/` seulement. Une réservation orpheline est réglée au montant estimé.
 - **AD-10 Cache d'index.** Clé `index_key` adressée par contenu. Écriture dans `.tmp-<key>/` puis `os.replace`. Instance neuve et `load` après `index` ou `update`. Parsing en cache par `(parser, doc_id)`. Test de sensibilité de la clé aux Params hors `query_params`.
 - **AD-11 Exécution.** Séquentielle, un processus et un fil applicatif (`SimpleSpanProcessor`), `run.lock`, SQLite en `BEGIN IMMEDIATE`. Fichiers append-only dans `runs/<run_id>/`. Préflight (Ollama, `/api/tags`, clés) avec code 4 en cas d'échec. Reprise par clés. `BudgetExceeded` donne un arrêt propre et un Rapport partiel, généré par `cli.py` après le runner (AD-1 : `runner` n'importe pas `report`).
-- **AD-12 Configuration.** `yaml.safe_load` et schémas `extra="forbid"`. `ConfigError` au chemin pointé. Précédence : code, puis profil, puis Expérience. `experiment.resolved.yaml` et son `sha256` sont écrits avant tout appel. `costs.yaml` est surchargeable par `<WL_HOME>/costs.yaml` puis par `costs:`.
+- **AD-12 Configuration.** `yaml.safe_load` et schémas `extra="forbid"`. `ConfigError` au chemin pointé. Précédence : code, puis profil, puis Expérience. `experiment.resolved.yaml` et son `sha256` sont écrits avant tout appel. `costs.yaml` est surchargeable par `<LIBRARIAN_BENCH_HOME>/costs.yaml` puis par `costs:`.
 - **AD-13** `config/validate.py` rassemble toutes les erreurs statiques dans un seul `ValidationFailed`, sans réseau. Les contrôles dépendants du Corpus passent par `Architecture.check(profile)` et donnent `inapplicable` dans `applicability.json`.
 - **AD-14 Panel.** Les `panel_size` premiers modèles du réservoir hors Famille des `answer_producer` et hors exclus de la calibration ; moins de 2 = refus. Règle propre au Filtre closed-book. Un Juge note tous ses Critères en un seul appel.
 - **AD-15 Gel.** Empreinte sans `freeze` ni `contaminated_by`. `split` stratifié et déterministe. Le runner refuse un fichier non gelé ou modifié et n'utilise que `validated` et `corrected`.
-- **AD-16 Tests.** `pytest-socket` (`--disable-socket --allow-unix-socket`), marqueurs `real_api`, `real_local` et `slow`, profil `test` (`fake-llm-a/b/c`, `fake-embedder`, tokenizer `approx`, énergie `fake`, `WL_HOME` dans `tmp_path`). `tests/conformance/test_architectures.py` est paramétré sur tout le registre ; `tests/e2e/test_sm3.py` et `tests/real/test_sm4.py`. La première story vérifie que `--disable-socket` fonctionne sous Windows. `wl installer --profil cpu|gpu` télécharge les modèles.
+- **AD-16 Tests.** `pytest-socket` (`--disable-socket --allow-unix-socket`), marqueurs `real_api`, `real_local` et `slow`, profil `test` (`fake-llm-a/b/c`, `fake-embedder`, tokenizer `approx`, énergie `fake`, `LIBRARIAN_BENCH_HOME` dans `tmp_path`). `tests/conformance/test_architectures.py` est paramétré sur tout le registre ; `tests/e2e/test_sm3.py` et `tests/real/test_sm4.py`. La première story vérifie que `--disable-socket` fonctionne sous Windows. `librarian-bench installer --profil cpu|gpu` télécharge les modèles.
 - **AD-17 Traces et énergie.** `opentelemetry-sdk` avec un `JsonlSpanExporter` maison, attributs de `contracts.md` §6, OTLP en option désactivée. EcoLogits pour l'API Anthropic. codecarbon `OfflineEmissionsTracker` par phase, réparti au prorata de la latence, `measured` seulement avec un compteur matériel. Jamais de somme entre `measured` et `estimated`.
 - **AD-18** Agent et PageIndex fonctionnent par un protocole JSON (`agent_step`, `select_nodes`), sans tool calling natif. Bornes vérifiées avant chaque appel.
-- **AD-19 Secrets.** `python-dotenv` lu dans `llm/providers/` seulement, clés en `SecretStr`, jamais tracées. `WL_HOME` (`./.wl`) et `results` dans `.gitignore`. Un Corpus `publishable: false` dans le dépôt est refusé s'il n'est pas ignoré (`git check-ignore`).
+- **AD-19 Secrets.** `python-dotenv` lu dans `llm/providers/` seulement, clés en `SecretStr`, jamais tracées. `LIBRARIAN_BENCH_HOME` (`./.librarian-bench`) et `results` dans `.gitignore`. Un Corpus `publishable: false` dans le dépôt est refusé s'il n'est pas ignoré (`git check-ignore`).
 - **AD-20 Déterminisme.** `ctx.rng(*clés)` ou `default_rng(sha16(...))`, `temperature: 0` et `seed`, itérations sur des listes triées, égalités départagées par id.
 - **AD-21 Profils.** `cpu` (défaut), `gpu` et `test` dans `defaults/profiles/`, lus par `ctx.profile` ; nom écrit au manifeste et au Rapport.
 - **AD-22 Grandeurs du Rapport** (`contracts.md` §7). `scoring/` produit les verdicts, `stats/` des fonctions pures, `report/` agrège par (config_id, condition, tier, phase) à partir des seuls fichiers de l'Exécution. Paliers tirés par `corpus/tiers.py` avec `required_paths`.
@@ -114,9 +114,9 @@ NFR-11 : Contre-indicateurs. Une Architecture qui ne passe pas la conformité ne
 
 Un autre banc (slm-quality-bench) occupe la machine jusqu'au 18/10 vers 10 h, avec Ollama sur le GPU. Ces règles s'ajoutent aux stories pendant ce run. Elles ne changent pas leurs critères, qui restent vérifiables sans réseau.
 
-- **Ollama local interdit.** Aucune requête au service hors `/api/version`, `/api/ps` et `/api/tags`, aucune commande `ollama`, aucun second serveur de modèles. Les tests `real_local` (stories 1.11 et 1.12) sont écrits mais **pas exécutés** : ne jamais lancer `pytest -m real_local`. Pas de `wl run` sur `mini-cpu.yaml`, qui appellerait Ollama. Le préflight se limite à `/api/tags`.
+- **Ollama local interdit.** Aucune requête au service hors `/api/version`, `/api/ps` et `/api/tags`, aucune commande `ollama`, aucun second serveur de modèles. Les tests `real_local` (stories 1.11 et 1.12) sont écrits mais **pas exécutés** : ne jamais lancer `pytest -m real_local`. Pas de `librarian-bench run` sur `mini-cpu.yaml`, qui appellerait Ollama. Le préflight se limite à `/api/tags`.
 - **GPU interdit.** `CUDA_VISIBLE_DEVICES=-1` avant tout code de ML. Après chaque exécution d'un code de ML, vérifier que le PID n'apparaît pas dans `nvidia-smi --query-compute-apps=pid,process_name --format=csv`.
-- **Pas d'extra lourd, pas de téléchargement de plus de 1 Go.** Ne pas installer les extras `local` (torch) ni `docling`, et ne pas lancer `wl installer`. Les tests par défaut n'en ont pas besoin (profil `test`).
+- **Pas d'extra lourd, pas de téléchargement de plus de 1 Go.** Ne pas installer les extras `local` (torch) ni `docling`, et ne pas lancer `librarian-bench installer`. Les tests par défaut n'en ont pas besoin (profil `test`).
 - **Ressources.** `OMP_NUM_THREADS=4`, `MKL_NUM_THREADS=4` et `OPENBLAS_NUM_THREADS=4` dans l'environnement du run. Au plus 6 Go de RAM, priorité `BelowNormal` pour les processus du run, aucun pytest parallèle.
 - **API autorisée.** SM-4 (story 4.15) ne sollicite que l'API Anthropic, avec des Juges et un embedder factices (story 4.14), sous le plafond de 5 $.
 - **Surveillance par l'orchestrateur.** Avant de commencer, puis toutes les 10 minutes environ : débit du banc (réponses des 10 dernières minutes dans `wavelocalai/data/quality_bench/campaigns/pilot-20261017/log-generate.log`, à comparer sur le même modèle et la même piste), CPU total, RAM libre, et consommation propre du run (temps CPU, RSS de pointe, threads), consignée dans le projet.
@@ -135,7 +135,7 @@ Une FR qui court sur plusieurs epics est rattachée à l'epic qui la livre en en
 | FR | Epic | Objet |
 | --- | --- | --- |
 | FR-1 | 4 (1 : schémas et chargement) | Expérience exécutée par une seule commande |
-| FR-2 | 1 | Registre et `wl registre` |
+| FR-2 | 1 | Registre et `librarian-bench registre` |
 | FR-3 | 1 (contrôles statiques), 4 (`check()` et inapplicable) | Matrice de compatibilité |
 | FR-4 | 4 | Reproductibilité, rejeu sans appel payant |
 | FR-5 | 2 | Déclaration d'un Corpus |
@@ -185,12 +185,12 @@ Couverture : les 45 FR du MVP sont rattachées à un epic.
 ## Liste des epics
 
 ### Epic 1 : Un banc configurable, mesuré et testable sans réseau
-Anaël valide une Expérience YAML avant tout appel et liste ce que le banc sait faire (`wl registre`). Tout appel de modèle, réel ou factice, passe par une passerelle unique qui applique le Plafond de dépense et le Cache de réponses, et qui trace coût, tokens et énergie. Un agent de développement ajoute un Composant enregistré et le teste avec le Faux LLM et le faux embedder, sans réseau ni clé.
+Anaël valide une Expérience YAML avant tout appel et liste ce que le banc sait faire (`librarian-bench registre`). Tout appel de modèle, réel ou factice, passe par une passerelle unique qui applique le Plafond de dépense et le Cache de réponses, et qui trace coût, tokens et énergie. Un agent de développement ajoute un Composant enregistré et le teste avec le Faux LLM et le faux embedder, sans réseau ni clé.
 **FR couvertes :** FR-2, FR-3 (statique), FR-29, FR-30, FR-32 (mesure), FR-33 (registre), FR-34, FR-52, FR-55 ; fondations de FR-1, FR-31 et FR-37.
-**Notes :** squelette `uv` et pile épinglée, `import-linter` (AD-1), `pytest-socket` vérifié sous Windows (AD-16), profils `cpu`, `gpu` et `test` (AD-21), providers `anthropic`, `ollama` et `fake` (AD-3, AD-4), `wl installer`.
+**Notes :** squelette `uv` et pile épinglée, `import-linter` (AD-1), `pytest-socket` vérifié sous Windows (AD-16), profils `cpu`, `gpu` et `test` (AD-21), providers `anthropic`, `ollama` et `fake` (AD-3, AD-4), `librarian-bench installer`.
 
 ### Epic 2 : Déclarer, ingérer et profiler un Corpus
-Anaël déclare un Corpus, l'ingère avec ses Ancrages (Markdown, texte, HTML, PDF) et obtient son Profil (`wl corpus profiler`). Il tire des Paliers de volume emboîtés et applique un Scénario de mise à jour. Le dépôt livre le Mini-corpus fictif : Documents, extras et scénario.
+Anaël déclare un Corpus, l'ingère avec ses Ancrages (Markdown, texte, HTML, PDF) et obtient son Profil (`librarian-bench corpus profiler`). Il tire des Paliers de volume emboîtés et applique un Scénario de mise à jour. Le dépôt livre le Mini-corpus fictif : Documents, extras et scénario.
 **FR couvertes :** FR-5, FR-6, FR-7, FR-8 (Documents), FR-53 (fichier et application), FR-54 (tirage).
 **Notes :** AD-5 (identités), AD-10 (cache de parsing), AD-19 (`git check-ignore`), `scripts/make_minicorpus_pdfs.py`.
 
@@ -200,12 +200,12 @@ Anaël génère des Questions candidates, les corrige dans le YAML, contrôle le
 **Notes :** AD-14 (Juge du Filtre closed-book), AD-15 (Gel). Le Composant Juge LLM naît ici ; l'epic 4 le réutilise pour le Panel.
 
 ### Epic 4 : Comparer les Baselines de bout en bout et lire le Rapport
-Anaël lance `wl run` sur une Expérience qui compare les trois Baselines, en Condition standard et contexte parfait. Il peut appliquer un Scénario et des Paliers, s'arrêter au plafond et reprendre sans repayer. Il obtient un Rapport complet : scores par Critère avec IC, comparaisons appariées, coûts et énergie par Poste, fronts de Pareto exportables (UJ-2). La suite de conformité commune est en place pour toute Architecture future (UJ-4).
+Anaël lance `librarian-bench run` sur une Expérience qui compare les trois Baselines, en Condition standard et contexte parfait. Il peut appliquer un Scénario et des Paliers, s'arrêter au plafond et reprendre sans repayer. Il obtient un Rapport complet : scores par Critère avec IC, comparaisons appariées, coûts et énergie par Poste, fronts de Pareto exportables (UJ-2). La suite de conformité commune est en place pour toute Architecture future (UJ-4).
 **FR couvertes :** FR-1, FR-3 (inapplicable), FR-4, FR-14, FR-15, FR-16, FR-17, FR-28, FR-31, FR-32 (restitution), FR-33 (arrêt et reprise), FR-35, FR-36, FR-37, FR-39, FR-40, FR-41, FR-53 (phase `after_update`, Fraîcheur), FR-54 (exécution par Palier).
 **Notes :** AD-6, AD-8, AD-9, AD-10, AD-11, AD-13, AD-14, AD-22. Sortie : `tests/conformance/test_architectures.py`, `tests/e2e/test_sm3.py` sur les Baselines, `tests/real/test_sm4.py` (marqué `real_api`).
 
 ### Epic 5 : Calibrer les juges sur des annotations humaines
-Anaël annote des Réponses dans des fichiers YAML, lance `wl calibrer`, obtient les kappas juge-humain et inter-annotateurs et le taux d'instabilité sur 5 passes. Les Juges sous le seuil sont exclus des Rapports suivants (UJ-3).
+Anaël annote des Réponses dans des fichiers YAML, lance `librarian-bench calibrer`, obtient les kappas juge-humain et inter-annotateurs et le taux d'instabilité sur 5 passes. Les Juges sous le seuil sont exclus des Rapports suivants (UJ-3).
 **FR couvertes :** FR-38.
 **Notes :** AD-14 (exclusion par `calibration.json`), FR-34 (passes hors cache par `pass_id`).
 
@@ -253,9 +253,9 @@ So that chaque story suivante démarre sur un socle qui refuse les imports inter
 
 **Given** les paquets vides `core`, `ports`, `config`, `llm`, `llm/providers`, `measure`, `stats`, `corpus`, `scoring`, `evalset`, `components`, `architectures`, `runner`, `report` et les modules `registry.py` et `cli.py` créés selon le germe structurel
 **When** on lance `uv run lint-imports`
-**Then** le contrat `layers` (`root_package = "wavelibrarian"`) reprend mot pour mot l'ordre d'AD-1, modules indépendants compris, et passe
+**Then** le contrat `layers` (`root_package = "librarian-bench"`) reprend mot pour mot l'ordre d'AD-1, modules indépendants compris, et passe
 **And** un contrat `forbidden` interdit `anthropic` et `httpx` hors de `llm.providers`, `sentence_transformers` hors de `components.embedders`, et `opentelemetry`, `codecarbon` et `ecologits` hors de `measure` (sauf `llm.providers.anthropic` pour `ecologits`)
-**And** un second contrat `forbidden` interdit d'importer `wavelibrarian.llm.providers` ailleurs que dans `llm.gateway` et `llm.preflight`, pour que le plafond de dépense ne puisse pas être contourné (AD-3)
+**And** un second contrat `forbidden` interdit d'importer `librarian-bench.llm.providers` ailleurs que dans `llm.gateway` et `llm.preflight`, pour que le plafond de dépense ne puisse pas être contourné (AD-3)
 **And** `lint-imports` est ajouté aux `COMMANDES` de `.claude/cost-kit/controle_rapide.py`, avec `ruff check`, `ruff format --check` et `pyright`
 
 **Given** `addopts = "--disable-socket --allow-unix-socket -m 'not real_api and not real_local'"` et les marqueurs `real_api`, `real_local` et `slow` déclarés
@@ -268,10 +268,10 @@ So that chaque story suivante démarre sur un socle qui refuse les imports inter
 **Then** `WlError`, `ConfigError(path, message)`, `ValidationFailed(errors)`, `BudgetExceeded`, `Inapplicable(reason)`, `ProviderError(retryable)` et `NonConformantOutput` existent, avec `WlError` pour racine
 **And** `canonical_json` trie les clés, utilise `separators=(",", ":")` et sérialise un `Decimal` en chaîne ; `sha16` renvoie 16 caractères hexadécimaux stables ; `slug("Éléments d'histoire")` vaut `elements-d-histoire` ; `new_run_id` suit `YYYYMMDD-HHMMSS-<6 hex>` en UTC
 
-**Given** la commande `wl` déclarée en script du projet (typer)
+**Given** la commande `librarian-bench` déclarée en script du projet (typer)
 **When** on lance `uv run wl --help`
 **Then** l'aide s'affiche en français et la commande sort en 0
-**And** `.gitignore` contient `.wl/`, `results/` et `.env`, et `tests/conftest.py` fournit la fixture `wl_home` (dossier dans `tmp_path`, variable `WL_HOME` positionnée)
+**And** `.gitignore` contient `.librarian-bench/`, `results/` et `.env`, et `tests/conftest.py` fournit la fixture `wl_home` (dossier dans `tmp_path`, variable `LIBRARIAN_BENCH_HOME` positionnée)
 
 ### Story 1.2 : Types du domaine et ports publiés
 
@@ -302,7 +302,7 @@ So that tous les modules suivants partagent les mêmes formes sans les réinvent
 **And** `ArchitectureBase.answer_with_context` a l'implémentation par défaut (`context_builder.build` puis `generator.generate`) et `update` réindexe par défaut dans `new_directory`
 **And** `core` et `ports` ne font aucune entrée-sortie, et `lint-imports` passe
 
-### Story 1.3 : Registre de Composants et commande `wl registre`
+### Story 1.3 : Registre de Composants et commande `librarian-bench registre`
 
 As a agent de développement,
 I want enregistrer un Composant ou une Architecture par un décorateur et le voir listé,
@@ -325,12 +325,12 @@ So that ajouter un module suffise à le rendre sélectionnable, sans toucher à 
 **When** on demande le nom `inconnu`
 **Then** la `ConfigError` liste `toy` et `toy2`, seulement pour ce `kind`
 
-**Given** un module ajouté sous `wavelibrarian.components` ou `wavelibrarian.architectures`
+**Given** un module ajouté sous `librarian-bench.components` ou `librarian-bench.architectures`
 **When** on appelle `registry.discover()`
 **Then** il est importé récursivement par `pkgutil` sans autre modification, et un second appel est sans effet
 
 **Given** la CLI
-**When** on lance `wl registre` puis `wl registre --kind chunker`
+**When** on lance `librarian-bench registre` puis `librarian-bench registre --kind chunker`
 **Then** la sortie liste les entrées enregistrées (toutes, puis celles du `kind`), avec leur description et leurs Params, en français, et sort en 0
 
 ### Story 1.4 : Catalogue de modèles, paramètres de coût et profils d'exécution
@@ -359,9 +359,9 @@ So that chaque modèle, chaque prix et chaque option CPU ou GPU soient déclaré
 **And** pour un prompt dont l'entrée plus les lectures et écritures de cache dépassent 100 000 tokens, le multiplicateur 5 s'applique à tous les postes de la requête, y compris le cache
 **And** les tarifs `cache_read` et `cache_write` sont appliqués aux tokens correspondants
 
-**Given** `defaults/costs.yaml`, un `<WL_HOME>/costs.yaml` qui ne surcharge que `kwh_price_eur` et un fichier `costs:` d'Expérience qui ne surcharge que `gco2e_per_kwh`
+**Given** `defaults/costs.yaml`, un `<LIBRARIAN_BENCH_HOME>/costs.yaml` qui ne surcharge que `kwh_price_eur` et un fichier `costs:` d'Expérience qui ne surcharge que `gco2e_per_kwh`
 **When** on résout les `CostSettings`
-**Then** la fusion clé par clé suit la précédence défauts, puis `WL_HOME`, puis Expérience, et les dates des valeurs sont conservées
+**Then** la fusion clé par clé suit la précédence défauts, puis `LIBRARIAN_BENCH_HOME`, puis Expérience, et les dates des valeurs sont conservées
 
 **Given** `defaults/profiles/cpu.yaml`, `gpu.yaml` et `test.yaml`
 **When** on les charge en `ProfileSettings`
@@ -420,7 +420,7 @@ So that je ne paie jamais un appel pour une Configuration qui aurait été refus
 **When** on valide
 **Then** la Configuration est refusée avec un message qui cite le modèle
 
-**Given** `reuse_index: <clé>` et un `manifest.json` de cet index dans `WL_HOME/index/<clé>/` avec `embedder_dim: 384`, et un embedder de dimension 64
+**Given** `reuse_index: <clé>` et un `manifest.json` de cet index dans `LIBRARIAN_BENCH_HOME/index/<clé>/` avec `embedder_dim: 384`, et un embedder de dimension 64
 **When** on valide
 **Then** la Configuration est refusée pour dimension incompatible (FR-3)
 
@@ -435,7 +435,7 @@ So that je ne paie jamais un appel pour une Configuration qui aurait été refus
 **Then** elle renvoie le premier modèle du réservoir d'une autre famille (AD-14)
 
 **Given** la CLI
-**When** on lance `wl run <experience-invalide.yaml>`
+**When** on lance `librarian-bench run <experience-invalide.yaml>`
 **Then** les erreurs s'affichent en français, avec leur chemin, et la commande sort avec le code 2
 **And** à ce stade, une Expérience valide affiche « validation réussie » ; le runner arrive à l'epic 4
 
@@ -461,7 +461,7 @@ So that tout coût et tout kWh du Rapport se retrouvent ligne à ligne.
 **Given** le tokenizer `approx` du profil `test`
 **When** on compte un texte de 12 mots
 **Then** il renvoie 12
-**And** le tokenizer `reference` (`tiktoken` `o200k_base`) est chargé au premier usage, et lève `WlError("… wl installer …")` si l'encodage n'est pas installé localement, sans téléchargement
+**And** le tokenizer `reference` (`tiktoken` `o200k_base`) est chargé au premier usage, et lève `WlError("… librarian-bench installer …")` si l'encodage n'est pas installé localement, sans téléchargement
 **And** `tokenizer_for(model)` applique `token_factor` (défaut 1,2) quand le Catalogue ne déclare pas `reference`
 
 **Given** l'énergie `fake` du profil `test`
@@ -484,7 +484,7 @@ So that aucun appel ne dépasse mon plafond et qu'aucun appel identique ne soit 
 
 **Acceptance Criteria:**
 
-**Given** un `ledger.sqlite` vide dans `WL_HOME`, un plafond par Exécution de 1,00 USD et un plafond de période de 2,00 USD pour `anthropic`
+**Given** un `ledger.sqlite` vide dans `LIBRARIAN_BENCH_HOME`, un plafond par Exécution de 1,00 USD et un plafond de période de 2,00 USD pour `anthropic`
 **When** on réserve 0,60, on règle à 0,40, puis on réserve 0,70
 **Then** la seconde réservation est refusée par `BudgetExceeded` (0,40 + 0,70 > 1,00), et le solde affiché vaut 0,60
 **And** chaque écriture se fait en transaction `BEGIN IMMEDIATE`
@@ -518,7 +518,7 @@ So that aucun appel n'échappe au plafond, au cache, à la trace ni au registre 
 
 **Acceptance Criteria:**
 
-**Given** `MeteredGateway` (`llm/gateway.py`), un provider de test minimal qui renvoie un texte fixe et un `Usage` connu, le profil `test` et un `WL_HOME` temporaire
+**Given** `MeteredGateway` (`llm/gateway.py`), un provider de test minimal qui renvoie un texte fixe et un `Usage` connu, le profil `test` et un `LIBRARIAN_BENCH_HOME` temporaire
 **When** un Composant appelle `complete` deux fois avec la même requête
 **Then** le system reçu par le provider commence par `[[wl:role=<role>]]`, posé par la passerelle seule
 **And** le premier appel réserve, appelle, règle au coût du Catalogue (prix fictif, en `Decimal`), stocke et trace un span `wl.llm_cache_hit=false`
@@ -607,13 +607,13 @@ So that les mêmes Composants tournent sur de vrais modèles, mesurés de la mê
 **When** on lance le test marqué `real_local`
 **Then** un appel au profil `cpu` réussit et confirme que `num_gpu` est accepté par `/api/chat` ; sans Ollama, le test est sauté
 
-### Story 1.12 : Préflight, `wl installer` et embedder sentence-transformers
+### Story 1.12 : Préflight, `librarian-bench installer` et embedder sentence-transformers
 
 As a Anaël,
 I want installer les modèles locaux par une commande et que le banc vérifie ses dépendances avant de dépenser,
 So that une Exécution n'échoue jamais au milieu pour un modèle ou une clé absents, et que les tests ne téléchargent jamais rien.
 
-**Exigences :** NFR-1, NFR-5 ; AD-11 (préflight, code 4), AD-16 (`wl installer`), AD-21.
+**Exigences :** NFR-1, NFR-5 ; AD-11 (préflight, code 4), AD-16 (`librarian-bench installer`), AD-21.
 
 **Acceptance Criteria:**
 
@@ -624,10 +624,10 @@ So that une Exécution n'échoue jamais au milieu pour un modèle ou une clé ab
 **And** les modèles `fake-*` ne demandent aucune vérification
 
 **Given** la CLI et un préflight en échec
-**When** on lance `wl run` sur une Expérience valide (le préflight s'insère après la validation de la story 1.6)
+**When** on lance `librarian-bench run` sur une Expérience valide (le préflight s'insère après la validation de la story 1.6)
 **Then** elle sort avec le code 4 et un message en français
 
-**Given** `wl installer --profil cpu`
+**Given** `librarian-bench installer --profil cpu`
 **When** on le lance avec les téléchargements simulés
 **Then** il demande l'encodage tiktoken `o200k_base` et l'embedder `intfloat/multilingual-e5-small`, puis compare `ollama list` aux modèles du profil et liste ceux qui manquent
 **And** `--profil gpu` vise `bge-m3` et les modèles Ollama GPU
@@ -699,7 +699,7 @@ So that toute Question puisse citer un Ancrage stable, indépendant du Découpag
 **When** on ingère
 **Then** `auto` est résolu en noms concrets par format (`markdown`, `text`, `html`, `pdf_text`), obtenus par le registre, sans import direct de `components`
 **And** le résultat est un `ParsedCorpus` trié par `source_path`, avec `fingerprint = sha16` des couples `(source_path, doc_id)` triés
-**And** chaque `ParsedDocument` est écrit dans `<WL_HOME>/parse_cache/<parser>/<doc_id>.json` ; une seconde ingestion le relit sans appeler le Parser (compteur d'appels dans le test)
+**And** chaque `ParsedDocument` est écrit dans `<LIBRARIAN_BENCH_HOME>/parse_cache/<parser>/<doc_id>.json` ; une seconde ingestion le relit sans appeler le Parser (compteur d'appels dans le test)
 
 **Given** un `ParsedCorpus` ingéré
 **When** on appelle `resolve(source_path, None, headings)` avec les titres bruts d'une section
@@ -732,7 +732,7 @@ So that une Question puisse citer une page précise et que la validation la retr
 **When** on appelle `resolve("docs/registre.pdf", 2, ())` puis `resolve("docs/registre.pdf", 9, ())`
 **Then** la première renvoie `<doc_id>#p2` et la seconde `None`
 
-### Story 2.4 : Profil de corpus et commande `wl corpus profiler`
+### Story 2.4 : Profil de corpus et commande `librarian-bench corpus profiler`
 
 As a Anaël,
 I want obtenir par une commande le Profil d'un Corpus,
@@ -756,7 +756,7 @@ So that je le situe sur la Matrice de conviction et que le banc juge l'applicabi
 **Then** il renvoie 50 000 pour le premier et 75 000 pour le second ; un modèle sans `token_factor` explicite utilise 1,2
 
 **Given** la CLI
-**When** on lance `wl corpus profiler <corpus.yaml> --parser auto` avec le profil `test`
+**When** on lance `librarian-bench corpus profiler <corpus.yaml> --parser auto` avec le profil `test`
 **Then** `corpus_profile.json` est écrit (sérialisation `model_dump(mode="json")`) et un résumé en français s'affiche, avec le code de sortie 0
 **And** un `corpus.yaml` invalide sort avec le code 2
 
@@ -821,7 +821,7 @@ So that le runner puisse ensuite mesurer coût, durée et Fraîcheur après mise
 **Then** ils sont identiques (`CorpusChange` et `fingerprint`)
 **And** aucun fichier du dossier `docs/` n'est modifié sur disque
 
-### Story 2.7 : Paliers de volume et commande `wl corpus paliers`
+### Story 2.7 : Paliers de volume et commande `librarian-bench corpus paliers`
 
 As a Anaël,
 I want tirer des Paliers de volume emboîtés et reproductibles,
@@ -849,14 +849,14 @@ So that je mesure l'effet du volume sans que les Documents des Ancrages de réf�
 **Then** c'est un `ParsedCorpus` restreint à ces Documents, avec sa propre `fingerprint`
 
 **Given** la CLI
-**When** on lance `wl corpus paliers <corpus.yaml>`
+**When** on lance `librarian-bench corpus paliers <corpus.yaml>`
 **Then** elle affiche chaque taille et ses `source_path`, en français, et sort en 0 ; sans clé `tiers`, elle l'indique et sort en 0
 
 ## Epic 3 : Construire et geler un Jeu d'évaluation
 
 Anaël génère des Questions candidates, les corrige dans le YAML, contrôle leurs Ancrages, passe le Filtre closed-book et gèle le jeu avec sa séparation dev / test (UJ-1). Le Jeu de référence du Mini-corpus est livré gelé.
 
-### Story 3.1 : Format des Questions et commande `wl questions controler`
+### Story 3.1 : Format des Questions et commande `librarian-bench questions controler`
 
 As a Anaël,
 I want un fichier de Questions éditable à la main et une commande qui le contrôle,
@@ -880,13 +880,13 @@ So that je valide, corrige ou rejette des Questions dans mon éditeur, et qu'auc
 **Then** chacune est signalée avec son `id`
 
 **Given** `evalset/check.py`, le `ParsedCorpus` d'un Corpus et une Question `validated` dont un Ancrage cite la page 9 d'un PDF de 3 pages
-**When** on lance `wl questions controler <questions.yaml> --corpus <corpus.yaml>`
+**When** on lance `librarian-bench questions controler <questions.yaml> --corpus <corpus.yaml>`
 **Then** la commande affiche le nombre de Questions par statut et par Type, et l'écart à `target_count`
 **And** elle liste la Question et l'Ancrage introuvables, puis sort avec le code 2
 **And** une Question `generated` ou `rejected` à l'Ancrage introuvable est seulement signalée, sans faire échouer la commande
 
 **Given** une Question `scenario_target: {operation: op-1, state: after}` dont l'Ancrage est dans un Document ajouté par le Scénario
-**When** on lance `wl questions controler ... --scenario <scenario.yaml>` (option ajoutée à `contracts.md` §8, sans effet sur les autres options)
+**When** on lance `librarian-bench questions controler ... --scenario <scenario.yaml>` (option ajoutée à `contracts.md` §8, sans effet sur les autres options)
 **Then** ses Ancrages sont résolus dans `corpus_after` (story 2.6), et les autres Questions dans le Corpus de base
 **And** sans `--scenario`, ces Questions sont signalées comme non vérifiables, sans faire échouer la commande
 
@@ -904,7 +904,7 @@ So that la génération de questions et le Filtre closed-book passent par la pas
 
 **Acceptance Criteria:**
 
-**Given** `runner/context.py` construit à partir d'une Expérience résolue (ou d'un profil seul pour une commande hors Exécution), d'un `WL_HOME` et d'un `run_id`
+**Given** `runner/context.py` construit à partir d'une Expérience résolue (ou d'un profil seul pour une commande hors Exécution), d'un `LIBRARIAN_BENCH_HOME` et d'un `run_id`
 **When** on l'instancie avec le profil `test`
 **Then** il expose `gateway` (passerelle mesurée avec le provider de chaque modèle d'après le Catalogue), `tracer`, `tokenizer`, `catalog`, `profile`, `seed`, `condition`, `tier` et `phase`, et satisfait le Protocol `ports.context.RunContext` (vérifié par pyright)
 
@@ -921,7 +921,7 @@ So that la génération de questions et le Filtre closed-book passent par la pas
 **When** on tire dix nombres
 **Then** les deux premiers tirages sont identiques et le troisième diffère
 
-**Given** une Exécution déjà en cours qui détient `WL_HOME/run.lock`
+**Given** une Exécution déjà en cours qui détient `LIBRARIAN_BENCH_HOME/run.lock`
 **When** on crée un second contexte d'Exécution
 **Then** il échoue avec le message « Exécution <run_id> en cours » ; un contexte de commande hors Exécution ne prend pas le verrou
 
@@ -936,7 +936,7 @@ So that je parte d'un brouillon ancré au lieu d'une page blanche, sans dépasse
 **Acceptance Criteria:**
 
 **Given** `evalset/generate.py`, le Mini-corpus, le profil `test` et la répartition `factual=3,multi_hop=1,unanswerable=1`
-**When** on lance `wl questions generer <corpus.yaml> --repartition factual=3,multi_hop=1,unanswerable=1`
+**When** on lance `librarian-bench questions generer <corpus.yaml> --repartition factual=3,multi_hop=1,unanswerable=1`
 **Then** les Questions ajoutées au fichier ont `status: generated`, `origin: {kind: model, name: <modèle>}`, un `id` neuf qui ne réutilise aucun identifiant existant, et `split: null`
 **And** les Questions existantes du fichier sont conservées sans modification
 
@@ -987,7 +987,7 @@ So that le Filtre closed-book puis le Panel notent les Réponses de façon repro
 **When** on construit le `JudgeInput`
 **Then** `context_texts` reprend les textes fournis au Generator (AD-6), jamais une reconstruction
 
-### Story 3.5 : Filtre closed-book et commande `wl questions closed-book`
+### Story 3.5 : Filtre closed-book et commande `librarian-bench questions closed-book`
 
 As a Anaël,
 I want poser chaque Question sans contexte à plusieurs modèles,
@@ -998,7 +998,7 @@ So that je sache quelles Questions un modèle connaît déjà et que leurs score
 **Acceptance Criteria:**
 
 **Given** `evalset/closed_book.py`, un fichier de Questions et les modèles `fake-llm-a` et `fake-llm-b`
-**When** on lance `wl questions closed-book <questions.yaml> --modeles fake-llm-a,fake-llm-b`
+**When** on lance `librarian-bench questions closed-book <questions.yaml> --modeles fake-llm-a,fake-llm-b`
 **Then** chaque Question `validated` ou `corrected` est posée sans contexte à chaque modèle, au rôle `closed_book`, et les Questions `unanswerable` ne passent pas le filtre
 **And** sans `--modeles`, la liste vient de `closed_book_models` du profil
 
@@ -1029,7 +1029,7 @@ So that aucune Exécution ne tourne sur un jeu modifié en douce et que la parti
 **Acceptance Criteria:**
 
 **Given** `evalset/freeze.py` et un Jeu de 50 Questions `validated` réparties sur cinq Types
-**When** on lance `wl questions geler <questions.yaml> --dev-ratio 0.4 --graine 42`
+**When** on lance `librarian-bench questions geler <questions.yaml> --dev-ratio 0.4 --graine 42`
 **Then** chaque Question participante reçoit `split: dev` ou `split: test`, stratifié par `type`, avec 40 % de dev dans chaque Type (arrondi documenté)
 **And** `freeze` vaut `{sha256, at, seed, dev_ratio}`, où `sha256` est l'empreinte de `canonical_json` du document sans `freeze` ni `contaminated_by`
 **And** un second Gel avec la même graine sur le même contenu produit la même répartition
@@ -1061,7 +1061,7 @@ So that chaque Architecture se teste de bout en bout sur des Questions dont les 
 **Acceptance Criteria:**
 
 **Given** `corpora/minicorpus/questions.yaml`
-**When** on lance `wl questions controler` sur le Mini-corpus, avec `--scenario` pointant son scénario
+**When** on lance `librarian-bench questions controler` sur le Mini-corpus, avec `--scenario` pointant son scénario
 **Then** la commande sort en 0, avec au moins 40 Questions `validated`, `origin: {kind: model, name: claude-code-dev-agent}` et `target_count: 40`
 **And** tous les Types de question sont couverts sauf `visual` et `numeric_aggregation`, avec au moins deux `follow_up` (historique renseigné), deux `cross_lingual` et trois Questions avec `scenario_target` qui renvoient à des opérations du scénario
 **And** au moins une Question `unanswerable` porte sur un fait absent du Corpus, et au moins une `knowledge_trap` contredit une connaissance générale
@@ -1085,7 +1085,7 @@ So that chaque Architecture se teste de bout en bout sur des Questions dont les 
 
 ## Epic 4 : Comparer les Baselines de bout en bout et lire le Rapport
 
-Anaël lance `wl run` sur une Expérience qui compare les trois Baselines. Les Conditions standard et contexte parfait sont disponibles, ainsi qu'un Scénario de mise à jour et des Paliers. L'Exécution s'arrête au plafond et reprend sans repayer. Anaël obtient un Rapport complet (UJ-2). La suite de conformité commune est en place pour toute Architecture future (UJ-4).
+Anaël lance `librarian-bench run` sur une Expérience qui compare les trois Baselines. Les Conditions standard et contexte parfait sont disponibles, ainsi qu'un Scénario de mise à jour et des Paliers. L'Exécution s'arrête au plafond et reprend sans repayer. Anaël obtient un Rapport complet (UJ-2). La suite de conformité commune est en place pour toute Architecture future (UJ-4).
 
 ### Story 4.1 : Découpage, contexte étiqueté et Generator LLM
 
@@ -1183,7 +1183,7 @@ So that je ne paie jamais deux fois la même indexation et que chaque résultat 
 **Then** `runs/<run_id>/` contient `experiment.resolved.yaml`, `experiment.sha256` et `manifest.json` (`status: running`, profil, `models_frozen_at`, liste des modèles), écrits avant tout appel
 **And** les fichiers JSONL sont ouverts en ajout seulement, en UTF-8 avec LF, et seul le runner y écrit
 
-### Story 4.4 : Exécution d'une Expérience par `wl run`
+### Story 4.4 : Exécution d'une Expérience par `librarian-bench run`
 
 As a Anaël,
 I want lancer une Expérience par une seule commande et obtenir une Réponse par Question et par Configuration,
@@ -1194,25 +1194,25 @@ So that la comparaison des Baselines tourne sans intervention, même si une Ques
 **Acceptance Criteria:**
 
 **Given** une Expérience au profil `test` sur le Mini-corpus, avec les trois Baselines et `split: dev`
-**When** on lance `wl run <experience.yaml>`
+**When** on lance `librarian-bench run <experience.yaml>`
 **Then** le runner enchaîne, dans l'ordre d'AD-11, chargement, validation, préflight, ingestion, profilage (`corpus_profile.json`), `check()` par Configuration, index ou cache, puis `answer` par Question
 **And** `answers.jsonl` contient un `Answer` par (config_id, condition, tier, phase, question_id), avec `answer_id` au format de `contracts.md` §1 (`tier = "all"` sans palier)
 **And** le manifeste passe à `completed` et la commande sort en 0
 
 **Given** le Jeu non Gelé, ou modifié après le Gel
-**When** on lance `wl run`
+**When** on lance `librarian-bench run`
 **Then** l'Exécution est refusée avant tout appel, avec le code 2 (AD-15) ; seules les Questions `validated` et `corrected` de la partie demandée sont posées
 
 **Given** une Configuration `long_context` inapplicable pour le Corpus
-**When** on lance `wl run`
+**When** on lance `librarian-bench run`
 **Then** elle figure dans `applicability.json` avec sa raison, ses Questions ont `status: inapplicable`, et les autres Configurations s'exécutent
 
 **Given** une Question dont l'appel lève `NonConformantOutput` (sortie scénarisée)
-**When** on lance `wl run`
+**When** on lance `librarian-bench run`
 **Then** son `Answer` a `status: error` et un message, et l'Exécution continue sur les Questions suivantes
 
 **Given** `max_questions: 3`
-**When** on lance `wl run`
+**When** on lance `librarian-bench run`
 **Then** seules les trois premières Questions de la partie, dans l'ordre des `id`, sont posées
 
 ### Story 4.5 : Mesure de l'Exécution : postes, latence, énergie et rejeu
@@ -1254,18 +1254,18 @@ So that j'isole la qualité du Generator et que je mesure l'effet du volume.
 **Acceptance Criteria:**
 
 **Given** `conditions: [standard, perfect_context]`
-**When** on lance `wl run`
+**When** on lance `librarian-bench run`
 **Then** pour chaque Question, le runner construit un Passage par Ancrage de référence (`level 0`, texte de `ParsedCorpus.anchor_text`), dans l'ordre des `reference_anchors`, et appelle `answer_with_context`
 **And** l'Architecture ne reçoit que `QuestionInput` et ces Passages, jamais la Réponse de référence (vérifié par un Generator espion du test)
 **And** une Question `unanswerable` reçoit un Contexte vide, et les `Answer` portent `condition: perfect_context`
 
 **Given** `tier: all` et `tiers.sizes: [5, 10, 20]`
-**When** on lance `wl run`
+**When** on lance `librarian-bench run`
 **Then** les `required_paths` sont les Documents des Ancrages de référence des Questions posées, et chaque Palier est indexé sur son sous-corpus, avec sa propre `index_key`
 **And** les `Answer` et les spans portent `tier`, et chaque Palier est une ligne distincte d'`answers.jsonl`
 
 **Given** `tier: 10`
-**When** on lance `wl run`
+**When** on lance `librarian-bench run`
 **Then** seul le Palier 10 s'exécute ; une taille non déclarée est refusée à la validation (code 2)
 
 ### Story 4.7 : Phase après mise à jour
@@ -1279,7 +1279,7 @@ So that je mesure coût, durée et Fraîcheur de chaque Architecture après une 
 **Acceptance Criteria:**
 
 **Given** `scenario: ../corpora/minicorpus/scenario/scenario.yaml`
-**When** on lance `wl run`
+**When** on lance `librarian-bench run`
 **Then** après la phase `base`, le runner applique le scénario (story 2.6), appelle `update(change, corpus_after, old_dir, tmp_dir)`, renomme vers le dossier de la nouvelle clé, construit une instance neuve qui fait `load`, puis repose les Questions en phase `after_update`
 **And** l'ancien dossier d'index est intact et toujours réutilisable par une autre Exécution
 
@@ -1306,11 +1306,11 @@ So that un run de nuit ne dépense jamais plus que prévu et ne perde jamais ce 
 **Acceptance Criteria:**
 
 **Given** une Expérience au profil `test` dont le plafond par Exécution ne couvre que les cinq premiers appels payants
-**When** on lance `wl run`
+**When** on lance `librarian-bench run`
 **Then** le sixième appel est refusé avant émission, les `Answer` déjà produits restent dans `answers.jsonl`, les Questions non traitées sont `budget_exceeded`, le manifeste passe à `budget_exceeded`, et la commande sort avec le code 3
 
 **Given** cette Exécution arrêtée et un plafond relevé
-**When** on lance `wl run <experience.yaml> --reprendre <run_id>`
+**When** on lance `librarian-bench run <experience.yaml> --reprendre <run_id>`
 **Then** le runner relit `answers.jsonl`, saute les clés présentes et ne fait que les appels manquants (la reprise du jugement, par `verdicts.jsonl`, arrive avec la story 4.9)
 **And** les appels déjà payés et refaits sortent du Cache de réponses à coût nul : la somme des `wl.cost` de `traces.jsonl` égale la dépense réelle du registre pour ce `run_id`
 **And** `traces.jsonl` n'est jamais réécrit, seulement complété
@@ -1323,7 +1323,7 @@ So that un run de nuit ne dépense jamais plus que prévu et ne perde jamais ce 
 **When** on lance la reprise
 **Then** elle est refusée avec le code 2
 
-**Given** une seconde commande `wl run` pendant une Exécution
+**Given** une seconde commande `librarian-bench run` pendant une Exécution
 **When** on la lance
 **Then** elle sort avec le code 1 et le message « Exécution <run_id> en cours »
 
@@ -1399,12 +1399,12 @@ As a Anaël,
 I want un Rapport Markdown et des CSV qui présentent scores, métriques de recherche et comparaisons,
 So that je lise les résultats sans outil spécialisé et que je puisse tout réanalyser.
 
-**Exigences :** FR-40, FR-12 (contaminées à part), FR-13 (partie indiquée), FR-17 (contexte parfait à part), FR-35, FR-36, FR-37, FR-39, FR-1 (comparaison deux à deux), FR-4 (modèles datés) ; AD-22 ; `contracts.md` §7, §8 (`wl rapport`).
+**Exigences :** FR-40, FR-12 (contaminées à part), FR-13 (partie indiquée), FR-17 (contexte parfait à part), FR-35, FR-36, FR-37, FR-39, FR-1 (comparaison deux à deux), FR-4 (modèles datés) ; AD-22 ; `contracts.md` §7, §8 (`librarian-bench rapport`).
 
 **Acceptance Criteria:**
 
 **Given** `report/` et une Exécution terminée sur les Baselines
-**When** `wl run` termine, ou qu'on lance `wl rapport <run_id>` (c'est `cli.py` qui enchaîne le runner puis `report/` : AD-1 rend `runner` et `report` indépendants, et le runner n'importe jamais `report`, ce que `lint-imports` vérifie)
+**When** `librarian-bench run` termine, ou qu'on lance `librarian-bench rapport <run_id>` (c'est `cli.py` qui enchaîne le runner puis `report/` : AD-1 rend `runner` et `report` indépendants, et le runner n'importe jamais `report`, ce que `lint-imports` vérifie)
 **Then** `report/report.md` contient l'Expérience résolue (lien et empreinte), le profil d'exécution, la partie utilisée, `models_frozen_at` et la liste des modèles, le Profil de corpus, le Panel admissible par Configuration, les Juges exclus et le nombre d'égalités
 **And** toutes les grandeurs sont calculées à partir des seuls fichiers de l'Exécution, groupées par (config_id, condition, tier, phase)
 
@@ -1428,7 +1428,7 @@ So that je lise les résultats sans outil spécialisé et que je puisse tout ré
 
 **Given** une Exécution arrêtée au plafond
 **When** on produit le Rapport
-**Then** `wl run` le génère par `cli.py` sur les résultats partiels avant de sortir avec le code 3, et il l'indique en tête
+**Then** `librarian-bench run` le génère par `cli.py` sur les résultats partiels avant de sortir avec le code 3, et il l'indique en tête
 
 ### Story 4.12 : Rapport : coûts, énergie, latence et point mort
 
@@ -1481,7 +1481,7 @@ So that je lise d'abord les Configurations non dominées et que je reparte du fr
 **When** on produit `report.md`
 **Then** le Rapport s'ouvre, juste après son en-tête, sur un tableau de synthèse des Configurations de ce front : `config_id`, Qualité avec son IC, coût total en euros, latence p95. C'est le même front que dans `pareto.csv`, présenté en premier, sans score global ni pondération entre Critères (PRD §6)
 
-**Given** `wl rapport <run_id> --exporter-front qualite-cout --vers <fichier>`
+**Given** `librarian-bench rapport <run_id> --exporter-front qualite-cout --vers <fichier>`
 **When** on lance la commande
 **Then** le fichier contient la liste `configurations:` des Configurations du front, que `config/load.py` accepte telle quelle dans une nouvelle Expérience (FR-41)
 
@@ -1510,7 +1510,7 @@ So that toute Architecture ajoutée soit vérifiée automatiquement, sans résea
 
 **Given** `experiments/mini-test.yaml` (profil `test`, toutes les Architectures du registre, `conditions: [standard, perfect_context]`, Scénario du Mini-corpus)
 **When** on lance `tests/e2e/test_sm3.py`
-**Then** `wl run` termine en `completed`, et le Rapport contient chacune des sections de FR-40 et les six fichiers CSV non vides
+**Then** `librarian-bench run` termine en `completed`, et le Rapport contient chacune des sections de FR-40 et les six fichiers CSV non vides
 **And** un test vérifie que `mini-test.yaml` cite une Configuration par Architecture enregistrée : chaque story d'Architecture qui suit y ajoute la sienne
 
 **Given** `experiments/mini-cpu.yaml` et `experiments/mini-real-haiku.yaml`
@@ -1543,7 +1543,7 @@ So that je vérifie, au centime près, que le coût tracé égale le coût recal
 
 ## Epic 5 : Calibrer les juges sur des annotations humaines
 
-Anaël annote des Réponses dans des fichiers YAML, lance `wl calibrer` et obtient les kappas juge-humain et inter-annotateurs, ainsi que le taux d'instabilité sur cinq passes. Les Juges sous le seuil sont exclus des Rapports suivants (UJ-3).
+Anaël annote des Réponses dans des fichiers YAML, lance `librarian-bench calibrer` et obtient les kappas juge-humain et inter-annotateurs, ainsi que le taux d'instabilité sur cinq passes. Les Juges sous le seuil sont exclus des Rapports suivants (UJ-3).
 
 ### Story 5.1 : Annotations humaines et kappa de Cohen
 
@@ -1570,7 +1570,7 @@ So that l'accord entre juges et humains se mesure sur des données que je contr�
 **And** deux vecteurs identiques donnent 1 ; un accord parfait sur une seule classe (kappa indéfini) renvoie `None` sans exception
 **And** des vecteurs de longueurs différentes lèvent une `ValueError`
 
-### Story 5.2 : Commande `wl calibrer` et exclusion des Juges
+### Story 5.2 : Commande `librarian-bench calibrer` et exclusion des Juges
 
 As a Anaël,
 I want calibrer le Panel sur mes annotations et que les Juges trop peu fiables soient écartés,
@@ -1581,7 +1581,7 @@ So that les Rapports suivants ne reposent que sur des Juges qui s'accordent avec
 **Acceptance Criteria:**
 
 **Given** une Exécution terminée au profil `test`, un dossier d'annotations de deux annotateurs (dont 10 Réponses doublement annotées) et `judges.calibration_passes: 5`
-**When** on lance `wl calibrer <experience.yaml> --annotations <dossier> --run <run_id>`
+**When** on lance `librarian-bench calibrer <experience.yaml> --annotations <dossier> --run <run_id>`
 **Then** chaque Juge du réservoir admissible note chaque Réponse annotée au moins cinq fois, avec `pass_id` de 0 à 4, sans que les passes 1 à 4 soient servies par le Cache de réponses
 **And** les spans portent `wl.post=judging`, et les verdicts sont écrits dans un fichier de calibration de l'Exécution, sans modifier `verdicts.jsonl`
 
@@ -1602,7 +1602,7 @@ So that les Rapports suivants ne reposent que sur des Juges qui s'accordent avec
 **Given** une nouvelle Expérience avec `judges.excluded_from: <calibration.json>`
 **When** on la valide puis on l'exécute
 **Then** le Juge exclu ne fait plus partie du Panel (story 1.6), et le Rapport mentionne son exclusion avec la date du fichier de calibration
-**And** si ce Juge avait servi au Filtre closed-book du Jeu, la commande `wl calibrer` avertit qu'il faut relancer `wl questions closed-book`
+**And** si ce Juge avait servi au Filtre closed-book du Jeu, la commande `librarian-bench calibrer` avertit qu'il faut relancer `librarian-bench questions closed-book`
 
 **Given** un dossier sans annotation valide, ou un `run_id` inconnu
 **When** on lance la commande
@@ -1973,7 +1973,7 @@ So that je compare son coût d'indexation quasi nul et sa qualité à ceux de Gr
 **Then** il s'abstient sans appeler `generate`
 
 **Given** l'Architecture enregistrée
-**When** on consulte `wl registre --kind architecture`
+**When** on consulte `librarian-bench registre --kind architecture`
 **Then** `lazy_graphrag` y figure comme Architecture distincte de `graphrag`
 
 ### Story 7.8 : LightRAG
@@ -2063,7 +2063,7 @@ So that le coût affiché d'un run réel égale ce que j'ai dépensé, même qua
 **When** on le lance
 **Then** `cost_eur_real` égale la dépense du Registre Anthropic de l'Exécution, convertie en euros, et SM-4 reste vert (coût tracé égal au coût recalculé par le Catalogue)
 
-### Story 8.3 : Statut `completed_with_errors` de `wl run`
+### Story 8.3 : Statut `completed_with_errors` de `librarian-bench run`
 
 As a Anaël,
 I want qu'une Exécution qui a échoué en partie le dise par son statut, son code de sortie et le Rapport,
@@ -2079,7 +2079,7 @@ So that je ne prenne pas pour un résultat un run où une Architecture n'a rien 
 **And** `manifest.json` liste les causes par Configuration (Configuration, cause, compte)
 
 **Given** une Exécution `completed_with_errors`
-**When** `wl run` se termine
+**When** `librarian-bench run` se termine
 **Then** il sort en code 1, avec un résumé des causes en français ; avec `--tolerer-erreurs`, il sort en code 0 et affiche le même résumé (sauf si aucune Réponse n'est `ok` : code 1 même avec `--tolerer-erreurs`, arbitrage d'Anaël du 2026-10-19)
 **And** un plafond atteint garde `budget_exceeded` et le code 3, qui priment
 
@@ -2088,7 +2088,7 @@ So that je ne prenne pas pour un résultat un run où une Architecture n'a rien 
 **Then** `report.md` commence par un avertissement qui nomme les Configurations et les causes
 
 **Given** une Exécution `completed_with_errors`
-**When** on lance `wl run --reprendre <run_id>`
+**When** on lance `librarian-bench run --reprendre <run_id>`
 **Then** la reprise rejoue les Questions en `error` et les Critères sans verdict ; `resume.deja_terminee` ne la considère pas comme terminée
 
 **Given** un scénario Faux LLM qui reproduit le run mini-cpu d'avant correctif (PageIndex 0 `ok` sur 2, panel vide) et un scénario sain
@@ -2200,7 +2200,7 @@ So that j'aie la base du paquet d'annotation et une valeur mesurée pour `releva
 **Acceptance Criteria:**
 
 **Given** `experiments/mini-cpu.yaml` sans `max_questions` (19 Questions du split dev) et les stories 8.1 à 8.7 livrées
-**When** on lance `wl run`
+**When** on lance `librarian-bench run`
 **Then** l'Exécution se termine en `completed`, avec des Réponses `ok` pour les 4 Configurations et un verdict de panel pour chaque Critère jugé
 **And** si elle se termine en `completed_with_errors`, les causes sont analysées et corrigées, ou consignées et soumises à Anaël avant `done`
 
@@ -2247,7 +2247,7 @@ So that SM-5 soit mesuré sur des données réelles et que les Juges trop peu fi
 **Acceptance Criteria:**
 
 **Given** le paquet de la story 8.9, tiré de l'Exécution de la story 8.8, annoté par Anaël (au moins 30 Réponses ; une double annotation partielle si un second annotateur est disponible)
-**When** on lance `wl calibrer` réel sur les Juges Ollama du profil `cpu`
+**When** on lance `librarian-bench calibrer` réel sur les Juges Ollama du profil `cpu`
 **Then** `calibration.json` est produit sur ces annotations, avec un kappa par Juge et par Critère
 
 **Given** les passes 1 à 4
@@ -2270,7 +2270,7 @@ So that je sache si un Juge d'API passe le seuil là où les Juges locaux échou
 **Acceptance Criteria:**
 
 **Given** `claude-opus-5-5` au Catalogue et `experiments/calibration-claude.yaml` (2 passes, plafond 10 USD)
-**When** on lance `wl calibrer` réel sur les annotations d'Anaël
+**When** on lance `librarian-bench calibrer` réel sur les annotations d'Anaël
 **Then** les kappas par Juge et par Critère sont produits et consignés dans une série de vérifications réelles datée
 
 ## Epic 9 : Juge calibré et scores de qualité fiables (lot v0.3.0)
@@ -2283,10 +2283,10 @@ Règles communes aux stories de l'epic 9 :
 - Chaque story met à jour les sections de `contracts.md` qu'elle touche.
 - Toute story qui écrit un test `real_*` l'exécute au moins une fois avant `done`, ou le marque en attente dans le sprint status.
 
-### Story 9.1 : `wl calibrer` écrit ses verdicts au fil de l'eau
+### Story 9.1 : `librarian-bench calibrer` écrit ses verdicts au fil de l'eau
 
 As a Anaël,
-I want que chaque verdict payé de `wl calibrer` soit écrit dès sa réception,
+I want que chaque verdict payé de `librarian-bench calibrer` soit écrit dès sa réception,
 So that un plafond atteint ou une erreur 4xx ne me fasse plus perdre ce que j'ai payé.
 
 **Exigences :** FR-38, FR-33 ; AD-3 ; `contracts.md` §4.6, §8. Report de la 8.11 : une `ProviderError` non réessayable ou `BudgetExceeded` en cours de calibration perd tous les verdicts.
@@ -2302,7 +2302,7 @@ So that un plafond atteint ou une erreur 4xx ne me fasse plus perdre ce que j'ai
 **Then** les verdicts déjà reçus restent dans le fichier, et le message indique leur nombre et la commande de reprise
 
 **Given** un fichier de verdicts partiel, avec la même Expérience, le même run et les mêmes annotations
-**When** on relance `wl calibrer ... --reprendre`
+**When** on relance `librarian-bench calibrer ... --reprendre`
 **Then** seuls les triplets (Juge, Réponse, passe) absents sont appelés ; `calibration.json` est calculé sur l'ensemble
 **And** une relance sans `--reprendre` sur un fichier existant est refusée (code 2), sauf avec `--ecraser`
 
@@ -2363,7 +2363,7 @@ So that une Réponse vide ne gonfle plus la fidélité et que le kappa ne compte
 **Then** le verdict est `na` si la majorité des Juges admissibles dit `na`, sinon la majorité des `yes` et `no` (égalité : `no` et signalement, inchangé)
 
 **Given** des annotations et des verdicts avec des `na`
-**When** `wl calibrer` calcule le kappa
+**When** `librarian-bench calibrer` calcule le kappa
 **Then** le kappa ne porte que sur les items où l'humain et le Juge ont tous deux dit `yes` ou `no` ; `calibration.json` ajoute, par Juge et par Critère, le nombre d'accords sur `na` et de désaccords `na` contre `yes` ou `no`
 
 **Given** un Critère avec des verdicts `na`
@@ -2377,14 +2377,14 @@ So that une Réponse vide ne gonfle plus la fidélité et que le kappa ne compte
 ### Story 9.4 : Paquet et page d'annotation dans le code
 
 As a Anaël,
-I want un paquet d'annotation plus court, tiré par strates, et une page d'annotation produite par `wl`,
+I want un paquet d'annotation plus court, tiré par strates, et une page d'annotation produite par `librarian-bench`,
 So that annoter soit rapide et que la page ne biaise plus mes verdicts (leçon de la réannotation du 2026-10-26).
 
 **Exigences :** FR-38 ; `contracts.md` §4.6, §8 ; `report/paquet.py`, `scripts/page_annotation.py`, `scripts/importer_verdicts.py`. Mesure du paquet `anael.yaml` : environ 7 600 caractères par Réponse, dont 4 300 pour `context_passages` et 1 800 pour `cited_anchors`, répété sur chaque ligne.
 
 **Acceptance Criteria:**
 
-**Given** `wl annotations exporter`
+**Given** `librarian-bench annotations exporter`
 **When** on exporte un paquet
 **Then** les données propres à une Réponse (`question`, `answer`, `reference_answer`, `context_passages`, `reference_passages`) ne figurent que sur sa première ligne, `cited_anchors` ne garde que les identifiants d'Ancrage, et la taille par Réponse sur le run de la 8.8 baisse d'au moins 50 % (mesure consignée)
 
@@ -2396,12 +2396,12 @@ So that annoter soit rapide et que la page ne biaise plus mes verdicts (leçon d
 **When** on exporte
 **Then** les N lignes sont tirées parmi les lignes déjà annotées du paquet source, stratifiées par Critère, pour une double annotation
 
-**Given** `wl annotations page <paquet.yaml> --vers <page.html>`
+**Given** `librarian-bench annotations page <paquet.yaml> --vers <page.html>`
 **When** on ouvre la page
 **Then** elle est autonome (hors ligne) et à l'aveugle (aucun verdict de Juge), sans surlignage des mots de la Réponse ; la réponse de référence n'est montrée que pour `correctness` et `completeness` ; le bloc `faithfulness` porte la consigne stricte d'étayage (une Réponse qui n'affirme rien est sans objet ; une Réponse fidèle à un extrait faux reste fidèle) ; chaque Critère propose oui, non et sans objet
 
 **Given** le fichier exporté par la page
-**When** on lance `wl annotations importer <paquet.yaml> <verdicts.json>`
+**When** on lance `librarian-bench annotations importer <paquet.yaml> <verdicts.json>`
 **Then** les verdicts et les notes sont reportés ligne à ligne, le reste du paquet inchangé, et le paquet passe le chargement de la story 5.1
 **And** `scripts/page_annotation.py` et `scripts/importer_verdicts.py` sont retirés du dépôt
 
@@ -2433,7 +2433,7 @@ So that les scores de qualité viennent du seul Juge fiable sur ce corpus.
 **When** on le génère
 **Then** il mentionne « Juge unique calibré » avec ses kappas, à la place de la règle de majorité
 
-### Story 9.6 : Commande `wl rejuger`
+### Story 9.6 : Commande `librarian-bench rejuger`
 
 As a Anaël,
 I want rejuger les Réponses d'une Exécution terminée avec un autre Panel, sans les regénérer,
@@ -2443,19 +2443,19 @@ So that je puisse faire noter par Opus le run mini-cpu de la 8.8 sans Ollama, su
 
 **Acceptance Criteria:**
 
-**Given** `wl rejuger <run_id> <experience.yaml>`
+**Given** `librarian-bench rejuger <run_id> <experience.yaml>`
 **When** on le lance
 **Then** une nouvelle Exécution est créée, avec `rejudged_from: <run_id>` au manifeste : les Réponses, les Passages, les traces de génération et les mesures sont copiés de la source pour les seules Questions du split courant du Jeu gelé ; seuls les Juges et les Critères automatiques sont recalculés ; le Rapport est généré
 **And** les Questions de la source absentes du split courant sont listées (ex. q-044, hors dev depuis le Gel b2)
 
 **Given** une Expérience dont le Corpus, les Configurations ou le Generator diffèrent de ceux de la source
-**When** on lance `wl rejuger`
+**When** on lance `librarian-bench rejuger`
 **Then** la commande refuse en code 2 et nomme la différence ; seuls `judges`, `budget` et `max_error_rate` peuvent changer
 
 **Given** la nouvelle Exécution
 **When** on lit le Rapport
 **Then** les coûts, l'énergie et la latence de génération sont ceux de la source, marqués « copiés de <run_id> » ; le poste `judging` est celui du rejugement
-**And** le plafond, le statut `completed_with_errors` et `--reprendre` s'appliquent au rejugement comme à `wl run`
+**And** le plafond, le statut `completed_with_errors` et `--reprendre` s'appliquent au rejugement comme à `librarian-bench run`
 
 **Given** un scénario Faux LLM (Exécution source, puis rejugement avec un autre Panel factice)
 **When** on lance les tests sans réseau
@@ -2522,7 +2522,7 @@ So that sa place de Juge unique repose sur une calibration à jour, versionnée 
 **Acceptance Criteria:**
 
 **Given** `experiments/calibration-opus.yaml` (`pool: [claude-opus-5-5]`, 5 passes, plafond 4,00 USD) et `anael.yaml` après la 9.3
-**When** on lance `wl calibrer` réel sur le run `20261018-115941-a2a512`
+**When** on lance `librarian-bench calibrer` réel sur le run `20261018-115941-a2a512`
 **Then** `calibration.json` est produit et copié dans `corpora/minicorpus/calibration/opus.json` ; les kappas, les `na`, l'instabilité, les `n` et le coût sont consignés dans une série de vérifications réelles datée
 
 **Given** un kappa d'Opus sous 0,6 sur un Critère
@@ -2540,7 +2540,7 @@ So that j'aie des scores fiables pour comparer BM25, RAG naïf, RAPTOR et PageIn
 **Acceptance Criteria:**
 
 **Given** `experiments/mini-cpu.yaml` (Opus Juge unique) et la source `20261018-115941-a2a512`
-**When** on lance `wl rejuger`
+**When** on lance `librarian-bench rejuger`
 **Then** l'Exécution porte sur les 18 Questions du split dev (72 Réponses) et se termine en `completed` sous le plafond, ou ses causes sont consignées
 **And** les scores par Configuration avec IC, les `na`, la comparaison aux scores des Juges granite et qwen de la 8.8, le coût et la durée sont consignés dans une série de vérifications réelles datée
 
@@ -2555,7 +2555,7 @@ So that la valeur par défaut de `relevance_threshold` repose sur une mesure.
 **Acceptance Criteria:**
 
 **Given** `experiments/lazy-seuil-cpu.yaml` après la 9.7
-**When** on lance `wl run`
+**When** on lance `librarian-bench run`
 **Then** on consigne par seuil, dans une série de vérifications réelles datée : les Passages retenus par Question, les abstentions, les métriques de recherche, la Qualité avec IC, la latence mesurée et la distribution des scores du Decider
 **And** la valeur par défaut de `lazy_graphrag.py` n'est changée que sur décision d'Anaël ; si la durée sur CPU devient déraisonnable (RAM libre sous 3 Go ou plus de 2 h), l'essai est arrêté et la limite consignée
 
@@ -2571,8 +2571,8 @@ So that le kappa inter-annotateurs prévu par FR-38 soit enfin mesuré.
 
 **Given** la story 9.4 livrée
 **When** l'orchestrateur prépare la tâche
-**Then** un paquet de 25 lignes tirées de `anael.yaml` (`--depuis`), sa page HTML et une consigne d'une page sont écrits hors de `corpora/minicorpus/annotations/`, pour que `wl calibrer` n'y lise pas de verdicts vides, avec la commande d'import et de calibration à lancer ensuite
+**Then** un paquet de 25 lignes tirées de `anael.yaml` (`--depuis`), sa page HTML et une consigne d'une page sont écrits hors de `corpora/minicorpus/annotations/`, pour que `librarian-bench calibrer` n'y lise pas de verdicts vides, avec la commande d'import et de calibration à lancer ensuite
 
 **Given** le paquet rempli et importé
-**When** on relance `wl calibrer`
+**When** on relance `librarian-bench calibrer`
 **Then** le kappa inter-annotateurs figure dans `calibration.json` et au Rapport

@@ -1,4 +1,4 @@
-"""Filtre closed-book et `wl questions closed-book` (story 3.5), Faux LLM seul."""
+"""Filtre closed-book et `librarian-bench questions closed-book` (story 3.5), Faux LLM seul."""
 
 import json
 from collections.abc import Callable
@@ -10,13 +10,13 @@ import pytest
 import yaml
 from typer.testing import CliRunner
 
-import wavelibrarian.cli as cli
-from wavelibrarian.cli import app
-from wavelibrarian.config.experiment import Amount, Budget
-from wavelibrarian.evalset import io
-from wavelibrarian.llm.providers.fake import FakeProvider, default_output
-from wavelibrarian.ports.gateway import LLMRequest
-from wavelibrarian.runner.context import Context
+import librarian_bench.cli as cli
+from librarian_bench.cli import app
+from librarian_bench.config.experiment import Amount, Budget
+from librarian_bench.evalset import io
+from librarian_bench.llm.providers.fake import FakeProvider, default_output
+from librarian_bench.ports.gateway import LLMRequest
+from librarian_bench.runner.context import Context
 
 FREEZE = {"sha256": "ab" * 32, "at": "2026-10-18T00:00:00Z", "seed": 1, "dev_ratio": 0.4}
 
@@ -194,7 +194,7 @@ def test_verdict_non_du_juge_ne_contamine_pas(tmp_path: Path, env: Env) -> None:
 def test_pool_sans_autre_famille_code_2_avant_appel(
     tmp_path: Path, env: Env, monkeypatch: pytest.MonkeyPatch
 ) -> None:
-    from wavelibrarian.runner import context as module
+    from librarian_bench.runner import context as module
 
     reel = module.load_profile
 
@@ -248,7 +248,7 @@ def test_faux_llm_par_defaut_question_qui_contient_la_reference(tmp_path: Path, 
 
 
 def test_sans_question_garde_la_partie_nouvelle() -> None:
-    from wavelibrarian.evalset.closed_book import sans_question
+    from librarian_bench.evalset.closed_book import sans_question
 
     q = "Qui a fondé la guilde d'Orvane ?"
     assert sans_question(q, q) == ""

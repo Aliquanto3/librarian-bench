@@ -6,12 +6,12 @@ from typing import Any
 
 import pytest
 
-from wavelibrarian import registry
-from wavelibrarian.architectures.cag import Cag
-from wavelibrarian.config.resolve import Collecte
-from wavelibrarian.config.validate import _verifier_capacites
-from wavelibrarian.core.errors import ConfigError
-from wavelibrarian.core.types import (
+from librarian_bench import registry
+from librarian_bench.architectures.cag import Cag
+from librarian_bench.config.resolve import Collecte
+from librarian_bench.config.validate import _verifier_capacites
+from librarian_bench.core.errors import ConfigError
+from librarian_bench.core.types import (
     Anchor,
     Block,
     CorpusProfile,
@@ -20,11 +20,11 @@ from wavelibrarian.core.types import (
     QuestionInput,
     Usage,
 )
-from wavelibrarian.llm.providers.fake import FakeProvider
-from wavelibrarian.ports.components import ComponentSpec
-from wavelibrarian.ports.gateway import LLMRequest
-from wavelibrarian.runner.context import Context as RunCtx
-from wavelibrarian.runner.index_cache import IndexCache
+from librarian_bench.llm.providers.fake import FakeProvider
+from librarian_bench.ports.components import ComponentSpec
+from librarian_bench.ports.gateway import LLMRequest
+from librarian_bench.runner.context import Context as RunCtx
+from librarian_bench.runner.index_cache import IndexCache
 
 
 class _ProviderPalier512(FakeProvider):
@@ -193,7 +193,8 @@ class _ProviderEcriture(FakeProvider):
 def test_rejeu_d_une_experience_repaie_le_prechargement_au_poste_indexing(
     tmp_path: Path, minicorpus: ParsedCorpus
 ) -> None:
-    # Deux Exécutions sans sortie scénarisée partagent `WL_HOME`, donc le Cache de réponses et
+    # Deux Exécutions sans sortie scénarisée partagent `LIBRARIAN_BENCH_HOME`, donc le Cache de
+    # réponses et
     # le cache d'index : la seconde sert l'index du cache mais repaie le préchargement.
     for i, run_id in enumerate(("r-1", "r-2")):
         provider = _ProviderEcriture()

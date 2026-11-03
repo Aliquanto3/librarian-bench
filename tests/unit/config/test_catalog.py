@@ -6,10 +6,10 @@ from pathlib import Path
 import pytest
 import yaml
 
-from wavelibrarian.config.catalog import ModelCatalog, load_catalog
-from wavelibrarian.config.defaults import PROFILS, load_costs, load_profile
-from wavelibrarian.core.errors import ConfigError
-from wavelibrarian.core.types import Usage
+from librarian_bench.config.catalog import ModelCatalog, load_catalog
+from librarian_bench.config.defaults import PROFILS, load_costs, load_profile
+from librarian_bench.core.errors import ConfigError
+from librarian_bench.core.types import Usage
 
 HAIKU = "claude-haiku-5-5"
 MILLION = 1_000_000
@@ -155,7 +155,7 @@ def test_costs_fusion_cle_par_cle(tmp_path: Path) -> None:
     assert c.carbon.date == base.carbon.date
     assert c.carbon.region == "FR"
     assert c.fx == base.fx
-    # Précédence : l'Expérience l'emporte sur WL_HOME.
+    # Précédence : l'Expérience l'emporte sur LIBRARIAN_BENCH_HOME.
     exp.write_text('owned_costs:\n  kwh_price_eur: "0.40"\n', encoding="utf-8")
     resolu = load_costs(wl_home=home, experiment_costs=exp)
     assert resolu.owned_costs.kwh_price_eur == Decimal("0.40")

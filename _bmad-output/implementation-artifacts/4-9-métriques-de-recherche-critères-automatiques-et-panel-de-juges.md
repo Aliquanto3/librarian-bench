@@ -8,11 +8,11 @@ status: done
 
 ## Code Map
 
-- `src/wavelibrarian/scoring/retrieval.py` (nouveau) : `retrieval_metrics(retrieved, reference_anchor_ids, method, k=5)` rend `RetrievalScores` (`recall`, `mrr`, `ndcg`, `method`) ; `est_pertinent` (recouvrement des `anchor_ids`). Fonctions pures.
-- `src/wavelibrarian/scoring/answer.py` : `citation_correctness`, `abstention_correctness`, `JUGE_AUTO` (`exact_match` existait depuis la 3.4).
-- `src/wavelibrarian/scoring/panel.py` (nouveau) : `verdicts_automatiques`, `criteres_juges`, `juger_reponse` (un appel par Juge et par passe, clés absentes seulement), `ecrire_panel`, `majorite` (égalité = `no` + `tie`), `PanelVerdict` (ligne de `panel.jsonl`), `construire_juges`. Écrit par des `Sink` fournis par le runner.
-- `src/wavelibrarian/runner/execute.py` : `panels_de` (Panel de chaque Configuration par `form_panel`, `judges.excluded_from` appliqué, `ConfigError` avant tout appel) ; `_Runner.juger` (après toutes les Réponses, `ctx.scope(post="judging", question_id=…)`, `JudgeInput` avec les textes des Ancrages de référence et les `context_texts` du Generator) ; `RunOutcome.unjudged`.
-- `src/wavelibrarian/runner/rundir.py` : `read_verdicts`, `read_panel` (la dernière ligne d'une clé fait foi).
+- `src/librarian_bench/scoring/retrieval.py` (nouveau) : `retrieval_metrics(retrieved, reference_anchor_ids, method, k=5)` rend `RetrievalScores` (`recall`, `mrr`, `ndcg`, `method`) ; `est_pertinent` (recouvrement des `anchor_ids`). Fonctions pures.
+- `src/librarian_bench/scoring/answer.py` : `citation_correctness`, `abstention_correctness`, `JUGE_AUTO` (`exact_match` existait depuis la 3.4).
+- `src/librarian_bench/scoring/panel.py` (nouveau) : `verdicts_automatiques`, `criteres_juges`, `juger_reponse` (un appel par Juge et par passe, clés absentes seulement), `ecrire_panel`, `majorite` (égalité = `no` + `tie`), `PanelVerdict` (ligne de `panel.jsonl`), `construire_juges`. Écrit par des `Sink` fournis par le runner.
+- `src/librarian_bench/runner/execute.py` : `panels_de` (Panel de chaque Configuration par `form_panel`, `judges.excluded_from` appliqué, `ConfigError` avant tout appel) ; `_Runner.juger` (après toutes les Réponses, `ctx.scope(post="judging", question_id=…)`, `JudgeInput` avec les textes des Ancrages de référence et les `context_texts` du Generator) ; `RunOutcome.unjudged`.
+- `src/librarian_bench/runner/rundir.py` : `read_verdicts`, `read_panel` (la dernière ligne d'une clé fait foi).
 - Tests : `tests/unit/scoring/test_retrieval.py`, `test_panel.py`, `test_answer.py` (fin du fichier), `tests/unit/runner/test_story_4_9.py`. Les tests 4.4, 4.5 et 4.8 filtrent désormais le poste `judging` (le jugement ajoute des appels et des spans).
 
 ## Design Notes

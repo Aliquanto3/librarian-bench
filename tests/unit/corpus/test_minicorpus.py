@@ -10,11 +10,11 @@ import pypdfium2.raw as pdfium_raw
 import pytest
 import yaml
 
-from wavelibrarian.components.parsers.pdf_text import PdfTextParser
-from wavelibrarian.core.types import DocMeta, ParsedCorpus, ParsedDocument
-from wavelibrarian.corpus.declare import declare
-from wavelibrarian.corpus.entities import entites_du_document
-from wavelibrarian.measure.tokenizers import make_tokenizer
+from librarian_bench.components.parsers.pdf_text import PdfTextParser
+from librarian_bench.core.types import DocMeta, ParsedCorpus, ParsedDocument
+from librarian_bench.corpus.declare import declare
+from librarian_bench.corpus.entities import entites_du_document
+from librarian_bench.measure.tokenizers import make_tokenizer
 
 RACINE = Path(__file__).resolve().parents[3]
 MINI = RACINE / "corpora" / "minicorpus"

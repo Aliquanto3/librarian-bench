@@ -8,11 +8,11 @@ status: done
 
 ## Code Map
 
-- `src/wavelibrarian/runner/execute.py` : `run_experiment(..., reprendre=<run_id>)` ; `_Runner.marquer_budget_exceeded` (grille Configuration x phase x Condition x Palier x Question, une ligne `budget_exceeded` par clé sans Réponse) ; `_Runner.reprendre` (relit `answers.jsonl`, `applicability.json`, repère les Questions interrompues) ; `_Runner.compter` (décompte du manifeste depuis les Réponses effectives) ; `_cellule` saute les clés présentes (avant `check()` et index si la cellule est complète).
-- `src/wavelibrarian/runner/resume.py` (nouveau) : `verifier_reprise` (code 2 : Exécution introuvable ou terminée, Gel différent, empreinte différente), `charger_resolue` (`experiment.resolved.yaml` relu comme `ResolvedExperiment`), `cles_tracees`.
-- `src/wavelibrarian/runner/rundir.py` : `read_answers` (dernière ligne d'une clé), `reopen_run_dir` (manifeste `running`, sans `finished_at`, `resumptions`).
-- `src/wavelibrarian/measure/tracing.py` : `Tracer.reprises` et attribut de span `wl.resumed`.
-- `src/wavelibrarian/cli.py` : option `wl run --reprendre <run_id>`, contrôle de la reprise avant le préflight (code 2).
+- `src/librarian_bench/runner/execute.py` : `run_experiment(..., reprendre=<run_id>)` ; `_Runner.marquer_budget_exceeded` (grille Configuration x phase x Condition x Palier x Question, une ligne `budget_exceeded` par clé sans Réponse) ; `_Runner.reprendre` (relit `answers.jsonl`, `applicability.json`, repère les Questions interrompues) ; `_Runner.compter` (décompte du manifeste depuis les Réponses effectives) ; `_cellule` saute les clés présentes (avant `check()` et index si la cellule est complète).
+- `src/librarian_bench/runner/resume.py` (nouveau) : `verifier_reprise` (code 2 : Exécution introuvable ou terminée, Gel différent, empreinte différente), `charger_resolue` (`experiment.resolved.yaml` relu comme `ResolvedExperiment`), `cles_tracees`.
+- `src/librarian_bench/runner/rundir.py` : `read_answers` (dernière ligne d'une clé), `reopen_run_dir` (manifeste `running`, sans `finished_at`, `resumptions`).
+- `src/librarian_bench/measure/tracing.py` : `Tracer.reprises` et attribut de span `wl.resumed`.
+- `src/librarian_bench/cli.py` : option `librarian-bench run --reprendre <run_id>`, contrôle de la reprise avant le préflight (code 2).
 - Tests : `tests/unit/runner/test_story_4_8.py`. `test_story_4_4.py::test_plafond_atteint_code_3_et_manifeste_budget_exceeded` attend désormais les lignes `budget_exceeded`, que la 4.4 reportait à la 4.8.
 
 ## Design Notes

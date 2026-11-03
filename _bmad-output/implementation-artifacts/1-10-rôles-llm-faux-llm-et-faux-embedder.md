@@ -8,10 +8,10 @@ status: done
 
 ## Code Map
 
-- `src/wavelibrarian/llm/roles.py` : `ROLES` (15 `RoleSpec` : clés obligatoires d'`inputs`, schéma pydantic de sortie ou `None` pour le texte libre), les schémas de sortie, `check_inputs(request)`.
-- `src/wavelibrarian/llm/gateway.py` : `_run` appelle `check_inputs` en premier (avant marquage, cache, réservation, appel, span).
-- `src/wavelibrarian/llm/providers/fake.py` : `FakeProvider` (protocole `Provider`), `script(role, step_glob, output)`, `default_output`.
-- `src/wavelibrarian/components/embedders/fake.py` : `FakeEmbedder`, enregistré `("embedder", "fake")`.
+- `src/librarian_bench/llm/roles.py` : `ROLES` (15 `RoleSpec` : clés obligatoires d'`inputs`, schéma pydantic de sortie ou `None` pour le texte libre), les schémas de sortie, `check_inputs(request)`.
+- `src/librarian_bench/llm/gateway.py` : `_run` appelle `check_inputs` en premier (avant marquage, cache, réservation, appel, span).
+- `src/librarian_bench/llm/providers/fake.py` : `FakeProvider` (protocole `Provider`), `script(role, step_glob, output)`, `default_output`.
+- `src/librarian_bench/components/embedders/fake.py` : `FakeEmbedder`, enregistré `("embedder", "fake")`.
 - Tests : `tests/unit/llm/test_roles_fake.py`, `tests/unit/components/test_fake_embedder.py` ; `test_gateway.py` fournit désormais des `inputs` valides à `_req` ; les fixtures de `test_experiment.py` et `test_validate.py` vident le registre avant d'y poser leurs Composants de test (le vrai `fake` y est maintenant présent).
 
 ## Design Notes
@@ -52,4 +52,4 @@ Livré sans réseau, sans GPU, sans appel Ollama. Reports : `cache_write_tokens`
 - low, second avis 5 : rejeté. Le marqueur de rôle fait partie du system réellement envoyé, qu'un provider réel compte lui aussi. Le contrat dit « tokens : nombre de mots » sans exclure le marqueur.
 - low, second avis 9 : non corrigé. `_INPUTS` de `test_gateway.py` suffit aux rôles qu'il exerce, et les 15 rôles sont couverts par `test_roles_fake.py`.
 - low, second avis 10 : rejeté. Vider `_REGISTRE` après `discover()` le désynchroniserait de `sys.modules` (un module déjà importé ne se réenregistre pas). Le vrai `fake` enregistré est l'état normal, et la fixture restaure déjà `_decouvert`.
-- low, revue : reporté. Le Cache de réponses est persistant (`WL_HOME`) : une sortie scénarisée en cache est resservie à un run suivant qui a un autre scénario, ou aucun, avec le même modèle `fake`. Le runner (epic 4) devra isoler le cache des runs scénarisés, par exemple avec un `WL_HOME` temporaire en test.
+- low, revue : reporté. Le Cache de réponses est persistant (`LIBRARIAN_BENCH_HOME`) : une sortie scénarisée en cache est resservie à un run suivant qui a un autre scénario, ou aucun, avec le même modèle `fake`. Le runner (epic 4) devra isoler le cache des runs scénarisés, par exemple avec un `LIBRARIAN_BENCH_HOME` temporaire en test.

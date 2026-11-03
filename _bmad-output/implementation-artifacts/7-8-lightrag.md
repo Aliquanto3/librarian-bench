@@ -8,8 +8,8 @@ status: review
 
 ## Code Map
 
-- `src/wavelibrarian/architectures/lightrag.py` : `LightRag`, enregistrée `("architecture", "lightrag")`. Réutilise l'extracteur `EntityExtractor` et le GraphStore `networkx` (7.5), `numpy_exact`, `labeled`, `build_arch_answer`, `borner_passages`.
-- `src/wavelibrarian/components/graph/cache.py` (nouveau) : cache d'extraction par texte (`cle_extraction`, `brut`, `depuis_brut`, `extraire_avec_cache`), factorisé depuis `graphrag.py` (7.6, comportement inchangé) et partagé avec `lightrag`.
+- `src/librarian_bench/architectures/lightrag.py` : `LightRag`, enregistrée `("architecture", "lightrag")`. Réutilise l'extracteur `EntityExtractor` et le GraphStore `networkx` (7.5), `numpy_exact`, `labeled`, `build_arch_answer`, `borner_passages`.
+- `src/librarian_bench/components/graph/cache.py` (nouveau) : cache d'extraction par texte (`cle_extraction`, `brut`, `depuis_brut`, `extraire_avec_cache`), factorisé depuis `graphrag.py` (7.6, comportement inchangé) et partagé avec `lightrag`.
 - Dossier d'index : `passages.jsonl` (feuilles seules), `graph/graph.json`, `vectors_entities/`, `vectors_relations/`, `entities.json` et `relations.json` (empreinte du texte embarqué), `extractions.json`.
 - `tests/unit/architectures/test_story_7_8.py` (18 tests). Aucun changement de `roles.py`, `fake.py`, du runner ni du Rapport.
 

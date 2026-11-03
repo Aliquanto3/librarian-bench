@@ -1,18 +1,18 @@
 ---
 story: "2.4"
-title: Profil de corpus et commande `wl corpus profiler`
+title: Profil de corpus et commande `librarian-bench corpus profiler`
 status: done
 ---
 
-# Story 2.4 : Profil de corpus et commande `wl corpus profiler`
+# Story 2.4 : Profil de corpus et commande `librarian-bench corpus profiler`
 
 ## Code Map
 
-- `src/wavelibrarian/corpus/profile.py` : `profile(corpus, parser=, tokenizer=, volatility=)` -> `CorpusProfile`.
-- `src/wavelibrarian/corpus/entities.py` : `extraire_entites`, `link_density` (heuristique sans réseau ni LLM).
-- `src/wavelibrarian/cli.py` : sous-app `wl corpus`, commande `profiler` (`--parser`, `--profil`, `--sortie`).
+- `src/librarian_bench/corpus/profile.py` : `profile(corpus, parser=, tokenizer=, volatility=)` -> `CorpusProfile`.
+- `src/librarian_bench/corpus/entities.py` : `extraire_entites`, `link_density` (heuristique sans réseau ni LLM).
+- `src/librarian_bench/cli.py` : sous-app `librarian-bench corpus`, commande `profiler` (`--parser`, `--profil`, `--sortie`).
 - `tests/unit/corpus/test_profile.py` : tests de la story. `CorpusProfile.tokens_for` existait (story 1.2) et n'est pas modifié.
-- `src/wavelibrarian/core/types.py` : protocole `_EntreeCatalogue` en propriétés en lecture seule, pour que `ModelCatalog` le satisfasse sous pyright (aucun changement de comportement).
+- `src/librarian_bench/core/types.py` : protocole `_EntreeCatalogue` en propriétés en lecture seule, pour que `ModelCatalog` le satisfasse sous pyright (aucun changement de comportement).
 
 ## Design Notes
 
@@ -21,7 +21,7 @@ status: done
 - `dominant_lang` : plus grand nombre de Documents ; égalité -> ordre alphabétique (déterminisme).
 - Entités : séquences capitalisées (liaisons `de`, `du`, `des`, `de la`, `of`, `the`, `d'`), premier mot de chaque phrase ou ligne écarté, titres ignorés, comparaison insensible à la casse. `link_density` = part des Documents partageant au moins une entité avec un autre.
 - Corpus sans Document ingéré : `ConfigError` (code 2).
-- CLI : `--profil` (défaut `cpu`, tokenizer `reference` qui ne télécharge rien et exige `wl installer`) ; `--sortie` (défaut dossier courant) reçoit `corpus_profile.json` (`model_dump(mode="json")`). `ConfigError` -> code 2, autre `WlError` -> 1.
+- CLI : `--profil` (défaut `cpu`, tokenizer `reference` qui ne télécharge rien et exige `librarian-bench installer`) ; `--sortie` (défaut dossier courant) reçoit `corpus_profile.json` (`model_dump(mode="json")`). `ConfigError` -> code 2, autre `WlError` -> 1.
 - Report : l'AC dit « profil `test` » sans option dans la commande de l'énoncé ; `--profil` est ajouté pour le choisir.
 
 ## Tâches et critères
@@ -39,7 +39,7 @@ Livré, en revue. Aucune dépendance ajoutée. Report : le runner (epic 4) devra
 
 ## Revue
 
-Rebase sur `main` (story 3.1) : conflit dans `cli.py` seulement (imports et sous-apps `wl questions` / `wl corpus`), les deux apports gardés ; `core/types.py` fusionné sans conflit.
+Rebase sur `main` (story 3.1) : conflit dans `cli.py` seulement (imports et sous-apps `librarian-bench questions` / `librarian-bench corpus`), les deux apports gardés ; `core/types.py` fusionné sans conflit.
 
 - medium, second avis 1 : apostrophe typographique non unifiée (« d’Orvane » ≠ « d'Orvane », lien manqué, vérifié) : corrigé, `’` ramenée à `'` avant extraction.
 - medium, revue : une entité après élision (« l'ONU », « la ville d'Orvane », « qu'Anna ») était perdue par le lookbehind `(?<![\w'’-])` : corrigé, élisions françaises admises.
@@ -47,7 +47,7 @@ Rebase sur `main` (story 3.1) : conflit dans `cli.py` seulement (imports et sous
 - medium, second avis 2 : fusion « Lyon Paris » : rejeté, l'AC demande des « séquences capitalisées » (« Jean Dupont » doit rester une entité) ; le Faux LLM (`_CAPITALISEE`, story 1.10) fusionne de même mais sert un autre rôle (début de phrase inclus, pas de liaisons), alignement non requis.
 - medium, second avis 3 : `tokens_for` sans contrôle de `self.tokenizer` : rejeté, conforme à `contracts.md` §1 (« tokenizer du Catalogue si reference ») ; `approx` tient lieu de référence dans le profil `test`, méthode de la story 1.2 non modifiée.
 - low, second avis 4 : `--sortie` par défaut dans le dossier courant : rejeté, §5 décrit les fichiers d'une Exécution (le runner, epic 4, écrira dans le dossier du run) ; la commande autonome n'a pas d'emplacement imposé.
-- low, second avis 5 : encodage tiktoken absent en profil `cpu` -> code 1 : rejeté, §8 réserve 4 au préflight (Ollama, modèle, clé) ; le message renvoie à `wl installer`.
+- low, second avis 5 : encodage tiktoken absent en profil `cpu` -> code 1 : rejeté, §8 réserve 4 au préflight (Ollama, modèle, clé) ; le message renvoie à `librarian-bench installer`.
 - low, second avis 6 et 7 : titre vide ignoré, profondeur = imbrication : rejeté, `heading_path` est la seule donnée de structure du modèle (pas de niveau de titre), conforme aux Design Notes et à l'AC.
 - low, second avis 8 : décimales à point dans le résumé : corrigé, virgule décimale (`_fr`) ; le JSON garde des flottants.
 - low, second avis 9 : `--profil` inconnu affiché « Corpus invalide » : corrigé, « Configuration invalide » (code 2 inchangé).

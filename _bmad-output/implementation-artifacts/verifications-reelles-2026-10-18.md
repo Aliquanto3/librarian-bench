@@ -1,14 +1,14 @@
 # Vérifications réelles du 2026-10-18
 
-Worktree `wavelibrarian-wt-verif`, branche `verif-reelle`, depuis `8b30f60`. Windows 11, CPU seul pour le profil `cpu`.
+Worktree `librarian-bench-wt-verif`, branche `verif-reelle`, depuis `8b30f60`. Windows 11, CPU seul pour le profil `cpu`.
 
 | # | Vérification | Résultat | Preuve |
 |---|---|---|---|
 | 1 | Ollama | OK | `/api/version` : `0.40.5` ; `ollama list` : 31 modèles, dont `granite4.2:3b` (2,2 Go), `minicpm5:1b-q4_k_m`, `nomic-embed-text`. Aucun `pull`. |
-| 2 | `uv sync --extra local`, `wl installer --profil cpu` | OK | sync code 0 ; installer code 0 : tiktoken `o200k_base` prêt, embedder `intfloat/multilingual-e5-small` téléchargé (cache HF 2,2 Go : le dépôt contient 43 fichiers, dont les variantes onnx/openvino), modèles Ollama du profil tous présents. |
+| 2 | `uv sync --extra local`, `librarian-bench installer --profil cpu` | OK | sync code 0 ; installer code 0 : tiktoken `o200k_base` prêt, embedder `intfloat/multilingual-e5-small` téléchargé (cache HF 2,2 Go : le dépôt contient 43 fichiers, dont les variantes onnx/openvino), modèles Ollama du profil tous présents. |
 | 3 | `embedder_installe('intfloat/multilingual-e5-small')` | OK | `True`. |
 | 4 | `pytest -m real_local` | OK après correction | Voir défaut 1 : sockets bloqués, 2 tests sur 2 passent après correction (16 s). `test_real_local_deselectionne` est une sentinelle qui échoue exprès si elle tourne : l'écarter avec `--deselect`. `ollama ps` : `minicpm5:1b-q4_k_m` 832 Mo `100% CPU`, contexte 4096 (le test n'envoie pas `num_ctx`). `granite4.2:3b` appelé avec `num_gpu: 0` et `num_ctx: 32768` : `100% CPU`, contexte 32768, 5,1 Go de mémoire (poids 2,2 Go + cache KV). `nvidia-smi` : 0 Mio utilisés. |
-| 5 | `wl run` sur une Expérience `cpu` | n/a | Pas de dossier `experiments/` (attendu en story 4.14). |
+| 5 | `librarian-bench run` sur une Expérience `cpu` | n/a | Pas de dossier `experiments/` (attendu en story 4.14). |
 | 6 | Énergie, extra `energy` | OK après correction | codecarbon 3.3.1. `_hardware` et `_mode` existent (`RAM`, `GPU`, `CPU` en mode `windows_emi`). Avec `gpu_ids=[]`, aucun processus python dans `nvidia-smi`. Méthode `measured` avant correction (défaut 2), `estimated` après. |
 | 7 | API Anthropic | n/a | Non appelée (story 4.15). |
 
@@ -27,19 +27,19 @@ Embedder `multilingual-e5-small` : environ 2,2 Go (cache HF), plus torch CPU et 
 
 ## Deuxième série (après-pilote, Ollama libre)
 
-Série interrompue par consigne du coordinateur : Anaël a repris Ollama pour un autre projet. Le `wl run` était déjà terminé ; les modèles ont ensuite été déchargés (`ollama stop` sur `granite4.2:3b`, `qwen3.5:4b`, `minicpm5:1b-q4_k_m`, `ollama ps` vide). Aucun correctif de code, aucun appel Ollama après l'avis. `OMP_NUM_THREADS=4`, `CUDA_VISIBLE_DEVICES=-1`, aucune clé API chargée. Les dossiers de run sont dans le scratchpad, non commités.
+Série interrompue par consigne du coordinateur : Anaël a repris Ollama pour un autre projet. Le `librarian-bench run` était déjà terminé ; les modèles ont ensuite été déchargés (`ollama stop` sur `granite4.2:3b`, `qwen3.5:4b`, `minicpm5:1b-q4_k_m`, `ollama ps` vide). Aucun correctif de code, aucun appel Ollama après l'avis. `OMP_NUM_THREADS=4`, `CUDA_VISIBLE_DEVICES=-1`, aucune clé API chargée. Les dossiers de run sont dans le scratchpad, non commités.
 
 | # | Vérification | Résultat | Chiffre clé |
 |---|---|---|---|
 | 1 | `uv run pytest -q --tb=short -m real_local` | OK | 2 passés, 1 « échec » = la sentinelle `test_real_local_deselectionne`, attendue (à écarter par `--deselect`). 29 s |
-| 2 | `wl installer --profil cpu` puis `WL_HOME=<neuf> uv run wl run experiments/mini-cpu.yaml` | partiel | code de sortie 0, statut `completed`, 8 Réponses, 958 s (16 min) |
+| 2 | `librarian-bench installer --profil cpu` puis `LIBRARIAN_BENCH_HOME=<neuf> uv run librarian-bench run experiments/mini-cpu.yaml` | partiel | code de sortie 0, statut `completed`, 8 Réponses, 958 s (16 min) |
 | 3 | Non-conformité de `minicpm5:1b` | mesuré, cause non investiguée | 4 Réponses sur 8 en `error` (50 %) |
-| 4 | Petit `wl run` GPU | non fait | interrompu |
+| 4 | Petit `librarian-bench run` GPU | non fait | interrompu |
 | 5 | Repérages 7.6 (`AUCUN_POINT_UTILE`) et 7.7 (`relevance_threshold`) | non faits | interrompus |
 
 ### Détail du run mini-cpu (2 Questions, 4 Configurations)
 
-Commande : `WL_HOME=<scratchpad>/home1 uv run wl run experiments/mini-cpu.yaml`.
+Commande : `LIBRARIAN_BENCH_HOME=<scratchpad>/home1 uv run librarian-bench run experiments/mini-cpu.yaml`.
 
 | Configuration | ok | error | Cause des erreurs |
 |---|---|---|---|
@@ -54,13 +54,13 @@ Commande : `WL_HOME=<scratchpad>/home1 uv run wl run experiments/mini-cpu.yaml`.
 - RAM : non mesurée (l'échantillonneur PowerShell a échoué à cause d'un cast). Reste à faire.
 - Latences `ok` : bm25 p50 10,2 s ; rag-naif 33,5 s (n=1) ; raptor 5,1 s (n=1).
 - Rapport : `report.md` complet (sections Expérience, non dominées, Profil de corpus, Juges, Inapplicables, Scores, Qualité par Type, Fraîcheur, Contaminées, Recherche, Comparaisons appariées, Coûts/énergie/latence avec Point mort, Réponses non notées) ; `pareto.csv` présent mais ses fronts reposent sur des notes issues de panels vides, à ne pas interpréter.
-- Observation : `wl run` sort avec 0 et `completed` malgré PageIndex en erreur sur toutes ses Questions et un panel entièrement en échec (déjà reporté : seuil ou avertissement à décider).
+- Observation : `librarian-bench run` sort avec 0 et `completed` malgré PageIndex en erreur sur toutes ses Questions et un panel entièrement en échec (déjà reporté : seuil ou avertissement à décider).
 
 ### Reste à faire (Ollama doit être libre)
 
-1. Cause des non-conformités `JudgeCriteriaOutput` : appeler un Juge (`granite4.2:3b`) sur une Réponse de bm25 et inspecter la sortie brute et le `format` envoyé (schéma JSON de `JudgeCriteriaOutput`, prompt, troncature, balise de réflexion de `qwen3.5`). Relance : `WL_HOME=<dossier> uv run wl run --reprendre <id>` sur le run existant pour ne refaire que le jugement.
+1. Cause des non-conformités `JudgeCriteriaOutput` : appeler un Juge (`granite4.2:3b`) sur une Réponse de bm25 et inspecter la sortie brute et le `format` envoyé (schéma JSON de `JudgeCriteriaOutput`, prompt, troncature, balise de réflexion de `qwen3.5`). Relance : `LIBRARIAN_BENCH_HOME=<dossier> uv run librarian-bench run --reprendre <id>` sur le run existant pour ne refaire que le jugement.
 2. Cause des non-conformités `GenerateOutput` (q-004) et `SelectNodesOutput` de `minicpm5:1b` : même méthode ; tester `minicpm5` avec `format` = schéma contre un Generator plus gros (`granite4.2:3b`).
-3. Mesurer la RAM pendant `wl run` (échantillonner `Win32_OperatingSystem.FreePhysicalMemory` sans cast en `[int]`).
+3. Mesurer la RAM pendant `librarian-bench run` (échantillonner `Win32_OperatingSystem.FreePhysicalMemory` sans cast en `[int]`).
 4. Profil `gpu` : voir si une Expérience l'utilise (aucune dans `experiments/` à ce jour : seulement `mini-cpu`, `mini-real-haiku`, `mini-test`) ; sinon pas de contrôle GPU.
 5. 7.6 et 7.7 : Expérience ad hoc sur 3 à 5 Questions du Mini-corpus (graphrag global, lazy_graphrag), distribution des notes et recommandation de seuil. Aucune donnée collectée.
 
@@ -84,7 +84,7 @@ Code testé : `fix-juges-schema` à `f0762bc` (`inline_refs`, `think: false`, `c
 
 `think: false` est accepté sans erreur HTTP par granite et minicpm (modèles sans réflexion). Les trois Critères reçoivent un verdict.
 
-### Run de bout en bout (`WL_HOME=<neuf> wl run experiments/mini-cpu.yaml`)
+### Run de bout en bout (`LIBRARIAN_BENCH_HOME=<neuf> librarian-bench run experiments/mini-cpu.yaml`)
 
 | Mesure | Avant (2e série) | Après |
 |---|---|---|
@@ -100,7 +100,7 @@ Code testé : `fix-juges-schema` à `f0762bc` (`inline_refs`, `think: false`, `c
 
 Critères d'acceptation atteints : plus aucun « Critère sans verdict », panel admissible non vide. `scores.csv` porte des scores réels (bm25 0,50 ; rag-naif 0,50 ; raptor 0,50 ; pageindex 1,00 sur n = 1, tous avec n très petit).
 
-Reste : PageIndex q-004. Les deux essais de `minicpm5:1b` à l'étape `pageindex.select.1` s'arrêtent à `output_tokens = 256` = `select_max_tokens` (entrée 1932 tokens) : la sortie est tronquée, très probablement une dégénérescence répétitive de la liste `node_ids` d'un modèle de 1 B, plutôt qu'un défaut de schéma. Non investigué davantage (hors critères) ; pistes : `select_max_tokens` plus haut, `repeat_penalty` dans `ollama.options`, ou un `select_model` de 3-4 B. `wl run` sort toujours avec 0 et `completed` malgré cette erreur (seuil ou avertissement à décider, déjà reporté).
+Reste : PageIndex q-004. Les deux essais de `minicpm5:1b` à l'étape `pageindex.select.1` s'arrêtent à `output_tokens = 256` = `select_max_tokens` (entrée 1932 tokens) : la sortie est tronquée, très probablement une dégénérescence répétitive de la liste `node_ids` d'un modèle de 1 B, plutôt qu'un défaut de schéma. Non investigué davantage (hors critères) ; pistes : `select_max_tokens` plus haut, `repeat_penalty` dans `ollama.options`, ou un `select_model` de 3-4 B. `librarian-bench run` sort toujours avec 0 et `completed` malgré cette erreur (seuil ou avertissement à décider, déjà reporté).
 
 Fin de vérification : `ollama stop` sur les trois modèles, `ollama ps` vide.
 
@@ -114,6 +114,6 @@ Rebasé sur `main` (story 4.15) sans conflit : `temperature` n'est envoyé que s
 - medium, second avis 4 : prose avant le JSON. Corrigé : extraction du premier bloc ```json ; sinon texte laissé tel quel. Un texte déjà JSON valide n'est jamais retouché.
 - low, second avis 5 : `inline_refs` supprimait `$defs` d'un schéma récursif. Corrigé : `$defs` conservé dès qu'un `$ref` reste ; docstring corrigée.
 - medium, second avis 6 : `think: false` envoyé à tous les modèles. Gardé (validé en réel, 3e série), documenté dans le code. À vérifier au premier modèle Ollama nouveau : un HTTP 400 sur `think` signalerait un refus.
-- low, second avis 8 : un hit de cache rend un texte libre écrit avant le correctif, non nettoyé (la clé de cache ne dépend pas du corps natif). Reporté : le nettoyage est propre au provider et la passerelle n'a pas à le connaître. Vérification : vider le Cache de réponses (`WL_HOME` neuf) avant de comparer un run à la 3e série, ce qui a été fait.
+- low, second avis 8 : un hit de cache rend un texte libre écrit avant le correctif, non nettoyé (la clé de cache ne dépend pas du corps natif). Reporté : le nettoyage est propre au provider et la passerelle n'a pas à le connaître. Vérification : vider le Cache de réponses (`LIBRARIAN_BENCH_HOME` neuf) avant de comparer un run à la 3e série, ce qui a été fait.
 - medium, second avis 9 : `NonConformantOutput` sans sortie brute. Corrigé : `raw_output` (2 000 premiers caractères) dans l'erreur, hors du message, et `wl.raw_output` dans le span `non_conformant` (les deux essais).
 - low, second avis 10 : tests ajoutés pour 1 à 5 et 9 (`tests/unit/llm/test_providers.py`, `tests/unit/llm/test_gateway.py`). Pas d'appel réel : comportement validé en 3e série inchangé sur ses entrées (bloc de tête, clôture json).

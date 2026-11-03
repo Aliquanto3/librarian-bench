@@ -6,7 +6,7 @@ status: done
 
 # Story 8.7 : Modèle CPU de sélection pour PageIndex
 
-> Vérification réelle en attente d'Ollama : `wl run experiments/mini-cpu.yaml`, PageIndex 2 / 2 `ok`, aucune sortie à `select_max_tokens`, verdicts complets.
+> Vérification réelle en attente d'Ollama : `librarian-bench run experiments/mini-cpu.yaml`, PageIndex 2 / 2 `ok`, aucune sortie à `select_max_tokens`, verdicts complets.
 
 ## Décision d'Anaël (2026-10-18) : option (c)
 
@@ -21,8 +21,8 @@ Exigences : FR-24 ; AD-4 (rôle `select_nodes`), AD-14 ; `experiments/mini-cpu.y
 
 ## Réalisé
 
-- Étude réelle sur Ollama (CPU seul : `CUDA_VISIBLE_DEVICES=-1`, `OMP_NUM_THREADS=4`, profil `cpu`, `WL_HOME` neuf par essai), sur q-002, q-004, q-011 et q-013 (4 premières Questions du split dev), PageIndex seul, Juges granite4.2:3b et qwen3.5:4b.
-- Option retenue : (b) `repeat_penalty: 1.15` dans `ollama.options` du profil `cpu` (`src/wavelibrarian/defaults/profiles/cpu.yaml`). Aucune valeur par défaut du code ni de l'Expérience ne change : `mini-cpu.yaml` ne porte qu'un commentaire qui renvoie au profil (l'Expérience n'a pas de champ `ollama`).
+- Étude réelle sur Ollama (CPU seul : `CUDA_VISIBLE_DEVICES=-1`, `OMP_NUM_THREADS=4`, profil `cpu`, `LIBRARIAN_BENCH_HOME` neuf par essai), sur q-002, q-004, q-011 et q-013 (4 premières Questions du split dev), PageIndex seul, Juges granite4.2:3b et qwen3.5:4b.
+- Option retenue : (b) `repeat_penalty: 1.15` dans `ollama.options` du profil `cpu` (`src/librarian_bench/defaults/profiles/cpu.yaml`). Aucune valeur par défaut du code ni de l'Expérience ne change : `mini-cpu.yaml` ne porte qu'un commentaire qui renvoie au profil (l'Expérience n'a pas de champ `ollama`).
 - `tests/unit/test_story_8_7.py` : le profil `cpu` porte `repeat_penalty` ; un `select_model` de la Famille d'un Juge du réservoir (`granite4.2:3b`) laisse les Panels et les `answer_producers` de PageIndex inchangés (AD-14, sans réseau).
 
 ## Résultat de l'étude (2026-10-18, 4 Questions, sorties de `pageindex.select.*`)
@@ -50,11 +50,11 @@ Exigences : FR-24 ; AD-4 (rôle `select_nodes`), AD-14 ; `experiments/mini-cpu.y
 
 - `repeat_penalty` est global au profil : il s'applique aussi aux appels de Generator, de Résumé et de Juges Ollama des autres Configurations CPU (le provider ne l'accepte que par `ollama.options`, partagé). Sur `mini-cpu` complet, 8 / 8 Réponses `ok`. À surveiller si le run du split dev (8.8) montre un effet de qualité.
 - Le profil n'a pas de clé pour `select_max_tokens` (schéma `config/schemas.py`, hors périmètre) : pas d'option (a) reportée au profil.
-- Le comportement de `wl run` (code 0 malgré une Réponse en `error`) reste reporté (déjà noté).
+- Le comportement de `librarian-bench run` (code 0 malgré une Réponse en `error`) reste reporté (déjà noté).
 
 ## Revue (2026-10-18, Opus, après rebase sur `main`)
 
-Run réel de contrôle : `WL_HOME` neuf, `wl run experiments/mini-cpu.yaml`, CPU seul (`CUDA_VISIBLE_DEVICES=-1`, `OMP_NUM_THREADS=4`), un seul serveur Ollama, `ollama ps` vide à la fin.
+Run réel de contrôle : `LIBRARIAN_BENCH_HOME` neuf, `librarian-bench run experiments/mini-cpu.yaml`, CPU seul (`CUDA_VISIBLE_DEVICES=-1`, `OMP_NUM_THREADS=4`), un seul serveur Ollama, `ollama ps` vide à la fin.
 
 | Mesure | Référence (3e série, sans pénalité) | Avec `repeat_penalty: 1.15` |
 |---|---|---|
@@ -67,11 +67,11 @@ Run réel de contrôle : `WL_HOME` neuf, `wl run experiments/mini-cpu.yaml`, CPU
 | Qualité bm25 / rag-naif / raptor | 0,50 / 0,50 / 0,50 | 0,50 / 0,50 / 0,50 |
 | Qualité PageIndex | 1,00 (n = 1, q-002) | 0,00 (n = 2) |
 
-Contre-essai (profil `cpu` sans `repeat_penalty`, non commité ; PageIndex seul, q-002, `WL_HOME` neuf, 133 s) : même nœud choisi (`#h/le-phare-de-keld`), Réponse `1297`, qualité 1,00. Avec la pénalité, même nœud, Réponse `More than 2000`. La pénalité, globale au profil, dégrade donc le Generator de PageIndex sur q-002 (contexte court où `1297` est récent), alors que la sélection passe. Les Juges ne se dégradent pas.
+Contre-essai (profil `cpu` sans `repeat_penalty`, non commité ; PageIndex seul, q-002, `LIBRARIAN_BENCH_HOME` neuf, 133 s) : même nœud choisi (`#h/le-phare-de-keld`), Réponse `1297`, qualité 1,00. Avec la pénalité, même nœud, Réponse `More than 2000`. La pénalité, globale au profil, dégrade donc le Generator de PageIndex sur q-002 (contexte court où `1297` est récent), alors que la sélection passe. Les Juges ne se dégradent pas.
 
 | Sévérité | Source | Constat | Suite |
 |---|---|---|---|
-| high | second avis 2 | `cache_key` ignorait les options Ollama du profil : un `WL_HOME` déjà servi rejouait les sorties d'avant `repeat_penalty` (dont les sorties tronquées de q-004). | Corrigé : `OllamaProvider.cache_options` (options du profil et `num_ctx`) passé par la passerelle à `cache_key`, pour le provider `ollama` seulement ; clés anthropic et fake inchangées. Tests dans `test_ledger_cache.py`, `test_gateway.py`, `test_providers.py`. |
+| high | second avis 2 | `cache_key` ignorait les options Ollama du profil : un `LIBRARIAN_BENCH_HOME` déjà servi rejouait les sorties d'avant `repeat_penalty` (dont les sorties tronquées de q-004). | Corrigé : `OllamaProvider.cache_options` (options du profil et `num_ctx`) passé par la passerelle à `cache_key`, pour le provider `ollama` seulement ; clés anthropic et fake inchangées. Tests dans `test_ledger_cache.py`, `test_gateway.py`, `test_providers.py`. |
 | high | revue (run réel) | `repeat_penalty` global fait passer la qualité de PageIndex q-002 de 1,00 à 0,00 (Generator), à sélection identique : l'objectif de la story (scores CPU non faussés) n'est pas atteint, bien que l'AC 2 (Réponses `ok`, aucune sortie à `select_max_tokens`) le soit. | À arbitrer par Anaël (option non changée, consigne de l'orchestrateur) : garder (b) ; passer à (c) `select_model` granite4.2:3b (sélection 18 à 20 s, 5,1 Go, sans pénalité globale) ; ou étendre le schéma pour porter `repeat_penalty` par modèle ou par rôle (`select_nodes` seul). À revérifier sur plus de Questions (8.8). |
 | medium | second avis 1 | Portée globale de `repeat_penalty` (Generator, Résumés, Juges). | Confirmé, effet mesuré ci-dessus. Reporté, à arbitrer par Anaël : schéma à étendre si une portée par modèle est voulue. |
 | medium | second avis 4 | `mini-cpu.yaml` inchangé alors que l'AC 2 demande d'y reporter l'option. | Corrigé en commentaire : l'Expérience n'a pas de champ `ollama` (extra forbid) ; le commentaire renvoie au profil `cpu`. Pas d'extension de schéma. |
@@ -82,7 +82,7 @@ Contre-essai (profil `cpu` sans `repeat_penalty`, non commité ; PageIndex seul,
 
 ## Vérification réelle de l'option (c) (orchestrateur, 2026-10-18 13:02)
 
-`WL_HOME` neuf (scratchpad), `CUDA_VISIBLE_DEVICES=-1`, `OMP_NUM_THREADS=4`, profil `cpu`, code de `main` à `0587ec8` (stories 8.1 à 8.5 et 8.7 c). `uv run wl run experiments/mini-cpu.yaml` → `completed`, code 0, 560 s, run_id `20261018-110209-a8262d`.
+`LIBRARIAN_BENCH_HOME` neuf (scratchpad), `CUDA_VISIBLE_DEVICES=-1`, `OMP_NUM_THREADS=4`, profil `cpu`, code de `main` à `0587ec8` (stories 8.1 à 8.5 et 8.7 c). `uv run librarian-bench run experiments/mini-cpu.yaml` → `completed`, code 0, 560 s, run_id `20261018-110209-a8262d`.
 
 | Mesure | Référence (3e série) | Option (c) |
 |---|---|---|

@@ -11,15 +11,15 @@ import pytest
 import yaml
 from typer.testing import CliRunner
 
-from wavelibrarian.cli import app
-from wavelibrarian.config.validate import validate_file
-from wavelibrarian.core.types import Answer
-from wavelibrarian.evalset import io
-from wavelibrarian.evalset.freeze import select_questions
-from wavelibrarian.runner import execute
-from wavelibrarian.runner.execute import load_questions, run_experiment
-from wavelibrarian.runner.lock import RunLock
-from wavelibrarian.runner.rundir import read_answers
+from librarian_bench.cli import app
+from librarian_bench.config.validate import validate_file
+from librarian_bench.core.types import Answer
+from librarian_bench.evalset import io
+from librarian_bench.evalset.freeze import select_questions
+from librarian_bench.runner import execute
+from librarian_bench.runner.execute import load_questions, run_experiment
+from librarian_bench.runner.lock import RunLock
+from librarian_bench.runner.rundir import read_answers
 
 RACINE = Path(__file__).resolve().parents[3] / "corpora" / "minicorpus"
 SANS_CONTEXTE = {"id": "sans-contexte", "architecture": "no_context"}
@@ -84,7 +84,8 @@ def _reservations(wl_home: Path, run_id: str | None = None) -> list[tuple[str, s
 
 def _plafond_pour(tmp_path: Path, n: int) -> Decimal:
     """Plafond qui couvre exactement les `n` premiers appels payants : un probe sans plafond, dans
-    un autre `WL_HOME`, donne l'estimé et le réel de chaque appel (même suite d'appels)."""
+    un autre `LIBRARIAN_BENCH_HOME`, donne l'estimé et le réel de chaque appel (même suite
+    d'appels)."""
     probe = tmp_path / "probe_home"
     chemin = _experience(tmp_path, "probe")
     resolue = validate_file(chemin).resolved
@@ -203,7 +204,7 @@ class _Kill(BaseException):
 def test_arret_brutal_reservation_orpheline_reglee_puis_running_et_completed(
     tmp_path: Path, wl_home: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:
-    from wavelibrarian.llm.budget import Ledger
+    from librarian_bench.llm.budget import Ledger
 
     regler = Ledger.settle
     appels: list[int] = []
@@ -317,7 +318,7 @@ def test_arret_brutal_reel_manifeste_failed_puis_reprise_sans_repayer(
 ) -> None:
     """Chemin réel (sans état fabriqué) : l'interruption pendant le règlement du 4e appel passe
     par `set_status("failed")`, puis la reprise termine sans repayer aucun appel."""
-    from wavelibrarian.llm.budget import Ledger
+    from librarian_bench.llm.budget import Ledger
 
     regler = Ledger.settle
     appels: list[int] = []
@@ -367,7 +368,7 @@ def test_reprise_refusee_si_le_contenu_du_corpus_change(tmp_path: Path, wl_home:
 
 
 def test_reprise_refusee_si_un_tarif_du_catalogue_change(tmp_path: Path, wl_home: Path) -> None:
-    from wavelibrarian.config.defaults import defaults_dir
+    from librarian_bench.config.defaults import defaults_dir
 
     catalogue = tmp_path / "models.yaml"
     shutil.copy(defaults_dir() / "models.yaml", catalogue)

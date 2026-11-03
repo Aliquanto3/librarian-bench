@@ -8,8 +8,8 @@ status: done
 
 ## Code Map
 
-- `src/wavelibrarian/architectures/cag.py` : `Cag(LongContext)` enregistrée `("architecture", "cag")`, capacités `requires_prompt_cache` et `full_corpus_in_prompt`, `retrieval_method: cited`.
-- `src/wavelibrarian/components/generators/llm.py` : `LLMGenerator.preload(context)` (appel `complete`, rôle `generate`, étape `cag.preload`, `cache_system`, `max_tokens: 16`) ; le system est construit par la même fonction que pour `generate`, donc le préfixe est identique.
+- `src/librarian_bench/architectures/cag.py` : `Cag(LongContext)` enregistrée `("architecture", "cag")`, capacités `requires_prompt_cache` et `full_corpus_in_prompt`, `retrieval_method: cited`.
+- `src/librarian_bench/components/generators/llm.py` : `LLMGenerator.preload(context)` (appel `complete`, rôle `generate`, étape `cag.preload`, `cache_system`, `max_tokens: 16`) ; le system est construit par la même fonction que pour `generate`, donc le préfixe est identique.
 - Tests : `tests/unit/architectures/test_story_6_5.py` (Faux LLM, profil `test`).
 
 ## Design Notes
@@ -40,7 +40,7 @@ status: done
 
 ## Revue
 
-- high, orchestrateur (n° 1), corrigé : le Cache de réponses servait le préchargement lors d'un rejeu ou d'un hit d'index (`wl.llm_cache_hit: true`), sans réchauffer le cache du fournisseur et en faisant disparaître l'écriture du Poste `indexing`. `MeteredGateway.complete` (et le Protocol, et la passerelle sous Poste du runner) prend `use_cache: bool = True` ; `preload` passe `use_cache=False`. Tests : hit d'index et rejeu entre deux Exécutions qui partagent `WL_HOME` atteignent le fournisseur (échouent si l'on retire `use_cache=False`). contracts.md mis à jour.
+- high, orchestrateur (n° 1), corrigé : le Cache de réponses servait le préchargement lors d'un rejeu ou d'un hit d'index (`wl.llm_cache_hit: true`), sans réchauffer le cache du fournisseur et en faisant disparaître l'écriture du Poste `indexing`. `MeteredGateway.complete` (et le Protocol, et la passerelle sous Poste du runner) prend `use_cache: bool = True` ; `preload` passe `use_cache=False`. Tests : hit d'index et rejeu entre deux Exécutions qui partagent `LIBRARIAN_BENCH_HOME` atteignent le fournisseur (échouent si l'on retire `use_cache=False`). contracts.md mis à jour.
 - medium, second avis (n° 2), corrigé : les deux Questions étaient identiques, la seconde était un rejeu du Cache de réponses. Deux Questions distinctes, `wl.llm_cache_hit` faux sur les deux, `cache_read_tokens` non nul dès la première grâce au préchargement.
 - medium, second avis (n° 3), rejeté : le respect de `min_cacheable_tokens` est un comportement du fournisseur, aucun code du dépôt ne le décide ; le double le simule pour vérifier que l'appel réussit et que des lectures nulles remontent telles quelles, ce que demande le critère. Un cas « au-dessus de 512 » ne testerait que le double. La vérification réelle part en report (ci-dessous).
 - low, second avis (n° 4), corrigé : `test_rejeu_d_une_experience_repaie_le_prechargement_au_poste_indexing` vérifie `wl.usage.cache_write_tokens > 0` au Poste `indexing` (faux provider qui facture l'écriture), et une Question qui lit sans écrire.

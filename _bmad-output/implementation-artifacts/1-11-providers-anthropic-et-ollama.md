@@ -8,12 +8,12 @@ status: done
 
 ## Code Map
 
-- `src/wavelibrarian/llm/providers/anthropic.py` : `AnthropicProvider` (SDK, `cache_control`, outil `emit_output` imposé pour la sortie structurée, lecture de `response.impacts`, traduction des erreurs).
-- `src/wavelibrarian/llm/providers/ollama.py` : `OllamaProvider` (`POST /api/chat` seul, options du profil, `keep_alive`, `format`).
-- `src/wavelibrarian/llm/providers/secrets.py` : `load_secret` (`.env` par python-dotenv puis environnement, `SecretStr`). `logs.py` : `limiter_journaux(handler)` (loggers `anthropic`, `httpx`, `httpcore` à `WARNING` + filtre de gestionnaire pour `run.log`).
-- `src/wavelibrarian/llm/providers/base.py` : `Provider.complete(..., output_schema=None)`, `ProviderResponse.energy_kwh`. `fake.py` accepte `output_schema`.
-- `src/wavelibrarian/llm/gateway.py` : schéma JSON transmis au provider, poids du schéma dans l'estimation, `ProviderError(sent=True)` réglé à l'estimation, énergie lue par le provider prioritaire sur l'estimateur. `core/errors.py` : `ProviderError(sent=)`.
-- `src/wavelibrarian/measure/energy.py` : `init_ecologits()` (`EcoLogits.init(providers=["anthropic"])`). `pyproject.toml` : `httpx2` confiné à `llm.providers`. `contracts.md` : protocole `Provider` précisé.
+- `src/librarian_bench/llm/providers/anthropic.py` : `AnthropicProvider` (SDK, `cache_control`, outil `emit_output` imposé pour la sortie structurée, lecture de `response.impacts`, traduction des erreurs).
+- `src/librarian_bench/llm/providers/ollama.py` : `OllamaProvider` (`POST /api/chat` seul, options du profil, `keep_alive`, `format`).
+- `src/librarian_bench/llm/providers/secrets.py` : `load_secret` (`.env` par python-dotenv puis environnement, `SecretStr`). `logs.py` : `limiter_journaux(handler)` (loggers `anthropic`, `httpx`, `httpcore` à `WARNING` + filtre de gestionnaire pour `run.log`).
+- `src/librarian_bench/llm/providers/base.py` : `Provider.complete(..., output_schema=None)`, `ProviderResponse.energy_kwh`. `fake.py` accepte `output_schema`.
+- `src/librarian_bench/llm/gateway.py` : schéma JSON transmis au provider, poids du schéma dans l'estimation, `ProviderError(sent=True)` réglé à l'estimation, énergie lue par le provider prioritaire sur l'estimateur. `core/errors.py` : `ProviderError(sent=)`.
+- `src/librarian_bench/measure/energy.py` : `init_ecologits()` (`EcoLogits.init(providers=["anthropic"])`). `pyproject.toml` : `httpx2` confiné à `llm.providers`. `contracts.md` : protocole `Provider` précisé.
 - Tests : `tests/unit/llm/test_providers.py` (nouveau), `test_gateway.py` (4 tests ajoutés), `test_roles_fake.py` (espion à `**kw`).
 
 ## Design Notes

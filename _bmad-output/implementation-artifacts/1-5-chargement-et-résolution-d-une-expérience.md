@@ -8,9 +8,9 @@ status: done
 
 ## Code Map
 
-- `src/wavelibrarian/config/experiment.py` : schémas `Experiment`, `Configuration`, `Budget`, `JudgesSettings`, `StatsSettings`, `RetrySettings` ; formes résolues `ResolvedExperiment` et `ResolvedConfiguration`.
-- `src/wavelibrarian/config/load.py` : `load_experiment(chemin)` (`yaml.safe_load`, schéma strict, identifiants uniques, `params` validés par le registre).
-- `src/wavelibrarian/config/resolve.py` : `resolve_experiment`, parcours récursif des `Params` (`resoudre_params`, `resoudre_composant`), `to_yaml`, `fingerprint`, `write_resolved`.
+- `src/librarian_bench/config/experiment.py` : schémas `Experiment`, `Configuration`, `Budget`, `JudgesSettings`, `StatsSettings`, `RetrySettings` ; formes résolues `ResolvedExperiment` et `ResolvedConfiguration`.
+- `src/librarian_bench/config/load.py` : `load_experiment(chemin)` (`yaml.safe_load`, schéma strict, identifiants uniques, `params` validés par le registre).
+- `src/librarian_bench/config/resolve.py` : `resolve_experiment`, parcours récursif des `Params` (`resoudre_params`, `resoudre_composant`), `to_yaml`, `fingerprint`, `write_resolved`.
 - `config/schemas.py` : `valider(..., prefixe=)` pour les chemins sous un nœud englobant. `ports/components.py` : `ComponentSpec` en `extra="forbid"`.
 - `tests/unit/config/test_experiment.py`.
 
@@ -46,5 +46,5 @@ status: done
 - medium, second avis 2 : `or` écrasait `pool`/`panel_size` explicites faux. Corrigé : test `is None` ; `panel_size >= 1` et `pool` non vide imposés par le schéma.
 - medium, second avis 3 : `seed: "42"` et `seed: true` acceptés par coercition. Corrigé : `seed` (et `max_questions`, `>= 1`) en `strict` ; AC « valeur mal typée refusée » (FR-9).
 - medium, second avis 4 : `parser: auto` non remplacé avant hachage. Reporté : la résolution exige les formats du Corpus (story 2.1) et les parsers du registre (story 2.2) ; le runner (story 4.4) remplace `auto` avant `write_resolved`, consigné dans sa docstring. Vérification : `experiment.resolved.yaml` d'une Exécution ne contient plus `auto`.
-- low, second avis 5 : chemins absolus et `WL_HOME` dans l'empreinte. Rejeté : le contrat attend l'empreinte de l'Expérience telle qu'exécutée sur la machine, stable d'un appel à l'autre, pas une portabilité inter-machines ; `config_id` est l'`id` déclaré, non haché.
-- low, second avis 6-8 : tests (empreinte, `WL_HOME`, cas manquants). Partiellement corrigé : tests ajoutés pour juges explicites, graine stricte, `ModelRef` nu ; le reste écarté (l'empreinte est déjà testée contre un changement de valeur et l'ordre des clés).
+- low, second avis 5 : chemins absolus et `LIBRARIAN_BENCH_HOME` dans l'empreinte. Rejeté : le contrat attend l'empreinte de l'Expérience telle qu'exécutée sur la machine, stable d'un appel à l'autre, pas une portabilité inter-machines ; `config_id` est l'`id` déclaré, non haché.
+- low, second avis 6-8 : tests (empreinte, `LIBRARIAN_BENCH_HOME`, cas manquants). Partiellement corrigé : tests ajoutés pour juges explicites, graine stricte, `ModelRef` nu ; le reste écarté (l'empreinte est déjà testée contre un changement de valeur et l'ordre des clés).

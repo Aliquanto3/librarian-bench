@@ -1,4 +1,5 @@
-"""Tests du format des Questions, de son contrôle et de `wl questions controler` (story 3.1)."""
+"""Tests du format des Questions, de son contrôle et de `librarian-bench questions controler`
+(story 3.1)."""
 
 from pathlib import Path
 
@@ -6,10 +7,10 @@ import pytest
 import yaml
 from typer.testing import CliRunner
 
-from wavelibrarian.cli import app
-from wavelibrarian.core.errors import ConfigError
-from wavelibrarian.core.types import Anchor, Block, ParsedCorpus, ParsedDocument
-from wavelibrarian.evalset import check, io
+from librarian_bench.cli import app
+from librarian_bench.core.errors import ConfigError
+from librarian_bench.core.types import Anchor, Block, ParsedCorpus, ParsedDocument
+from librarian_bench.evalset import check, io
 
 MD = b"# Histoire\n\n## Fondation\n\nLa guilde fut fondee en 1412.\n"
 LONGUE = "la guilde a été fondée en mille quatre cent douze"
@@ -265,7 +266,7 @@ def test_message_d_erreur_en_francais(tmp_path):
 def test_commande_pdf_reel_et_titres_en_double(tmp_path, monkeypatch):
     from fpdf import FPDF
 
-    monkeypatch.setenv("WL_HOME", str(tmp_path / ".wl"))
+    monkeypatch.setenv("LIBRARIAN_BENCH_HOME", str(tmp_path / ".librarian-bench"))
     corpus = corpus_yaml(tmp_path)
     (tmp_path / "docs" / "a.md").write_bytes(b"# Note\n\nx\n\n# Note\n\ny\n")
     pdf = FPDF()

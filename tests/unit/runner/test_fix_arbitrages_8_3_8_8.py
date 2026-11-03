@@ -10,10 +10,10 @@ import pytest
 import yaml
 from typer.testing import CliRunner
 
-from wavelibrarian.cli import app
-from wavelibrarian.llm.providers.fake import FakeProvider, default_output
-from wavelibrarian.ports.gateway import LLMRequest
-from wavelibrarian.runner.execute import run_experiment
+from librarian_bench.cli import app
+from librarian_bench.llm.providers.fake import FakeProvider, default_output
+from librarian_bench.ports.gateway import LLMRequest
+from librarian_bench.runner.execute import run_experiment
 
 RACINE = Path(__file__).resolve().parents[3] / "corpora" / "minicorpus"
 BM25 = {"id": "bm25", "architecture": "bm25_only"}
@@ -56,7 +56,7 @@ def _manifeste(dossier: Path) -> dict[str, Any]:
 
 
 def _avec_faux(monkeypatch: pytest.MonkeyPatch, faux: FakeProvider) -> None:
-    from wavelibrarian import cli
+    from librarian_bench import cli
 
     def lancer(*a: Any, **k: Any) -> Any:
         return run_experiment(*a, providers={"fake": faux}, **k)

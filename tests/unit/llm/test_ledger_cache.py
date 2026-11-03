@@ -9,12 +9,12 @@ from pathlib import Path
 
 import pytest
 
-from wavelibrarian.config.experiment import Amount, Budget
-from wavelibrarian.core.errors import BudgetExceeded, ConfigError, WlError
-from wavelibrarian.core.types import Usage
-from wavelibrarian.llm.budget import Ledger
-from wavelibrarian.llm.cache import ResponseCache, cache_key, role_marker
-from wavelibrarian.ports.gateway import LLMRequest, Message
+from librarian_bench.config.experiment import Amount, Budget
+from librarian_bench.core.errors import BudgetExceeded, ConfigError, WlError
+from librarian_bench.core.types import Usage
+from librarian_bench.llm.budget import Ledger
+from librarian_bench.llm.cache import ResponseCache, cache_key, role_marker
+from librarian_bench.ports.gateway import LLMRequest, Message
 
 D = Decimal
 
@@ -202,9 +202,9 @@ _SCRIPT = """
 import sys
 from decimal import Decimal
 from pathlib import Path
-from wavelibrarian.config.experiment import Amount, Budget
-from wavelibrarian.core.errors import BudgetExceeded
-from wavelibrarian.llm.budget import Ledger
+from librarian_bench.config.experiment import Amount, Budget
+from librarian_bench.core.errors import BudgetExceeded
+from librarian_bench.llm.budget import Ledger
 b = Budget(per_run={"anthropic": Amount(amount=Decimal("1.00"), currency="USD")}, period={})
 ok = 0
 with Ledger(b, "r1", Path(sys.argv[1]), recover_orphans=False) as lg:

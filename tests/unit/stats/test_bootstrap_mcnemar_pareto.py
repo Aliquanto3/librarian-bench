@@ -4,15 +4,15 @@ import numpy as np
 import pytest
 from scipy import stats
 
-from wavelibrarian.core.ids import sha16
-from wavelibrarian.stats.bootstrap import (
+from librarian_bench.core.ids import sha16
+from librarian_bench.stats.bootstrap import (
     bootstrap_ci,
     compare_continu,
     graine_derivee,
     paired_bootstrap,
 )
-from wavelibrarian.stats.mcnemar import compare, mcnemar_exact
-from wavelibrarian.stats.pareto import Point, front_pareto
+from librarian_bench.stats.mcnemar import compare, mcnemar_exact
+from librarian_bench.stats.pareto import Point, front_pareto
 
 VEC = [True] * 70 + [False] * 30
 

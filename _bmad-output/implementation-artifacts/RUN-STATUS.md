@@ -1,4 +1,4 @@
-# RUN-STATUS - run autonome WaveLibrarian
+# RUN-STATUS - run autonome LibrarianBench
 
 Fichier tenu par l'orchestrateur. Une session neuve (après `/clear`) reprend le run en ne relisant que ce fichier et `sprint-status.yaml`, dans le même dossier.
 
@@ -27,9 +27,9 @@ Contraintes du run autonome, reprises de `_bmad-output/planning-artifacts/epics.
 
 ### Cohabitation avec slm-quality-bench (jusqu'au 18/10 vers 10 h, ou jusqu'à `pilot-report.md`)
 
-- **Ollama local interdit.** Aucune requête hors `/api/version`, `/api/ps` et `/api/tags`, aucune commande `ollama`, aucun second serveur de modèles. Les tests `real_local` (stories 1.11 et 1.12) sont écrits mais pas exécutés : ne jamais lancer `pytest -m real_local`. Pas de `wl run` sur `mini-cpu.yaml`. Le préflight se limite à `/api/tags`.
+- **Ollama local interdit.** Aucune requête hors `/api/version`, `/api/ps` et `/api/tags`, aucune commande `ollama`, aucun second serveur de modèles. Les tests `real_local` (stories 1.11 et 1.12) sont écrits mais pas exécutés : ne jamais lancer `pytest -m real_local`. Pas de `librarian-bench run` sur `mini-cpu.yaml`. Le préflight se limite à `/api/tags`.
 - **GPU interdit.** `CUDA_VISIBLE_DEVICES=-1` avant tout code de ML. Après chaque exécution de code de ML, vérifier que son PID n'apparaît pas dans `nvidia-smi --query-compute-apps=pid,process_name --format=csv`.
-- **Pas d'extra lourd, aucun téléchargement de plus de 1 Go.** Pas d'extras `local` (torch) ni `docling`, pas de `wl installer`.
+- **Pas d'extra lourd, aucun téléchargement de plus de 1 Go.** Pas d'extras `local` (torch) ni `docling`, pas de `librarian-bench installer`.
 - **Ressources.** `OMP_NUM_THREADS=4`, `MKL_NUM_THREADS=4`, `OPENBLAS_NUM_THREADS=4` ; au plus 6 Go de RAM ; priorité `BelowNormal` ; aucun pytest parallèle.
 - **API autorisée.** Seule la story 4.15 (SM-4) appelle l'API Anthropic, avec des Juges et un embedder factices, sous le plafond de 5 $.
 
@@ -49,7 +49,7 @@ Avant de commencer, puis toutes les 10 minutes environ, consigner une ligne dans
 
 ### Après le pilote
 
-Dès que `pilot-report.md` existe dans le dossier de la campagne, Ollama local redevient utilisable : tests `real_local` (stories 1.11 et 1.12) et `wl run` sur `mini-cpu.yaml`, sur le profil CPU (`num_gpu: 0`). Le GPU reste à `CUDA_VISIBLE_DEVICES=-1` sauf avis contraire d'Anaël. Le noter ici dans « État ».
+Dès que `pilot-report.md` existe dans le dossier de la campagne, Ollama local redevient utilisable : tests `real_local` (stories 1.11 et 1.12) et `librarian-bench run` sur `mini-cpu.yaml`, sur le profil CPU (`num_gpu: 0`). Le GPU reste à `CUDA_VISIBLE_DEVICES=-1` sauf avis contraire d'Anaël. Le noter ici dans « État ».
 
 **Avis d'Anaël (2026-10-17, 23 h 20)** : les tests GPU de l'autre session doivent finir vers 5 h ou 6 h (précision d'Anaël à 23 h 50). À partir de 5 h, vérifier toutes les 20 min qu'ils sont arrêtés (`pilot-report.md`, ou verrou `generation.lock` absent + log muet depuis 10 min + aucun processus dans `nvidia-smi`), et reconfirmer 5 min après le premier constat. Une fois confirmé, **Ollama et le GPU deviennent utilisables** (fin des contraintes de cohabitation ; garder un seul serveur de modèles).
 
@@ -65,38 +65,38 @@ Dès que `pilot-report.md` existe dans le dossier de la campagne, Ollama local r
 
 - **2.2** : table format → parser enregistré à partir de `DeclaredCorpus.formats` (2.1), pour remplacer `parser: auto` (stories 1.5 et 2.1).
 - **4.3 / 4.4** : le runner remplace `parser: auto` par le parser concret avant `write_resolved` et `RunContext.parser` (stories 1.2 et 1.5) ; vérifier que `experiment.resolved.yaml` ne contient plus `auto`.
-- **Epic 5 (`wl calibrer`, FR-38)** : écrire `calibration.json` au format §4.6 retenu en 1.6 (par Juge, `excluded` booléen strict, `criteria`).
+- **Epic 5 (`librarian-bench calibrer`, FR-38)** : écrire `calibration.json` au format §4.6 retenu en 1.6 (par Juge, `excluded` booléen strict, `criteria`).
 - **1.9 (Passerelle)** : câbler `RunContext.tokenizer_for(model_id, catalog, reference)`, `make_tokenizer(profil.tokenizer)` et le `Tracer` ; appliquer `token_factor` (1,5 pour Haiku) à l'estimation avant appel ; poser `wl.energy_*` via `FakeEstimator` / `EcoLogitsEstimator` (story 1.7).
 - **1.11 (providers)** : brancher les providers sur le protocole `Provider` (`llm/providers/base.py`, `complete(request, *, timeout_s)` → `ProviderResponse`) ; délai dépassé après envoi → régler à l'estimation au lieu de libérer, à vérifier sur un vrai appel interrompu ; le poids du schéma de sortie dans l'estimation dépend du mode d'envoi (outil ou `format`) (story 1.9).
 - **1.11 (providers, suite)** : lire `response.impacts` (AD-17 : `EcoLogits.init`) et vérifier `llm_impacts` en ecologits 0.11.3 (story 1.7).
 - **Après le pilote, extra `energy`** : vérifier que `gpu_ids=[]` n'initialise pas NVML, les noms `_hardware`/`_mode` de codecarbon 3.3.1, `estimated` sous Windows, et la règle CPU estimé / GPU mesuré (story 1.7).
 - **1.9 (Passerelle)** : calculer `cache_key` après avoir posé `role_marker(role)` (fonction de `llm/cache.py`, `cache_key` lève sinon) ; ne mettre en cache que les succès (story 1.8).
 - **Runner / RunContext (epic 4)** : `RunContext` concret qui expose `tokenizer_for(model_id)` et appelle `runner/wiring.py::build_gateway` ; répartition de l'énergie locale par phase ; refuser à la validation un plafond `ollama` hors EUR (story 1.9).
-- **Runner (epic 4), Faux LLM** : construire `FakeProvider` et le passer à `build_gateway(providers={"fake": ...})` ; isoler le Cache de réponses des runs scénarisés (`script`), sinon une sortie scénarisée persiste dans `WL_HOME` pour le run suivant (story 1.10).
+- **Runner (epic 4), Faux LLM** : construire `FakeProvider` et le passer à `build_gateway(providers={"fake": ...})` ; isoler le Cache de réponses des runs scénarisés (`script`), sinon une sortie scénarisée persiste dans `LIBRARIAN_BENCH_HOME` pour le run suivant (story 1.10).
 - **Runner (epic 4), journaux** : créer le handler de `run.log` et y appeler `limiter_journaux(handler)` après l'import du SDK (story 1.11).
 - **Quand Ollama sera libre** : `pytest -m real_local` ; vérifier dans `ollama ps` aucune couche GPU sur le profil CPU et `num_ctx` = 32768 ; surveiller la RAM de `granite4.2:3b` avec cette fenêtre (story 1.11).
 - **Story 4.15 (`real_api`)** : vérifier que l'API accepte `temperature` via `extra_body` et l'outil de sortie imposé (story 1.11).
-- **Runner (epic 4)** : prendre `run.lock` puis ouvrir le `Ledger` avec `recover_orphans=True` ; tester qu'un second `wl run` ne règle pas les réservations du premier (story 1.8).
+- **Runner (epic 4)** : prendre `run.lock` puis ouvrir le `Ledger` avec `recover_orphans=True` ; tester qu'un second `librarian-bench run` ne règle pas les réservations du premier (story 1.8).
 - **Gateway (1.9)** : `cache_write_1h` n'est pas facturé, `Usage` n'a pas de poste 1 h (story 1.4).
 - **Story outillage / CI** : lancer `test_socket_tcp_bloque` sous Linux (story 1.1).
 - **2.3** : `pdf_text` déclare `version` et s'enregistre, pour que `auto` accepte un Corpus avec PDF (story 2.2).
 - **2.5** : un `html_block` Markdown reste brut dans un Block `text` ; un HTML non UTF-8 ignore `<meta charset>` (repli cp1252 seulement) (story 2.2).
-- **Quand Ollama et le GPU seront libres (story 1.12)** : `uv sync --extra local` puis `wl installer --profil cpu` (sortie 0, ou 4 avec la liste des `ollama pull`) ; vérifier `embedder_installe("intfloat/multilingual-e5-small")` sur le cache réel ; `pytest -m real_local` ; `wl run` avec Ollama arrêté (code 4) puis démarré.
-- **Epic 3 / epic 4** : le préflight contrôle tout le réservoir de Juges et `calibration_judge` ; `closed_book_models` et `question_gen_model` sont à contrôler dans `wl questions` (story 1.12).
-- **2.6** : fournir `wavelibrarian.corpus.scenario.corpus_apres(parsed, chemin)`, importé par `wl questions controler --scenario` (story 3.1), ou adapter `_corpus_apres` dans `cli.py`.
+- **Quand Ollama et le GPU seront libres (story 1.12)** : `uv sync --extra local` puis `librarian-bench installer --profil cpu` (sortie 0, ou 4 avec la liste des `ollama pull`) ; vérifier `embedder_installe("intfloat/multilingual-e5-small")` sur le cache réel ; `pytest -m real_local` ; `librarian-bench run` avec Ollama arrêté (code 4) puis démarré.
+- **Epic 3 / epic 4** : le préflight contrôle tout le réservoir de Juges et `calibration_judge` ; `closed_book_models` et `question_gen_model` sont à contrôler dans `librarian-bench questions` (story 1.12).
+- **2.6** : fournir `librarian-bench.corpus.scenario.corpus_apres(parsed, chemin)`, importé par `librarian-bench questions controler --scenario` (story 3.1), ou adapter `_corpus_apres` dans `cli.py`.
 - **3.4** : `exact_match` va dans `scoring/answer.py`, qui contient déjà `is_short_form` (story 3.1).
-- **3.3 / 3.5** : contrôler `question_gen_model` et `closed_book_models` au Catalogue dans `wl questions generer` et `closed-book` (stories 1.12 et 3.1).
+- **3.3 / 3.5** : contrôler `question_gen_model` et `closed_book_models` au Catalogue dans `librarian-bench questions generer` et `closed-book` (stories 1.12 et 3.1).
 - **Transverse CLI** : les erreurs d'usage click/typer (« Usage: », « Missing argument ») sont en anglais (story 3.1).
 - **3.6 (`geler`)** : agréger toutes les erreurs du fichier de Questions (aujourd'hui une seule `ConfigError`) (story 3.1).
 - **Runner (epic 4), RunContext** : garder le contexte vivant (`with`) pendant toute l'Exécution, sinon le GC libère `run.lock` ; fixer `parser` depuis la Configuration ; écrire `manifest.json`, `run.log`, `experiment.resolved.yaml` ; prévoir une libération manuelle d'une réservation `hors_execution` orpheline (story 3.2).
-- **Toute commande hors Exécution** : ouvrir `ctx.scope(post=...)` avant tout appel LLM (la passerelle refuse sinon) ; traces dans `WL_HOME/hors-execution/<run_id>/` (story 3.2).
+- **Toute commande hors Exécution** : ouvrir `ctx.scope(post=...)` avant tout appel LLM (la passerelle refuse sinon) ; traces dans `LIBRARIAN_BENCH_HOME/hors-execution/<run_id>/` (story 3.2).
 - **Extraction d'entités (2.4)** : l'heuristique rate les noms en début de phrase (Maëlis Torvane trouvée dans 3 Documents sur 7) ; à revoir si les questions multi-hop ou GraphRAG en dépendent (story 2.5).
-- **Story 4.15 / real_api** : vérifier `wl questions generer` sur `claude-haiku-5-5` réel (répartition des Types, Ancrages hors échantillon rejetés) (story 3.3).
+- **Story 4.15 / real_api** : vérifier `librarian-bench questions generer` sur `claude-haiku-5-5` réel (répartition des Types, Ancrages hors échantillon rejetés) (story 3.3).
 - **Runner (epic 4), Scénario** : passer à `corpus_apres` la langue par défaut du `corpus.yaml` (`lang`) et le Parser de la base (`parser`) (story 2.6).
 - **3.5 (closed-book)** : refuser une justification vide si le contrat l'exige (`CriterionVerdict`) ; choisir le Juge par défaut avec filtre de Famille (AD-14) au lieu de `judge_pool[0]` (story 3.4).
 - **Panel (epic 4)** : construire `JudgeInput` avec les textes des Ancrages et les `context_texts` du Generator ; ouvrir `ctx.scope(post="judging")` (story 3.4).
 - **Runner (epic 4), Paliers** : déduire les `required_paths` des Ancrages des Questions et les passer à `tirer(parsed, tiers, required_paths)` (story 2.7).
-- **Commandes `wl questions`** : afficher le coût du Juge (sommer le registre au Poste `judging`) ; pas de préflight dans `generer` ni `closed-book` (story 3.5).
+- **Commandes `librarian-bench questions`** : afficher le coût du Juge (sommer le registre au Poste `judging`) ; pas de préflight dans `generer` ni `closed-book` (story 3.5).
 - **4.2 (Baselines)** : passer `tokenizer=` à `build_arch_answer` depuis chaque Baseline et tester la troncature au-delà de 8 000 tokens depuis une Architecture (story 4.1).
 - **Runner (epic 4), Jeu gelé** : appeler `verify_frozen` et `select_questions` ; le Rapport exclut des scores principaux les Questions contaminées pour le modèle concerné (FR-12, contracts §4.5) (story 3.6).
 - **Runner des Conditions (epic 4)** : la Condition contexte parfait de `long_context` passe par `answer_with_context`, donc sans cache du system (story 4.2).
@@ -104,13 +104,13 @@ Dès que `pilot-report.md` existe dans le dossier de la campagne, Ollama local r
 - **Epic 6** : chaque Architecture à embeddings redéfinit `ArchitectureBase.embedder_dim()` (story 4.3).
 - **4.8 (reprise)** : relire `experiment.resolved.yaml` comme `ResolvedExperiment` (ou accepter un parser composite `markdown+pdf_text` dans `resolve_experiment`) (story 4.3).
 - **4.7** : `IndexCache.build(post="update")` pour la phase après mise à jour (story 4.3).
-- **5.2 (`wl calibrer`)** : code 2 pour toute `ConfigError` du chargeur et quand `rapprocher` ne garde aucune annotation ; jointure inter-annotateurs sur les Réponses doublement annotées ; résoudre `answers.jsonl` de l'Exécution (story 5.1).
-- **Epic 7, cache d'index** : une Architecture qui appelle le LLM à l'indexation, lancée avec un Faux LLM scénarisé, ne doit pas laisser dans `WL_HOME/index/` un index construit sur une sortie scénarisée (story 4.4).
+- **5.2 (`librarian-bench calibrer`)** : code 2 pour toute `ConfigError` du chargeur et quand `rapprocher` ne garde aucune annotation ; jointure inter-annotateurs sur les Réponses doublement annotées ; résoudre `answers.jsonl` de l'Exécution (story 5.1).
+- **Epic 7, cache d'index** : une Architecture qui appelle le LLM à l'indexation, lancée avec un Faux LLM scénarisé, ne doit pas laisser dans `LIBRARIAN_BENCH_HOME/index/` un index construit sur une sortie scénarisée (story 4.4).
 - **Runner** : l'ingestion propre au parser d'une Configuration est hors de son `try` (échec → toute l'Exécution `failed`) (story 4.4).
 - **4.14 (conformité)** : ajouter chaque Architecture de l'epic 6 (dès `naive_rag`) à `experiments/mini-test.yaml` et la faire passer dans `tests/conformance/test_architectures.py` et `tests/e2e/test_sm3.py` (story 6.1).
 - **4.8 (reprise)** : à la reprise, ne pas compter deux fois les spans `query` déjà émis pour une Question interrompue par `BudgetExceeded` (story 4.5).
 - **Rapport (4.12), Coût de possession** : exclure les spans `wl.llm_cache_hit=true` (latence d'origine, bornes fictives) de la durée des spans locaux (story 4.5).
-- **4.14 (Expériences livrées)** : toute Expérience à Paliers sur le Mini-corpus pose `max_questions` ou un `tier` adapté (split dev = 12 Documents requis) ; vérifier `wl run` en code 0 sur chacune (story 4.6).
+- **4.14 (Expériences livrées)** : toute Expérience à Paliers sur le Mini-corpus pose `max_questions` ou un `tier` adapté (split dev = 12 Documents requis) ; vérifier `librarian-bench run` en code 0 sur chacune (story 4.6).
 - **Rapport (4.12), CAG** : l'écriture du préchargement CAG revient à chaque Exécution au Poste `indexing` (hit d'index et reprise compris), elle ne s'amortit pas comme un index (story 6.5).
 - **Story 4.15 / fournisseur réel, CAG** : sur `claude-haiku-5-5`, Corpus > 512 tokens → écriture positive et lecture dès la première Question ; Corpus plus court → tokens en cache nuls sans erreur (story 6.5).
 - **4.13 (Fraîcheur)** : en contexte parfait, une Question dont l'Ancrage est supprimé (q-047) est `inapplicable` en `after_update` mais posée en Condition standard : exclure les `inapplicable` du dénominateur de la Fraîcheur par Condition et le dire dans le Rapport ; avec un Scénario, les Paliers `base` contiennent les cibles du Scénario (story 4.7).
@@ -129,11 +129,11 @@ Dès que `pilot-report.md` existe dans le dossier de la campagne, Ollama local r
 - **Story 7.8 (de 7.7)** : pour un poids d'arête cumulé, ajouter un paramètre au GraphStore plutôt que recompter hors du store comme lazy_graphrag.
 - **Story 4.13 (de 4.12)** : Couts.total_configuration (config, condition, tier, phases cumulées) et Couts.latences (p95) alimentent pareto.csv ; le point mort ne regarde que la phase base.
 - **Story 4.14 (de 4.12)** : vérifier sur mini-test.yaml que le total du Rapport égale le coût tracé (SM-4) ; index_gb à compter si la taille de l'index entre au manifeste.
-- **Story 4.14 (de 4.13)** : sur mini-test.yaml, pareto.csv contient au moins qualite-cout, fronts lisibles à coût fake nul ; la liste de --exporter-front qualite-cout relancée par wl run passe la validation ; wl run refuse un reuse_index dont le manifeste manque sur un autre WL_HOME.
-- **Story 4.14 (de 5.2)** : vérification réelle de wl calibrer sur Ollama (instabilité, durée, mémoire GPU) si des annotations existent, et seuil 0,6 ; sinon à faire avec Anaël.
+- **Story 4.14 (de 4.13)** : sur mini-test.yaml, pareto.csv contient au moins qualite-cout, fronts lisibles à coût fake nul ; la liste de --exporter-front qualite-cout relancée par librarian-bench run passe la validation ; librarian-bench run refuse un reuse_index dont le manifeste manque sur un autre LIBRARIAN_BENCH_HOME.
+- **Story 4.14 (de 5.2)** : vérification réelle de librarian-bench calibrer sur Ollama (instabilité, durée, mémoire GPU) si des annotations existent, et seuil 0,6 ; sinon à faire avec Anaël.
 - **Story 4.14 (de 5.2, revue)** : vérifier sur Ollama qu'une seconde calibration envoie les passes 1 à 4 au fournisseur (wl.llm_cache_hit=false) et mesurer l'instabilité réelle.
 - **Story 4.15 (de 5.2)** : kappas et instabilités par Juge au Rapport ; Corpus de référence d'un Palier et de after_update à trancher.
-- **Après le run (de 4.14)** : relancer mini-cpu.yaml quand Ollama est libre (PageIndex et Juges réels non vérifiés) ; minicpm5:1b non conforme au schéma GenerateOutput une fois sur deux (Generator plus gros ou relances) ; wl run completed même si une Architecture est en error sur toutes ses Questions (seuil ou avertissement à décider).
+- **Après le run (de 4.14)** : relancer mini-cpu.yaml quand Ollama est libre (PageIndex et Juges réels non vérifiés) ; minicpm5:1b non conforme au schéma GenerateOutput une fois sur deux (Generator plus gros ou relances) ; librarian-bench run completed même si une Architecture est en error sur toutes ses Questions (seuil ou avertissement à décider).
 - **Rapport (de 4.15)** : cost_eur_real additionne les prix fictifs des Juges fake-llm-* ; distinguer la dépense réelle.
 
 ## Journal de surveillance
@@ -190,7 +190,7 @@ Dès que `pilot-report.md` existe dans le dossier de la campagne, Ollama local r
 | 04:57 | 6 tronq. (qwen3.5:4b) : think_on abstention/oneruler-fr-none 2 tronq., 52 s/tronq. (pas de réf.) ; think_on rag/oneruler-fr-cwe 2 tronq., 42 s/tronq. (pas de réf.) ; think_on extraction/jsonschemabench 1 tronq., 37 s/tronq. (pas de réf.) ; pire +0 % | 6 % | 18.7 Go | 1 s, 86 Mo, 78 thr (12 proc) | Sous les seuils : on continue |
 | 05:00 | 7 tronq. (qwen3.5:4b) : think_on abstention/oneruler-fr-none 2 tronq., 52 s/tronq. (pas de réf.) ; think_on rag/oneruler-fr-cwe 2 tronq., 42 s/tronq. (pas de réf.) ; think_on extraction/jsonschemabench 1 tronq., 37 s/tronq. (pas de réf.) ; pire +0 % | 1 % | 21.1 Go | 1 s, 86 Mo, 73 thr (12 proc) | Sous les seuils : on continue |
 | 05:08 | Banc terminé (pilot-report.md présent, nvidia-smi vide), double confirmation à 5 min d'écart | — | — | — | Fin de la surveillance du banc ; contraintes de cohabitation levées (Ollama, GPU, téléchargements) |
-| 05:40 | Vérifications réelles post-pilote (`verifications-reelles-2026-10-18.md`) : Ollama 0.40.5 OK, `wl installer --profil cpu` code 0, embedder installé, `pytest -m real_local` 2 OK (100 % CPU, `num_ctx` 32768, granite4.2:3b 5,1 Go), codecarbon `gpu_ids=[]` sans NVML. 2 défauts corrigés (sockets bloqués pour `real_*`, méthode `measured` à tort). | — | — | — | Reports « Quand Ollama sera libre » 1.11, 1.12 et énergie 1.7 soldés ; 7.1/7.2 (fenêtre minicpm5) et `wl run` cpu restent pour 4.14 |
+| 05:40 | Vérifications réelles post-pilote (`verifications-reelles-2026-10-18.md`) : Ollama 0.40.5 OK, `librarian-bench installer --profil cpu` code 0, embedder installé, `pytest -m real_local` 2 OK (100 % CPU, `num_ctx` 32768, granite4.2:3b 5,1 Go), codecarbon `gpu_ids=[]` sans NVML. 2 défauts corrigés (sockets bloqués pour `real_*`, méthode `measured` à tort). | — | — | — | Reports « Quand Ollama sera libre » 1.11, 1.12 et énergie 1.7 soldés ; 7.1/7.2 (fenêtre minicpm5) et `librarian-bench run` cpu restent pour 4.14 |
 
 ## Journal des stories
 
@@ -218,7 +218,7 @@ Dès que `pilot-report.md` existe dans le dossier de la campagne, Ollama local r
 | 3.3 | 00:29 | 00:44 | ef1bfab22aa7010ad548992bbace166c4049add3 | 0 $ | Revue : dédoublonnage (texte normalisé + Ancrages, dans la sortie et face au fichier), Ancrage hors échantillon rejeté, coût en virgule fixe, --cible < 1 refusé. 466 tests verts. |
 | 2.6 | 00:39 | 00:53 | 11b462e35883ac340db4d3ef842ed8f9764e3ca3 | 0 $ | Revue : langue déclarée (et non majoritaire) pour un Document ajouté, état après identique à une ingestion directe (test oracle), chemins absolus/.. refusés, OSError → ConfigError, delete+add garde les métadonnées. Conflit cli.py résolu. 490 tests verts. |
 | 3.4 | 00:46 | 00:59 | 7b56ebc2da6502263b7da8e06c6dc878db7384e4 | 0 $ | Revue : exact_match sans faux positifs (signe moins, mots alphanumériques, plages), milliers à deux groupes, œ→oe ; disjonction et négation consignées comme limite. 527 tests verts. |
-| 2.7 | 00:54 | 01:04 | ee52043b91ef7f791af1d75a8c04656aeb759963 | 0 $ | Revue : wl corpus paliers ingère le Corpus (mêmes Paliers que tirer(parsed)), test de graine renforcé. Fin de l'epic 2. 537 tests verts. |
+| 2.7 | 00:54 | 01:04 | ee52043b91ef7f791af1d75a8c04656aeb759963 | 0 $ | Revue : librarian-bench corpus paliers ingère le Corpus (mêmes Paliers que tirer(parsed)), test de graine renforcé. Fin de l'epic 2. 537 tests verts. |
 | 3.5 | 01:00 | 01:15 | 567fea02a32bbb09e196d365b7513231394c0623 | 0 $ | Revue : 1 high corrigé (la question recopiée par le modèle était jugée comme réponse contaminée ; sans_question la retire avant exact_match et Juge, contrat §3 mis à jour), ordre de contaminated_by stable. 552 tests verts. |
 | 4.1 | 01:07 | 01:20 | 3c1a6174a90e9c49ff3bc53f6097442373e17074 | 0 $ | Revue : étiquettes [S1]/S1 strictes, tests d'abstention et de registre renforcés ; titre accolé au corps dans Passage.text consigné. 568 tests verts. |
 | 3.6 | 01:16 | 01:29 | b9366cfd44f049b2a93fb33bfa092209b4d3c556 | 0 $ | Revue : re-Gel qui change une partie refusé sauf --forcer, règle d'arrondi et exclusion des contaminées au Rapport documentées (§4.5), ids en double et horloge naïve refusés. 589 tests verts. |
@@ -249,6 +249,6 @@ Dès que `pilot-report.md` existe dans le dossier de la campagne, Ollama local r
 | 4.12 | 06:20 | 06:46 | 1662b20fca8c038e5b7dc45ee7edde1615783463 | 0 $ | Revue : cost_uncached des spans wl.resumed non recompté, valeurs de coût invalides signalées en Anomalie au Rapport (NaN compris), coût par requête = Poste query (échecs payés inclus) ÷ Réponses ok, documenté. 1040 tests verts. |
 | 7.8 | 06:32 | 07:02 | 929a9b1c38e8e3dbdcac48c2ce8790fe230c7247 | 0 $ | Livrée sous réserve de la conformité 4.14 (SM-3, 15 Architectures). Revue : toutes les descriptions distinctes d'une paire et d'une entité encodées (lues dans extractions.json), cache d'extraction factorisé (components/graph/cache.py) et dédoublonné dans un lot, tests niveau haut et réembarquement exacts. 1058 tests verts. |
 | 4.13 | 06:47 | 07:27 | 30ff4bd0f9e36a7a6a736080a9e38235ee2ad6fa | 0 $ | Revue : reuse_index exporté tel quel (clé d'index, pas config_id), avertissement quand les n d'un front diffèrent, front calculé sur les valeurs écrites (x à 9 décimales), --exporter-front vide en code 2, aller-retour d'export avec params imbriqués testé. 1073 tests verts. |
-| 5.2 | 07:03 | 07:37 | 6687f5a47fa72375eb7f1062bc6cb9dba3990c3e | 0 $ | Revue : passes 1 à 4 hors Cache en calibration (use_cache dans complete_structured, Param cache_later_passes, Panel de wl run inchangé), ProviderError en code 4, calibration_passes ≥ 2, Juge sans verdict conforme en échec, préflight du réservoir du profil, --run contrôlé. 1091 tests verts. |
+| 5.2 | 07:03 | 07:37 | 6687f5a47fa72375eb7f1062bc6cb9dba3990c3e | 0 $ | Revue : passes 1 à 4 hors Cache en calibration (use_cache dans complete_structured, Param cache_later_passes, Panel de librarian-bench run inchangé), ProviderError en code 4, calibration_passes ≥ 2, Juge sans verdict conforme en échec, préflight du réservoir du profil, --run contrôlé. 1091 tests verts. |
 | 4.14 | 07:10 | 08:34 | b2d6ce35e14ef7ce991acc8a4fb9114e8f3e391d | 0 $ | 15 Architectures conformes et SM-3 vert en Faux LLM, sans xfail ; mini-test.yaml (17 Configurations), mini-cpu.yaml, mini-real-haiku.yaml. Revue : contenu du Rapport SM-3 vérifié (scores, retrieval, synthèse), fronts du §7 et non-dominance, variation de chaque query_params par type, Citations prises dans le Contexte. 1140 tests verts. Vérification réelle mini-cpu partielle (Ollama repris par Anaël à 07:49). |
 | 4.15 | 07:30 | 09:20 | 9d43650035db94eb261ef53963784082fb8b465d | 0 $ | SM-4 réel vert : coût tracé = Catalogue exactement, Registre concordant ; Juge Haiku réel couvert par le plafond. Dépense totale ~0,035 USD. Correctifs : temperature refusée par Haiku 5.5 → capacité accepts_temperature au Catalogue (span wl.temperature_omitted) ; majorant de schéma 600 (count_tokens 518). 1145 tests verts, SM-4 réel relancé après revue : 4 passed. |

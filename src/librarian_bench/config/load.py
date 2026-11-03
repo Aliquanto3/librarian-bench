@@ -1,0 +1,36 @@
+"""Chargement strict d'une Expérience (FR-9, AD-20)."""
+
+from pathlib import Path
+
+from librarian_bench import registry
+from librarian_bench.config.defaults import charger_yaml
+from librarian_bench.config.experiment import Experiment
+from librarian_bench.config.resolve import verifier_configuration
+from librarian_bench.config.schemas import valider
+from librarian_bench.core.errors import ConfigError
+
+
+def load_experiment(chemin: Path, *, verifier_params: bool = True) -> Experiment:
+    """Charge `chemin` par `yaml.safe_load` ; toute clé inconnue ou mal typée lève `ConfigError`.
+
+    Les `params` de chaque Configuration sont validés contre le `Params` enregistré de son
+    Architecture et de ses Composants. Le chemin de l'erreur est en notation pointée
+    (`configurations[1].params.kk`).
+
+    `verifier_params=False` saute cette vérification des `params` : `config/validate.py` la fait
+    lui-même, pour regrouper toutes les erreurs au lieu de s'arrêter à la première.
+    """
+    donnees = charger_yaml(chemin)
+    if not isinstance(donnees, dict):
+        raise ConfigError(str(chemin), "une Expérience doit être un dictionnaire YAML")
+    experience = valider(Experiment, donnees, str(chemin))
+    vus: set[str] = set()
+    for i, conf in enumerate(experience.configurations):
+        if conf.id in vus:
+            raise ConfigError(f"configurations[{i}].id", f"identifiant en double : {conf.id!r}")
+        vus.add(conf.id)
+    registry.discover()
+    if verifier_params:
+        for i, conf in enumerate(experience.configurations):
+            verifier_configuration(conf, f"configurations[{i}]")
+    return experience

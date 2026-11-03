@@ -7,14 +7,14 @@ from typing import Any
 
 import pytest
 
-from wavelibrarian import registry
-from wavelibrarian.architectures.pageindex import _SYSTEM_RESUME, PageIndex
-from wavelibrarian.core.errors import ConfigError
-from wavelibrarian.core.types import Anchor, Block, ParsedCorpus, ParsedDocument, QuestionInput
-from wavelibrarian.llm.providers.fake import FakeProvider
-from wavelibrarian.ports.architecture import CorpusChange
-from wavelibrarian.ports.components import ComponentSpec
-from wavelibrarian.runner.context import Context as RunCtx
+from librarian_bench import registry
+from librarian_bench.architectures.pageindex import _SYSTEM_RESUME, PageIndex
+from librarian_bench.core.errors import ConfigError
+from librarian_bench.core.types import Anchor, Block, ParsedCorpus, ParsedDocument, QuestionInput
+from librarian_bench.llm.providers.fake import FakeProvider
+from librarian_bench.ports.architecture import CorpusChange
+from librarian_bench.ports.components import ComponentSpec
+from librarian_bench.runner.context import Context as RunCtx
 
 
 @pytest.fixture
@@ -232,7 +232,7 @@ def test_identifiant_inconnu_ignore_journalise_et_abstention(
         "pageindex.select.1",
         json.dumps({"node_ids": ["inconnu-1", reel, "inconnu-2"], "done": True}),
     )
-    with caplog.at_level(logging.WARNING, logger="wavelibrarian.architectures.pageindex"):
+    with caplog.at_level(logging.WARNING, logger="librarian_bench.architectures.pageindex"):
         _, rep = _repondre(ctx, tmp_path / "i")
     avertissements = [r.getMessage() for r in caplog.records if "inconnu" in r.getMessage()]
     assert len(avertissements) == 1 and "2 identifiant" in avertissements[0]
@@ -274,14 +274,14 @@ def test_section_tronquee_avant_resume(
     tok = ctx.tokenizer_for(arch._summary_model)
     reserve = 128 + tok.count(_SYSTEM_RESUME)
     long = "mot " * 5000
-    with caplog.at_level(logging.WARNING, logger="wavelibrarian.architectures.pageindex"):
+    with caplog.at_level(logging.WARNING, logger="librarian_bench.architectures.pageindex"):
         coupe = arch._tronquer(long)
     assert 0 < tok.count(coupe) <= 400 - reserve < tok.count(long)
     assert long.startswith(coupe)
     assert any("tronquée avant résumé" in r.getMessage() for r in caplog.records)
     caplog.clear()
     court = "mot " * 10
-    with caplog.at_level(logging.WARNING, logger="wavelibrarian.architectures.pageindex"):
+    with caplog.at_level(logging.WARNING, logger="librarian_bench.architectures.pageindex"):
         assert arch._tronquer(court) == court
     assert not caplog.records
     arch._fenetre = lambda modele: None
@@ -374,7 +374,7 @@ def test_contexte_borne_par_la_fenetre_du_generateur(
         arch.load(tmp_path / "i")
         arch._fenetre = lambda modele, f=fenetre: f
         with (
-            caplog.at_level(logging.WARNING, logger="wavelibrarian.architectures.pageindex"),
+            caplog.at_level(logging.WARNING, logger="librarian_bench.architectures.pageindex"),
             ctx.scope(post="query", question_id="q-001"),
         ):
             rep = arch.answer(_question())
@@ -399,7 +399,7 @@ def test_contexte_borne_par_la_fenetre_du_generateur(
 def test_update_scenario_reel_document_modifie(
     ctx: RunCtx, minicorpus: ParsedCorpus, tmp_path: Path
 ) -> None:
-    from wavelibrarian.corpus.scenario import appliquer_fichier
+    from librarian_bench.corpus.scenario import appliquer_fichier
 
     scenario = Path(__file__).resolve().parents[3] / "corpora/minicorpus/scenario/scenario.yaml"
     change, apres = appliquer_fichier(minicorpus, scenario, parser="markdown")
@@ -440,7 +440,7 @@ def test_update_reconstruit_un_document_absent_de_l_ancien_index(
     docs = minicorpus.documents
     _indexer(ctx, minicorpus.model_copy(update={"documents": docs[1:]}), tmp_path / "v1")
     with (
-        caplog.at_level(logging.WARNING, logger="wavelibrarian.architectures.pageindex"),
+        caplog.at_level(logging.WARNING, logger="librarian_bench.architectures.pageindex"),
         ctx.scope(post="update"),
     ):
         _arch(ctx).update(CorpusChange(), minicorpus, tmp_path / "v1", tmp_path / "v2")

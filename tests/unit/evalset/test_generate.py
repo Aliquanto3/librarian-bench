@@ -1,4 +1,5 @@
-"""Génération de Questions candidates et `wl questions generer` (story 3.3), Faux LLM seul."""
+"""Génération de Questions candidates et `librarian-bench questions generer` (story 3.3), Faux LLM
+seul."""
 
 import json
 from collections.abc import Callable
@@ -10,14 +11,14 @@ import pytest
 import yaml
 from typer.testing import CliRunner
 
-import wavelibrarian.cli as cli
-from wavelibrarian.cli import app
-from wavelibrarian.config.experiment import Amount, Budget
-from wavelibrarian.core.errors import ConfigError
-from wavelibrarian.evalset import check, generate, io
-from wavelibrarian.llm.providers.fake import FakeProvider
-from wavelibrarian.ports.gateway import LLMRequest
-from wavelibrarian.runner.context import Context
+import librarian_bench.cli as cli
+from librarian_bench.cli import app
+from librarian_bench.config.experiment import Amount, Budget
+from librarian_bench.core.errors import ConfigError
+from librarian_bench.evalset import check, generate, io
+from librarian_bench.llm.providers.fake import FakeProvider
+from librarian_bench.ports.gateway import LLMRequest
+from librarian_bench.runner.context import Context
 
 SECTIONS = ["Alpha", "Beta", "Gamma", "Delta", "Epsilon", "Zeta", "Eta", "Theta"]
 REPARTITION = "factual=3,multi_hop=1,unanswerable=1"
@@ -97,7 +98,7 @@ class Env:
 
 
 def _defaut(req: LLMRequest) -> dict[str, Any]:
-    from wavelibrarian.llm.providers.fake import default_output
+    from librarian_bench.llm.providers.fake import default_output
 
     return json.loads(default_output("question_gen", req.inputs))
 
@@ -196,8 +197,8 @@ def test_questions_ajoutees_generated_et_existantes_conservees(corpus: Path, env
     assert len(nouvelles[3].reference_anchors) == 2 and nouvelles[4].reference_anchors == ()
     assert "Questions ajoutées : 5" in res.output and "Rejetées à la génération : 0" in res.output
     # le fichier produit passe le contrôle : les Ancrages se résolvent
-    from wavelibrarian.corpus.declare import declare
-    from wavelibrarian.corpus.ingest import ingest
+    from librarian_bench.corpus.declare import declare
+    from librarian_bench.corpus.ingest import ingest
 
     assert not check.controler(apres, ingest(declare(corpus))).echec
 
@@ -313,8 +314,8 @@ def test_role_inputs_et_poste_evalset_puis_cache(corpus: Path, env: Env, wl_home
 
 def test_generer_fixe_lui_meme_le_poste(corpus: Path, wl_home: Path) -> None:
     """`generer` ouvre son `scope(post="evalset")` : un contexte sans Poste suffit."""
-    from wavelibrarian.corpus.declare import declare
-    from wavelibrarian.corpus.ingest import ingest
+    from librarian_bench.corpus.declare import declare
+    from librarian_bench.corpus.ingest import ingest
 
     parsed = ingest(declare(corpus))
     vide = io.QuestionsFile(corpus_id="demo", target_count=3, questions=())
@@ -348,8 +349,8 @@ def test_plafond_insuffisant_code_3_sans_ecriture(corpus: Path, env: Env) -> Non
 
 
 def test_meme_graine_meme_echantillon(corpus: Path, env: Env, wl_home: Path) -> None:
-    from wavelibrarian.corpus.declare import declare
-    from wavelibrarian.corpus.ingest import ingest
+    from librarian_bench.corpus.declare import declare
+    from librarian_bench.corpus.ingest import ingest
 
     parsed = ingest(declare(corpus))
 
@@ -448,8 +449,8 @@ def test_doublons_ecartes_dans_la_sortie_et_face_au_fichier(corpus: Path, env: E
 def test_ancrage_reel_hors_echantillon_ecarte(corpus: Path, env: Env) -> None:
     def sortie(req: LLMRequest) -> str:
         presentes = {a["anchor_id"] for a in req.inputs["anchors"]}
-        from wavelibrarian.corpus.declare import declare
-        from wavelibrarian.corpus.ingest import ingest
+        from librarian_bench.corpus.declare import declare
+        from librarian_bench.corpus.ingest import ingest
 
         parsed = ingest(declare(corpus))
         tous = sorted(a for d in parsed.documents for a in d.anchors)

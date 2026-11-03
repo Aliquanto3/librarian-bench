@@ -7,29 +7,29 @@ from typing import Any, ClassVar
 import numpy as np
 import pytest
 
-from wavelibrarian import registry
-from wavelibrarian.architectures.hybrid_rag import HybridRag
-from wavelibrarian.components.rerankers.fake import FakeReranker
-from wavelibrarian.components.retrievers.hybrid import (
+from librarian_bench import registry
+from librarian_bench.architectures.hybrid_rag import HybridRag
+from librarian_bench.components.rerankers.fake import FakeReranker
+from librarian_bench.components.retrievers.hybrid import (
     HybridRetriever,
     fusion_ponderee,
     fusion_rrf,
 )
-from wavelibrarian.config.resolve import Collecte
-from wavelibrarian.config.validate import _verifier_capacites
-from wavelibrarian.core.errors import ConfigError, WlError
-from wavelibrarian.core.types import (
+from librarian_bench.config.resolve import Collecte
+from librarian_bench.config.validate import _verifier_capacites
+from librarian_bench.core.errors import ConfigError, WlError
+from librarian_bench.core.types import (
     ParsedCorpus,
     ParsedDocument,
     Passage,
     QuestionInput,
     ScoredPassage,
 )
-from wavelibrarian.llm.providers.fake import FakeProvider
-from wavelibrarian.ports.architecture import ArchCapabilities, CorpusChange
-from wavelibrarian.ports.components import ComponentSpec, SearchIndex
-from wavelibrarian.runner.context import Context as RunCtx
-from wavelibrarian.runner.index_cache import IndexCache
+from librarian_bench.llm.providers.fake import FakeProvider
+from librarian_bench.ports.architecture import ArchCapabilities, CorpusChange
+from librarian_bench.ports.components import ComponentSpec, SearchIndex
+from librarian_bench.runner.context import Context as RunCtx
+from librarian_bench.runner.index_cache import IndexCache
 
 PETITS = {"name": "fixed_tokens", "params": {"size": 40, "overlap": 5}}
 

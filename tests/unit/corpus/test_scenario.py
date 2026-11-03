@@ -7,10 +7,10 @@ import pytest
 import yaml
 from typer.testing import CliRunner
 
-from wavelibrarian.cli import app
-from wavelibrarian.core.errors import ConfigError
-from wavelibrarian.core.types import ParsedCorpus, ParsedDocument
-from wavelibrarian.corpus import scenario as sc
+from librarian_bench.cli import app
+from librarian_bench.core.errors import ConfigError
+from librarian_bench.core.types import ParsedCorpus, ParsedDocument
+from librarian_bench.corpus import scenario as sc
 
 RACINE = Path(__file__).resolve().parents[3]
 MINI = RACINE / "corpora" / "minicorpus"
@@ -166,7 +166,7 @@ def test_contenu_identique_a_un_document_existant_refuse(tmp_path, minicorpus):
 
 
 def test_commande_controler_scenario_de_bout_en_bout(tmp_path, monkeypatch):
-    monkeypatch.setenv("WL_HOME", str(tmp_path / ".wl"))
+    monkeypatch.setenv("LIBRARIAN_BENCH_HOME", str(tmp_path / ".librarian-bench"))
     ancre = {"doc": "chronique-1415.md", "headings": ["Chronique de l'an 1415"]}
     question = {
         "id": "q-001",
@@ -206,8 +206,8 @@ def test_equivaut_a_une_ingestion_directe_de_l_etat_apres(tmp_path, minicorpus):
     """Oracle indépendant : le Corpus « après » vaut l'ingestion du dossier mis à jour."""
     import shutil
 
-    from wavelibrarian.corpus.declare import declare
-    from wavelibrarian.corpus.ingest import ingest
+    from librarian_bench.corpus.declare import declare
+    from librarian_bench.corpus.ingest import ingest
 
     copie = tmp_path / "mini"
     shutil.copytree(MINI / "docs", copie / "docs")
@@ -219,7 +219,7 @@ def test_equivaut_a_une_ingestion_directe_de_l_etat_apres(tmp_path, minicorpus):
             cible.unlink()
         else:
             shutil.copy(SCENARIO.parent / op["source"], cible)
-    direct = ingest(declare(copie / "corpus.yaml"), wl_home=tmp_path / ".wl")
+    direct = ingest(declare(copie / "corpus.yaml"), wl_home=tmp_path / ".librarian-bench")
     _, apres = sc.appliquer_fichier(minicorpus, SCENARIO, lang="fr")
     assert apres == direct
 
@@ -291,7 +291,7 @@ def test_source_illisible_leve_config_error(tmp_path, minicorpus, monkeypatch):
 
 
 def test_commande_controler_document_supprime_introuvable_apres(tmp_path, monkeypatch):
-    monkeypatch.setenv("WL_HOME", str(tmp_path / ".wl"))
+    monkeypatch.setenv("LIBRARIAN_BENCH_HOME", str(tmp_path / ".librarian-bench"))
     question = {
         "id": "q-001",
         "type": "factual",

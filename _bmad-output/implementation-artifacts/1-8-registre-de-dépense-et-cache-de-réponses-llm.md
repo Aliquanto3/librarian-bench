@@ -8,9 +8,9 @@ status: done
 
 ## Code Map
 
-- `src/wavelibrarian/llm/budget.py` : `Ledger` (`reserve`, `settle`, `release`, `balance`, `recover_orphans`), `Balance`.
-- `src/wavelibrarian/llm/cache.py` : `cache_key`, `ResponseCache` (`get`, `put`), `CachedResponse`.
-- `src/wavelibrarian/llm/_db.py` : connexion SQLite, `transaction` (`BEGIN IMMEDIATE`), `resolve_wl_home`.
+- `src/librarian_bench/llm/budget.py` : `Ledger` (`reserve`, `settle`, `release`, `balance`, `recover_orphans`), `Balance`.
+- `src/librarian_bench/llm/cache.py` : `cache_key`, `ResponseCache` (`get`, `put`), `CachedResponse`.
+- `src/librarian_bench/llm/_db.py` : connexion SQLite, `transaction` (`BEGIN IMMEDIATE`), `resolve_wl_home`.
 - `tests/unit/llm/test_ledger_cache.py`.
 
 ## Design Notes
@@ -34,7 +34,7 @@ status: done
 - [x] Stockage/relecture texte + `Usage` : `test_cache_relit_texte_et_usage`.
 - [x] Clé sensible à `pass_id`, message, `temperature`, pas à `step` : `test_cle_sensible_a_pass_id_message_temperature_pas_a_step`.
 - [x] `inputs` dans la clé pour `fake` seulement : `test_inputs_dans_la_cle_seulement_pour_le_provider_fake`.
-- [x] `WL_HOME` : `test_wl_home_par_variable_d_environnement`.
+- [x] `LIBRARIAN_BENCH_HOME` : `test_wl_home_par_variable_d_environnement`.
 
 ## Auto Run Result
 
@@ -60,6 +60,6 @@ Revue Opus du 2026-10-17, second avis Haiku vérifié point par point.
 
 ### Reports pour la 1.9 et le runner
 
-- Le runner ouvre le `Ledger` avec `recover_orphans=True` seulement après avoir pris `WL_HOME/run.lock` (non implémenté à ce jour) ; vérifier par un test qu'un second `wl run` ne règle pas les réservations du premier.
+- Le runner ouvre le `Ledger` avec `recover_orphans=True` seulement après avoir pris `LIBRARIAN_BENCH_HOME/run.lock` (non implémenté à ce jour) ; vérifier par un test qu'un second `librarian-bench run` ne règle pas les réservations du premier.
 - La passerelle calcule `cache_key` après avoir posé `role_marker(role)` en tête du system, et réutilise `role_marker` plutôt qu'une seconde définition du format.
 

@@ -8,8 +8,8 @@ status: done
 
 ## Code Map
 
-- `src/wavelibrarian/runner/execute.py` : `_Runner._phase_apres_mise_a_jour` (après la phase `base` d'une Configuration, une cellule `_cellule(..., maj=(changement, corpus de base))` par Condition), `_Runner.apres_mise_a_jour(parser)` (`appliquer_fichier` de la 2.6 avec `lang` du `corpus.yaml` et `parser` de la Configuration, Profil du Corpus après mise à jour, une fois par parser), `_index_de_base` (dossier de l'index de la base, construit d'abord s'il manque). `cibles_du_scenario` : Documents de base modifiés ou supprimés par le Scénario, requis dans chaque Palier (runner et `verifier_paliers`). Le Scénario est validé (`charger`) avant la création du dossier d'Exécution.
-- `src/wavelibrarian/runner/index_cache.py` : `IndexCache.build(..., post="update", change=, old_dir=)` ; un index absent est produit par `arch.update(change, corpus_after, old_dir, .tmp-<clé>)` puis `os.replace` vers la clé du Corpus après mise à jour ; présent, il est servi par le cache.
+- `src/librarian_bench/runner/execute.py` : `_Runner._phase_apres_mise_a_jour` (après la phase `base` d'une Configuration, une cellule `_cellule(..., maj=(changement, corpus de base))` par Condition), `_Runner.apres_mise_a_jour(parser)` (`appliquer_fichier` de la 2.6 avec `lang` du `corpus.yaml` et `parser` de la Configuration, Profil du Corpus après mise à jour, une fois par parser), `_index_de_base` (dossier de l'index de la base, construit d'abord s'il manque). `cibles_du_scenario` : Documents de base modifiés ou supprimés par le Scénario, requis dans chaque Palier (runner et `verifier_paliers`). Le Scénario est validé (`charger`) avant la création du dossier d'Exécution.
+- `src/librarian_bench/runner/index_cache.py` : `IndexCache.build(..., post="update", change=, old_dir=)` ; un index absent est produit par `arch.update(change, corpus_after, old_dir, .tmp-<clé>)` puis `os.replace` vers la clé du Corpus après mise à jour ; présent, il est servi par le cache.
 - Tests : `tests/unit/runner/test_story_4_7.py`.
 
 ## Design Notes

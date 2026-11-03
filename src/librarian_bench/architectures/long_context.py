@@ -1,0 +1,173 @@
+"""Architecture `long_context` : tout le Corpus dans le prompt, system en cache (FR-16)."""
+
+import math
+from collections.abc import Sequence
+from decimal import Decimal
+from pathlib import Path
+from typing import Any
+
+from pydantic import BaseModel, ConfigDict, Field, field_validator
+
+from librarian_bench.architectures._passages import ecrire_passages, lire_passages
+from librarian_bench.components.context import build_arch_answer
+from librarian_bench.core.ids import sha16
+from librarian_bench.core.types import (
+    ArchAnswer,
+    CorpusProfile,
+    ParsedCorpus,
+    Passage,
+    QuestionInput,
+    ScoredPassage,
+)
+from librarian_bench.ports.arch_answer import passages_fournis
+from librarian_bench.ports.architecture import Applicability, ArchCapabilities, ArchitectureBase
+from librarian_bench.ports.components import ComponentSpec, Context
+from librarian_bench.registry import register
+
+
+def _passages_par_ancrage(corpus: ParsedCorpus) -> list[Passage]:
+    """Un Passage par Ancrage non vide, dans l'ordre des Documents puis des Ancrages."""
+    passages: list[Passage] = []
+    for doc in corpus.documents:
+        for anchor_id in doc.anchors:
+            texte = "\n\n".join(b.text for b in doc.blocks if b.anchor_id == anchor_id)
+            if texte.strip():
+                passages.append(
+                    Passage(
+                        passage_id=sha16(doc.doc_id, "long_context", anchor_id),
+                        doc_id=doc.doc_id,
+                        text=texte,
+                        anchor_ids=(anchor_id,),
+                    )
+                )
+    return passages
+
+
+@register("architecture", "long_context")
+class LongContext(ArchitectureBase):
+    """Baseline « tout le Corpus » : un bloc étiqueté par Ancrage, Réponse `cited`."""
+
+    name = "long_context"
+    capabilities = ArchCapabilities(retrieval_method="cited", full_corpus_in_prompt=True)
+
+    class Params(BaseModel):
+        model_config = ConfigDict(extra="forbid", frozen=True)
+
+        generator: ComponentSpec = Field(
+            default_factory=lambda: ComponentSpec(name="llm", params={"cache_system": True})
+        )
+        context_builder: ComponentSpec = Field(
+            default_factory=lambda: ComponentSpec(name="labeled")
+        )
+
+        @field_validator("generator")
+        @classmethod
+        def _system_en_cache(cls, spec: ComponentSpec) -> ComponentSpec:
+            """Le Generator `llm` met toujours le system (le Corpus) en cache (FR-16)."""
+            if spec.name != "llm":
+                return spec
+            if spec.params.get("cache_system", True) is not True:
+                raise ValueError(
+                    "`long_context` exige `cache_system: true` pour le Generator `llm`"
+                )
+            return ComponentSpec(name=spec.name, params={**spec.params, "cache_system": True})
+
+    def __init__(self, params: Any, ctx: Any) -> None:
+        super().__init__(params, ctx)
+        self._spec_generateur: ComponentSpec = params.generator
+        self.generator = ctx.build("generator", params.generator)
+        self.context_builder = ctx.build("context_builder", params.context_builder)
+        self._contexte: Context | None = None
+        self._par_ancrage: dict[str, Passage] = {}
+        self._generateur_parfait: Any = None
+
+    def check(self, profile: CorpusProfile) -> Applicability:
+        """Inapplicable si le Corpus dépasse la fenêtre du modèle ou un palier tarifaire."""
+        modele = self.generator.model_id
+        entree = self.ctx.catalog.get(modele)
+        tokens = profile.tokens_for(modele, self.ctx.catalog)
+        if entree.tokenizer == "reference":
+            # `tokens_for` rend les tokens de référence tels quels : on applique le facteur du
+            # Catalogue, comme l'estimation avant appel de la passerelle (contracts §4.2).
+            tokens = math.ceil(Decimal(tokens) * entree.token_factor)
+        fenetre = entree.context_window
+        # La fenêtre doit tenir l'entrée et la sortie réservée, comme la passerelle (entrée +
+        # `max_tokens`) ; le palier tarifaire ne porte que sur le prompt.
+        sortie = getattr(self.generator, "max_tokens", 0)
+        if fenetre is not None and tokens + sortie > fenetre:
+            return Applicability(
+                applicable=False,
+                reason=(
+                    f"le Corpus (environ {tokens} tokens pour {modele}, plus {sortie} tokens de "
+                    f"sortie) dépasse la fenêtre de {fenetre} tokens"
+                ),
+            )
+        if entree.pricing is not None:
+            for palier in entree.pricing.tiers:
+                if tokens > palier.above_prompt_tokens:
+                    return Applicability(
+                        applicable=False,
+                        reason=(
+                            f"le prompt estimé (environ {tokens} tokens pour {modele}) dépasse "
+                            f"le palier tarifaire de {palier.above_prompt_tokens} tokens "
+                            f"(prix ×{palier.multiplier})"
+                        ),
+                    )
+        return Applicability(applicable=True)
+
+    def index(self, corpus: ParsedCorpus, directory: Path) -> None:
+        ecrire_passages(directory, _passages_par_ancrage(corpus))
+
+    def load(self, directory: Path) -> None:
+        passages = lire_passages(directory)
+        self._par_ancrage = {p.anchor_ids[0]: p for p in passages}
+        self._contexte = self.context_builder.build(passages)
+
+    def answer(self, question: QuestionInput) -> ArchAnswer:
+        contexte = self._contexte
+        if contexte is None:
+            raise RuntimeError("`load` doit précéder `answer`")
+        resultat = self.generator.generate(question, contexte)
+        # Un ScoredPassage par Ancrage cité, sans doublon ni trou de rang.
+        ancrages = dict.fromkeys(
+            c.anchor_id for c in resultat.citations if c.anchor_id in self._par_ancrage
+        )
+        cites = [
+            ScoredPassage(passage=self._par_ancrage[a], score=1.0, rank=rang)
+            for rang, a in enumerate(ancrages, start=1)
+        ]
+        return build_arch_answer(
+            contexte,
+            resultat,
+            cites,
+            "cited",
+            tokenizer=self.ctx.tokenizer_for(self.generator.model_id),
+        )
+
+    def answer_with_context(
+        self, question: QuestionInput, passages: Sequence[Passage]
+    ) -> ArchAnswer:
+        """Contexte parfait : quelques Passages propres à la Question, jamais le Corpus. Le
+        Generator `llm` passe donc sans `cache_system` (écrire un cache à chaque Question coûte
+        plus qu'il ne rapporte) ; un autre Generator est gardé tel quel."""
+        generateur = self._generateur_sans_cache()
+        contexte = self.context_builder.build(passages)
+        resultat = generateur.generate(question, contexte)
+        return build_arch_answer(
+            contexte,
+            resultat,
+            passages_fournis(passages),
+            "provided",
+            tokenizer=self.ctx.tokenizer_for(generateur.model_id),
+        )
+
+    def _generateur_sans_cache(self) -> Any:
+        spec = self._spec_generateur
+        if spec.name != "llm":
+            return self.generator
+        if self._generateur_parfait is None:
+            params = {**spec.params, "cache_system": False}
+            self._generateur_parfait = self.ctx.build(
+                "generator", ComponentSpec(name="llm", params=params)
+            )
+        return self._generateur_parfait

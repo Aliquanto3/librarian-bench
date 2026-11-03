@@ -1,0 +1,755 @@
+"""Génération du Rapport `report/` d'une Exécution (story 4.11, FR-40, contracts.md §5 et §7).
+
+`generer_rapport` lit les seuls fichiers de l'Exécution et écrit `report.md`, `scores.csv`,
+`retrieval.csv`, `pairs.csv`, `costs.csv` et `pareto.csv`. Il ne dépend pas du runner (AD-1) :
+`cli.py` l'appelle après `librarian-bench run` (y compris sur une Exécution arrêtée au plafond) ou
+par
+`librarian-bench rapport <run_id>`.
+"""
+
+import csv
+import json
+import logging
+from collections import defaultdict
+from datetime import UTC, datetime
+from pathlib import Path
+from typing import Any
+
+from librarian_bench.compat import dossier_home
+from librarian_bench.config.catalog import load_catalog
+from librarian_bench.config.panel import excluded_judges
+from librarian_bench.core.bilan import decrire_cause
+from librarian_bench.core.errors import ConfigError
+from librarian_bench.report.ancrages import Resolveur, ResolveurCorpus, resolveur_de
+from librarian_bench.report.couts import ENTETE_COUTS, Couts, calculer_couts, ligne_csv
+from librarian_bench.report.fraicheur import LigneFraicheur, calculer_fraicheur
+from librarian_bench.report.fronts import ENTETE_PARETO, Front, construire_fronts, lignes_pareto
+from librarian_bench.report.lecture import CleGroupe, Execution, charger, lire_json
+from librarian_bench.report.scores import (
+    CRITERES,
+    QUALITE,
+    TOUS,
+    LigneScore,
+    Resultats,
+    etiquette_palier,
+    evaluer,
+)
+from librarian_bench.report.section_couts import section_couts
+from librarian_bench.report.section_fronts import section_fraicheur, section_paliers, section_pareto
+from librarian_bench.report.wiki import section_fidelite
+
+log = logging.getLogger(__name__)
+
+ENTETE_SCORES = [
+    "config_id", "condition", "tier", "phase", "question_type", "criterion",
+    "value", "ci_low", "ci_high", "n", "n_na",
+]  # fmt: skip
+ENTETE_RECHERCHE = [
+    "config_id", "condition", "tier", "phase", "question_type", "metric", "k",
+    "value", "ci_low", "ci_high", "n", "method",
+]  # fmt: skip
+# Les sept colonnes du contrat, puis le groupe de la comparaison (condition, tier, phase) : une
+# paire ne se compare qu'à l'intérieur d'un groupe (§7).
+ENTETE_PAIRES = [
+    "config_a", "config_b", "metric", "diff", "p_value", "test", "n_common",
+    "condition", "tier", "phase",
+]  # fmt: skip
+NOM_CRITERE = {
+    QUALITE: "Qualité",
+    "correctness": "correctness",
+    "completeness": "completeness",
+    "faithfulness": "faithfulness",
+    "citation_correctness": "citation_correctness",
+    "abstention_correctness": "abstention_correctness",
+}
+
+
+def _nb(x: float, decimales: int = 2) -> str:
+    return f"{x:.{decimales}f}".replace(".", ",")
+
+
+def _avec_ic(x: float, bas: float, haut: float) -> str:
+    return f"{_nb(x)} [{_nb(bas)} ; {_nb(haut)}]"
+
+
+def _flottant(x: float | None) -> str:
+    return "" if x is None else f"{x:.6f}"
+
+
+def _ordre(g: CleGroupe) -> tuple[str, str, int, str]:
+    return (g[0], g[1], -1 if g[2] is None else g[2], g[3])
+
+
+def _ecrire_csv(chemin: Path, entete: list[str], lignes: list[list[Any]]) -> None:
+    with chemin.open("w", encoding="utf-8", newline="") as f:
+        w = csv.writer(f, lineterminator="\n")
+        w.writerow(entete)
+        w.writerows(lignes)
+
+
+def ecrire_csv(
+    dossier: Path, res: Resultats, couts: Couts | None = None, fronts: list[Front] | None = None
+) -> None:
+    """`scores.csv`, `retrieval.csv`, `pairs.csv`, `costs.csv` et `pareto.csv`. Aucun score
+    global."""
+    if fronts is not None:
+        _ecrire_csv(dossier / "pareto.csv", ENTETE_PARETO, lignes_pareto(fronts))
+    if couts is not None:
+        _ecrire_csv(dossier / "costs.csv", ENTETE_COUTS, [ligne_csv(x) for x in couts.lignes])
+    _ecrire_csv(
+        dossier / "scores.csv",
+        ENTETE_SCORES,
+        [
+            [
+                s.groupe[0], s.groupe[1], etiquette_palier(s.groupe[2]), s.groupe[3],
+                s.question_type, s.critere, _flottant(s.value), _flottant(s.ci_low),
+                _flottant(s.ci_high), s.n, s.n_na,
+            ]
+            for s in res.scores
+        ],
+    )  # fmt: skip
+    _ecrire_csv(
+        dossier / "retrieval.csv",
+        ENTETE_RECHERCHE,
+        [
+            [
+                r.groupe[0], r.groupe[1], etiquette_palier(r.groupe[2]), r.groupe[3],
+                r.question_type, r.metric, r.k, _flottant(r.value), _flottant(r.ci_low),
+                _flottant(r.ci_high), r.n, r.method,
+            ]
+            for r in res.recherche
+        ],
+    )  # fmt: skip
+    _ecrire_csv(
+        dossier / "pairs.csv",
+        ENTETE_PAIRES,
+        [
+            [
+                p.config_a, p.config_b, p.metric, _flottant(p.diff), _flottant(p.p_value),
+                p.test, p.n_common, p.condition, etiquette_palier(p.tier), p.phase,
+            ]
+            for p in res.paires
+        ],
+    )  # fmt: skip
+
+
+# --- Markdown ----------------------------------------------------------------------------------
+
+
+def _table(entete: list[str], lignes: list[list[str]]) -> list[str]:
+    sortie = ["| " + " | ".join(entete) + " |", "| " + " | ".join("---" for _ in entete) + " |"]
+    sortie += ["| " + " | ".join(ligne) + " |" for ligne in lignes]
+    return [*sortie, ""]
+
+
+def _bandeau(ex: Execution) -> list[str]:
+    statut = ex.manifeste.get("status", "inconnu")
+    if statut == "completed":
+        return []
+    if statut == "budget_exceeded":
+        return [
+            "> **Exécution arrêtée au plafond de dépense : résultats partiels.** Les Questions "
+            "restantes sont en `budget_exceeded` ; `librarian-bench run --reprendre` les pose.",
+            "",
+        ]
+    if statut == "completed_with_errors":  # story 8.3 : Configurations et causes nommées
+        # Seuil en vigueur : celui de la dernière reprise s'il a été relevé (fix-arbitrages-8-3-8-8
+        # AC 3) ; `experiment.resolved.yaml` garde la valeur du départ.
+        reprises = ex.manifeste.get("resumptions") or [{}]
+        seuil = reprises[-1].get("max_error_rate", ex.experience.max_error_rate)
+        causes = ex.manifeste.get("causes") or []
+        return [
+            "> **Exécution terminée avec erreurs (`completed_with_errors`) : résultats à ne pas "
+            "prendre pour un résultat complet.** `librarian-bench run --reprendre` repose les "
+            "Questions en `error` et rejuge les Critères sans verdict.",
+            ">",
+            *(f"> - {decrire_cause(c, seuil)}" for c in causes),
+            "",
+        ]
+    return [f"> **Exécution non terminée (statut `{statut}`) : résultats partiels.**", ""]
+
+
+def _rejugement(m: dict[str, Any]) -> list[str]:
+    """Rejugement (story 9.6) : la source et les Questions écartées hors du split courant."""
+    source = m.get("rejudged_from")
+    if not source:
+        return []
+    ecartees = m.get("excluded_questions") or []
+    lignes = [
+        f"Rejugement de l'Exécution `{source}` : Réponses, Passages et mesures de génération "
+        "copiés de la source ; seuls les Critères automatiques et le Panel sont recalculés.",
+        "",
+    ]
+    if ecartees:
+        lignes += [
+            "Questions de la source hors du split courant, écartées : "
+            + ", ".join(f"`{q}`" for q in ecartees)
+            + ".",
+            "",
+        ]
+    return lignes
+
+
+def _entete(ex: Execution) -> list[str]:
+    e = ex.experience
+    m = ex.manifeste
+    run_id = m.get("run_id", ex.run_dir.name)
+    modeles = ", ".join(f"`{x}`" for x in m.get("models", ())) or "aucun"
+    lignes = [
+        f"# Rapport : {e.experiment_id}",
+        "",
+        *_bandeau(ex),
+        f"Exécution `{run_id}`, statut `{m.get('status', 'inconnu')}`.",
+        "",
+        *_rejugement(m),
+        "## Expérience",
+        "",
+        "- Expérience résolue : [experiment.resolved.yaml](../experiment.resolved.yaml), "
+        f"empreinte `{ex.empreinte or 'inconnue'}`.",
+        f"- Profil d'exécution : `{e.profile}`.",
+        f"- Partie utilisée : `{e.split}` (graine {e.seed}).",
+        f"- Modèles gelés au : {e.models_frozen_at.isoformat()} (Catalogue du "
+        f"{e.catalog_date.isoformat()}).",
+        f"- Modèles : {modeles}.",
+        f"- Configurations : {', '.join(f'`{c.id}`' for c in e.configurations)}.",
+        f"- Conditions : {', '.join(f'`{c}`' for c in e.conditions)}.",
+        "",
+    ]
+    return lignes
+
+
+def _corpus(ex: Execution) -> list[str]:
+    p = ex.profil_corpus
+    if not p:
+        return ["## Profil de corpus", "", "Profil de corpus absent (`corpus_profile.json`).", ""]
+    champs = [
+        ("Corpus", p.get("corpus_id")),
+        ("Empreinte", p.get("fingerprint")),
+        ("Parser", p.get("parser")),
+        ("Tokenizer", p.get("tokenizer")),
+        ("Documents", p.get("n_documents")),
+        ("Tokens", p.get("n_tokens")),
+        ("Langue dominante", p.get("dominant_lang")),
+        ("Formats", p.get("formats")),
+        ("Volatilité", p.get("volatility")),
+    ]
+    return [
+        "## Profil de corpus",
+        "",
+        *_table(["Champ", "Valeur"], [[k, f"{v}"] for k, v in champs if v is not None]),
+    ]
+
+
+def _juges(ex: Execution) -> list[str]:
+    config_de = {a.answer_id: a.config_id for a in ex.reponses.values()}
+    admissibles: dict[str, set[str]] = defaultdict(set)
+    egalites: dict[str, int] = defaultdict(int)
+    for (aid, _), v in ex.panel.items():
+        config = config_de.get(aid)
+        if config is None:
+            continue
+        admissibles[config].update(v.judges)
+        egalites[config] += int(v.tie)
+    exclus: list[str] = []
+    note = ""
+    chemin = ex.experience.judges.excluded_from
+    if chemin:
+        try:
+            exclus = sorted(excluded_judges(Path(chemin)))
+            if exclus:
+                note = f" (calibration du {_date_calibration(Path(chemin))})"
+        except ConfigError as erreur:
+            note = f" (calibration illisible : {erreur.message})"
+    lignes = [
+        [
+            f"`{c.id}`",
+            ", ".join(f"`{j}`" for j in sorted(admissibles[c.id])) or "aucun",
+            str(egalites[c.id]),
+        ]
+        for c in ex.experience.configurations
+    ]
+    tous = {j for ensemble in admissibles.values() for j in ensemble}
+    return [
+        "## Juges",
+        "",
+        *_table(["Configuration", "Panel admissible", "Égalités"], lignes),
+        "Juges exclus par la calibration : "
+        + (", ".join(f"`{j}`" for j in exclus) if exclus else "aucun")
+        + f"{note}.",
+        "",
+        *_juge_unique(ex, admissibles),
+        *_juges_factices(ex, tous),
+    ]
+
+
+def _donnees_calibration(ex: Execution) -> dict[str, Any] | None:
+    """`calibration.json` de l'Exécution, sinon celui de `judges.excluded_from`."""
+    chemins = [ex.run_dir / "calibration.json"]
+    if ex.experience.judges.excluded_from:
+        chemins.append(Path(ex.experience.judges.excluded_from))
+    return next((d for c in chemins if isinstance(d := lire_json(c), dict)), None)
+
+
+def _juge_unique(ex: Execution, admissibles: dict[str, set[str]]) -> list[str]:
+    """Mention « Juge unique calibré » avec ses kappas, à la place de la règle de majorité
+    (`judges.panel_size: 1`, story 9.5). Verdict du Panel = verdict de ce Juge, `na` compris.
+    Une ligne par Juge ; les Configurations sont nommées quand elles ont des Juges différents
+    (Generators de Familles différentes)."""
+    if ex.experience.judges.panel_size != 1:
+        return []
+    configs_de: dict[str, list[str]] = defaultdict(list)
+    for c in ex.experience.configurations:
+        for juge in admissibles.get(c.id, ()):
+            configs_de[juge].append(c.id)
+    donnees = _donnees_calibration(ex)
+    fiches = (donnees or {}).get("judges")
+    lignes: list[str] = []
+    for juge in sorted(configs_de):
+        fiche = fiches.get(juge) if isinstance(fiches, dict) else None
+        criteres = fiche.get("criteria") if isinstance(fiche, dict) else None
+        kappas = ", ".join(
+            f"{c} {_kappa(f.get('kappa'))}"
+            for c, f in sorted((criteres if isinstance(criteres, dict) else {}).items())
+            if isinstance(f, dict)
+        )
+        if not kappas:
+            kappas = (
+                "calibration absente"
+                if fiche is None
+                else "aucun kappa par Critère dans la calibration"
+            )
+        portee = (
+            " (Configurations " + ", ".join(f"`{c}`" for c in configs_de[juge]) + ")"
+            if len(configs_de) > 1
+            else ""
+        )
+        lignes += [
+            f"Juge unique calibré : `{juge}`{portee} ; le verdict du Panel est le verdict de ce "
+            "Juge (`na` compris), sans règle de majorité ni égalité. "
+            f"Kappas juge-humain : {kappas}.",
+            "",
+        ]
+    return lignes
+
+
+def _juges_factices(ex: Execution, juges: set[str]) -> list[str]:
+    """Avertissement quand un Generator réel est noté par des Juges tous factices (`fake`)."""
+    exp = ex.experience
+    try:
+        catalogue = load_catalog(Path(exp.catalog) if exp.catalog else None)
+        factice = {j: catalogue.get(j).provider == "fake" for j in juges}
+        reel = any(
+            catalogue.get(m).provider != "fake"
+            for c in exp.configurations
+            for m in c.answer_producers
+        )
+    except ConfigError:
+        return []
+    if not juges or not all(factice.values()) or not reel:
+        return []
+    return [
+        "**Qualité non interprétable : Juges factices.** Les scores de qualité de cette "
+        "Exécution viennent de Juges `fake`, pas d'un modèle qui lit les Réponses.",
+        "",
+    ]
+
+
+def _kappa(x: float | None) -> str:
+    return "indéfini" if x is None else _nb(x)
+
+
+def _accords_na(f: dict[str, Any]) -> str:
+    """Accords et désaccords sur `na` (story 9.3) ; `n/a` pour un `calibration.json` antérieur."""
+    if "na_agreements" not in f and "na_disagreements" not in f:
+        return "n/a"
+    return f"{f.get('na_agreements', 0)} / {f.get('na_disagreements', 0)}"
+
+
+def _calibration(ex: Execution) -> list[str]:
+    """Section « Calibration des Juges » : lit `calibration.json` (Exécution, sinon
+    `judges.excluded_from`), sans rien recalculer."""
+    donnees = _donnees_calibration(ex)
+    titre = ["## Calibration des Juges", ""]
+    if donnees is None or not isinstance(donnees.get("judges"), dict):
+        return [
+            *titre,
+            "Calibration absente : aucun `calibration.json` (`librarian-bench calibrer`).",
+            "",
+        ]
+    seuil = donnees.get("kappa_threshold")
+    intro = "Kappa juge-humain par Juge et par Critère"
+    intro += f" (seuil {_nb(seuil)})." if isinstance(seuil, int | float) else "."
+    intro += (
+        " Items : paires au kappa (`yes` ou `no` des deux côtés) ; na : paires où les deux disent"
+        " `na` (sans objet), puis où un seul le dit, hors du kappa."
+    )
+    source = donnees.get("run_id")
+    if source != ex.run_dir.name:
+        # `judges.excluded_from` pointe en général vers la calibration d'une Exécution antérieure.
+        intro += f" Source : Exécution `{source}`." if source else " Source non identifiée."
+    lignes: list[list[str]] = []
+    for juge, fiche in sorted(donnees["judges"].items()):
+        exclu = "oui" if fiche.get("excluded") is True else "non"
+        if exclu == "oui" and fiche.get("reason"):
+            exclu += f" ({fiche['reason']})"
+        for critere, f in sorted((fiche.get("criteria") or {}).items()):
+            instab = f.get("instability")
+            lignes.append(
+                [
+                    f"`{juge}`",
+                    critere,
+                    _kappa(f.get("kappa")),
+                    "indéfinie" if instab is None else _nb(instab),
+                    str(f.get("n_items", 0)),
+                    _accords_na(f),
+                    exclu,
+                ]
+            )
+    sortie = [*titre, intro, ""]
+    sortie += _table(
+        [
+            "Juge",
+            "Critère",
+            "Kappa juge-humain",
+            "Instabilité",
+            "Items",
+            "na (accords / désaccords)",
+            "Exclu",
+        ],
+        lignes,
+    )
+    paires = [
+        (p.get("annotators") or [], c, f)
+        for p in donnees.get("inter_annotator") or []
+        for c, f in sorted((p.get("criteria") or {}).items())
+    ]
+    if paires:
+        sortie += ["Kappa inter-annotateurs :", ""]
+        sortie += _table(
+            ["Annotateurs", "Critère", "Kappa", "Réponses", "na (accords / désaccords)"],
+            [
+                [
+                    " et ".join(a),
+                    c,
+                    _kappa(f.get("kappa")),
+                    str(f.get("n_items", 0)),
+                    _accords_na(f),
+                ]
+                for a, c, f in paires
+            ],
+        )
+    else:
+        sortie += ["Kappa inter-annotateurs : absent (aucune double annotation).", ""]
+    return sortie
+
+
+def _date_calibration(chemin: Path) -> str:
+    """Date du fichier de calibration : `created_at` s'il existe, sinon date de modification."""
+    try:
+        cree = json.loads(chemin.read_text(encoding="utf-8")).get("created_at")
+    except (OSError, ValueError, AttributeError):
+        cree = None
+    if isinstance(cree, str) and len(cree) >= 10:
+        return cree[:10]
+    return datetime.fromtimestamp(chemin.stat().st_mtime, UTC).date().isoformat()
+
+
+def _inapplicables(ex: Execution) -> list[str]:
+    if not ex.inapplicables:
+        return ["## Configurations inapplicables", "", "Aucune.", ""]
+    lignes = [
+        [f"`{cle}`", f"`{v.get('architecture', '')}`", str(v.get("reason", ""))]
+        for cle, v in sorted(ex.inapplicables.items())
+    ]
+    return [
+        "## Configurations inapplicables",
+        "",
+        *_table(["Configuration", "Architecture", "Raison"], lignes),
+    ]
+
+
+def _etiquette(g: CleGroupe) -> list[str]:
+    return [f"`{g[0]}`", etiquette_palier(g[2]), g[3]]
+
+
+def _cellule(s: LigneScore | None, na_seuls: int) -> str:
+    """Taux et IC ; avec des `na` (sans objet, story 9.3), le `n` effectif et le nombre de `na`."""
+    if s is None:
+        return f"n/a ({na_seuls} na)" if na_seuls else "n/a"
+    texte = _avec_ic(s.value, s.ci_low, s.ci_high)
+    return f"{texte} (n {s.n}, {s.n_na} na)" if s.n_na else texte
+
+
+def _table_scores(res: Resultats, condition: str, titre: str, intro: str) -> list[str]:
+    groupes = sorted((g for g in res.comptes if g[1] == condition), key=_ordre)
+    if not groupes:
+        return []
+    par: dict[tuple[CleGroupe, str], LigneScore] = {
+        (s.groupe, s.critere): s for s in res.scores if s.question_type == TOUS
+    }
+    colonnes = (QUALITE, *CRITERES)
+    lignes: list[list[str]] = []
+    for g in groupes:
+        cellules = [_cellule(par.get((g, c)), res.na_seuls.get((g, c), 0)) for c in colonnes]
+        lignes.append([*_etiquette(g), str(res.comptes[g].ok), *cellules])
+    return [
+        f"## {titre}",
+        "",
+        intro,
+        "",
+        *_table(
+            ["Configuration", "Palier", "Phase", "n", *(NOM_CRITERE[c] for c in colonnes)], lignes
+        ),
+    ]
+
+
+def _scores_par_type(res: Resultats) -> list[str]:
+    lignes = [
+        [*_etiquette(s.groupe), s.question_type, str(s.n), _avec_ic(s.value, s.ci_low, s.ci_high)]
+        for s in sorted(res.scores, key=lambda s: (_ordre(s.groupe), s.question_type))
+        if s.critere == QUALITE and s.question_type != TOUS and s.groupe[1] == "standard"
+    ]
+    if not lignes:
+        return []
+    return [
+        "## Qualité par Type de question",
+        "",
+        *_table(["Configuration", "Palier", "Phase", "Type", "n", "Qualité"], lignes),
+        "Les taux par Critère et par Type sont dans `scores.csv`.",
+        "",
+    ]
+
+
+def _contaminees(ex: Execution, res: Resultats) -> list[str]:
+    n = sum(c.contaminees for c in res.comptes.values())
+    lignes = [
+        [*_etiquette(s.groupe), s.groupe[1], str(s.n), _avec_ic(s.value, s.ci_low, s.ci_high)]
+        for s in sorted(res.contaminees, key=lambda s: _ordre(s.groupe))
+    ]
+    corps = (
+        ["Aucune Réponse à une Question contaminée.", ""]
+        if not n
+        else _table(["Configuration", "Palier", "Phase", "Condition", "n", "Qualité"], lignes)
+    )
+    return [
+        "## Questions contaminées",
+        "",
+        "Les Questions contaminées (FR-12) sont exclues de tous les scores ci-dessus et de "
+        "`scores.csv`, `retrieval.csv` et `pairs.csv` ; leur Qualité figure ici seulement.",
+        "",
+        *corps,
+    ]
+
+
+def _recherche(res: Resultats) -> list[str]:
+    par = {
+        (r.groupe, r.method, r.metric): r
+        for r in res.recherche
+        if r.question_type == TOUS and r.groupe[1] == "standard"
+    }
+    cles = sorted({(g, m) for g, m, _ in par}, key=lambda k: (_ordre(k[0]), k[1]))
+    lignes: list[list[str]] = []
+    for g, methode in cles:
+        r0 = par[(g, methode, "recall")]
+        lignes.append(
+            [
+                *_etiquette(g),
+                g[1],
+                methode,
+                str(r0.n),
+                *(
+                    _avec_ic(r.value, r.ci_low, r.ci_high)
+                    for r in (par[(g, methode, m)] for m in ("recall", "mrr", "ndcg"))
+                ),
+            ]
+        )
+    corps = (
+        _table(
+            [
+                "Configuration",
+                "Palier",
+                "Phase",
+                "Condition",
+                "Méthode",
+                "n",
+                "rappel@5",
+                "MRR",
+                "nDCG@5",
+            ],
+            lignes,
+        )  # fmt: skip
+        if lignes
+        else ["Aucune métrique de recherche.", ""]
+    )
+    return [
+        "## Recherche",
+        "",
+        "Un Passage est pertinent si ses Ancrages recoupent ceux de référence ; la méthode "
+        "reprend `retrieval_method`. La Baseline `no_context` n'a pas de recherche. Détail par "
+        "Type : `retrieval.csv`.",
+        "",
+        *(f"- **Attention** : {m}" for m in res.alertes_recherche),
+        *([""] if res.alertes_recherche else []),
+        *corps,
+    ]
+
+
+def _paires(res: Resultats) -> list[str]:
+    qualite = [p for p in res.paires if p.metric == QUALITE]
+    lignes = [
+        [
+            f"`{p.config_a}`",
+            f"`{p.config_b}`",
+            p.condition,
+            etiquette_palier(p.tier),
+            p.phase,
+            "aucune Question commune" if p.diff is None else _nb(p.diff, 3),
+            "n/a" if p.p_value is None else _nb(p.p_value, 4),
+            str(p.n_common),
+        ]
+        for p in qualite
+    ]
+    corps = (
+        _table(
+            [
+                "A",
+                "B",
+                "Condition",
+                "Palier",
+                "Phase",
+                "Différence de Qualité (A − B)",
+                "p-valeur (McNemar exact)",
+                "n_common",
+            ],
+            lignes,
+        )  # fmt: skip
+        if lignes
+        else ["Moins de deux Configurations comparables.", ""]
+    )
+    return [
+        "## Comparaisons appariées",
+        "",
+        "Chaque paire de Configurations se compare dans un même groupe (condition, palier, "
+        "phase), sur les Questions communes (`n_common`) : McNemar exact pour la Qualité et les "
+        "Critères, bootstrap apparié pour les métriques de recherche. Une paire où l'un des "
+        "deux verdicts est `na` (sans objet) est exclue du test et de `n_common`. Toutes les "
+        "lignes sont dans `pairs.csv`.",
+        "",
+        *corps,
+        f"**Multiplicité.** Aucune correction (Holm, Bonferroni) n'est appliquée aux "
+        f"{len(res.paires)} comparaisons de `pairs.csv` : une p-valeur isolée sous 0,05 parmi "
+        "plusieurs se lit avec prudence. Une paire sans Question commune n'a pas de p-valeur, "
+        "donc aucune « Qualité égale » n'en est déduite.",
+        "",
+    ]
+
+
+def _non_notees(ex: Execution, res: Resultats) -> list[str]:
+    lignes = [
+        [
+            *_etiquette(g),
+            g[1],
+            str(c.ok),
+            str(c.error),
+            str(c.inapplicable),
+            str(c.budget_exceeded),
+            str(c.non_jugees),
+        ]
+        for g, c in sorted(res.comptes.items(), key=lambda kv: _ordre(kv[0]))
+    ]
+    manifeste = ex.manifeste.get("unjudged")
+    return [
+        "## Réponses non notées",
+        "",
+        "Seules les Réponses `ok` sont notées. `non jugées` : Réponses `ok` auxquelles manque un "
+        "verdict de Panel (Juge en échec), reprises par `librarian-bench run --reprendre`."
+        + (f" Le manifeste en compte {manifeste}." if manifeste else ""),
+        "",
+        *_table(
+            [
+                "Configuration",
+                "Palier",
+                "Phase",
+                "Condition",
+                "ok",
+                "error",
+                "inapplicable",
+                "budget_exceeded",
+                "non jugées",
+            ],
+            lignes,
+        ),  # fmt: skip
+    ]
+
+
+def construire_markdown(
+    ex: Execution,
+    res: Resultats,
+    couts: Couts | None = None,
+    fronts: list[Front] | None = None,
+    fraicheur: list[LigneFraicheur] | None = None,
+) -> str:
+    sections = [
+        *_entete(ex),
+        *(section_pareto(res, couts, fronts, ex) if fronts is not None else []),
+        *_corpus(ex),
+        *_juges(ex),
+        *_calibration(ex),
+        *_inapplicables(ex),
+        *_table_scores(
+            res,
+            "standard",
+            "Scores",
+            "Taux de oui avec IC bootstrap à 95 % ; aucun score global. Qualité : `correctness` "
+            "oui, ou `abstention_correctness` oui pour une Question `unanswerable`. Les verdicts "
+            "`na` (sans objet : Réponse vide ou abstention en `faithfulness`) sortent du taux ; "
+            "« (n 12, 3 na) » donne alors le `n` effectif et le nombre de `na`.",
+        ),
+        *_scores_par_type(res),
+        *_table_scores(
+            res,
+            "perfect_context",
+            "Contexte parfait",
+            "Résultats **contexte parfait** : les Ancrages de référence sont fournis au Generator. "
+            "Ils ne se comparent pas à ceux de la Condition standard.",
+        ),
+        *section_paliers(res, couts),
+        *(section_fraicheur(ex, fraicheur) if fraicheur is not None else []),
+        *_contaminees(ex, res),
+        *_recherche(res),
+        *_paires(res),
+        *(section_couts(ex, couts) if couts is not None else []),
+        *_non_notees(ex, res),
+    ]
+    fidelite = section_fidelite(ex.run_dir)
+    if fidelite:
+        sections += [*fidelite.rstrip("\n").split("\n"), ""]
+    return "\n".join(sections).rstrip("\n") + "\n"
+
+
+def generer_rapport(
+    run_dir: Path, *, wl_home: Path | None = None, resoudre: Resolveur | None = None
+) -> Path:
+    """Écrit `report/` de l'Exécution et rend son dossier. `wl_home` : cache de parsing pour
+    résoudre les Ancrages de référence (défaut `LIBRARIAN_BENCH_HOME` ou `.librarian-bench`) ;
+    `resoudre` : résolveur
+    d'Ancrages injecté (tests). `ConfigError` si l'Expérience résolue ou le Jeu sont illisibles."""
+    ex = charger(run_dir)
+    if resoudre is None:
+        home = wl_home or dossier_home()
+        entrees = ex.manifeste.get("inputs")
+        resoudre = resolveur_de(ex.experience, home, entrees if isinstance(entrees, dict) else {})
+    res = evaluer(ex, resoudre)
+    if isinstance(resoudre, ResolveurCorpus):
+        res.alertes_recherche = resoudre.alertes()
+    sortie = run_dir / "report"
+    sortie.mkdir(exist_ok=True)
+    couts = calculer_couts(ex, res)
+    fronts = construire_fronts(ex, res, couts)
+    ecrire_csv(sortie, res, couts, fronts)
+    (sortie / "report.md").write_text(
+        construire_markdown(ex, res, couts, fronts, calculer_fraicheur(ex)),
+        encoding="utf-8",
+        newline="\n",
+    )
+    return sortie

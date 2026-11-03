@@ -1,6 +1,6 @@
 import pytest
 
-from wavelibrarian.core.errors import (
+from librarian_bench.core.errors import (
     BudgetExceeded,
     ConfigError,
     Inapplicable,

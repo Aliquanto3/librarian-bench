@@ -8,10 +8,10 @@ status: done
 
 ## Code Map
 
-- `src/wavelibrarian/architectures/llm_wiki.py` : `LlmWiki(ArchitectureBase)` enregistrée `("architecture", "llm_wiki")`, `retrieval_method: provided`, `incremental_update: true`. Params : `fidelity_sample = 5`, `k = 5` (seul `query_params`), `compile_model`, `compile_max_tokens`, `fidelity_model`, `fidelity_max_tokens`, `lexical_index` (`bm25`), `retriever` (`lexical`), `generator`, `context_builder`. Aucun embedder.
+- `src/librarian_bench/architectures/llm_wiki.py` : `LlmWiki(ArchitectureBase)` enregistrée `("architecture", "llm_wiki")`, `retrieval_method: provided`, `incremental_update: true`. Params : `fidelity_sample = 5`, `k = 5` (seul `query_params`), `compile_model`, `compile_max_tokens`, `fidelity_model`, `fidelity_max_tokens`, `lexical_index` (`bm25`), `retriever` (`lexical`), `generator`, `context_builder`. Aucun embedder.
 - Index : `passages.jsonl` (pages, `level` 1), `lexical/` (BM25), `wiki.json` (pages avec `source_doc_id`, `compiled_docs`, `discarded_pages`), `wiki_fidelity.json`.
-- `src/wavelibrarian/architectures/_fenetre.py` : `borner_passages` et `couper`, extraits de `pageindex.py` (même comportement, nom de l'Architecture en paramètre) et réutilisés par `llm_wiki`.
-- `src/wavelibrarian/runner/wiki_fidelity.py` (copie générique) appelée en fin de `IndexCache.build` (`runner/index_cache.py`, 3 lignes) ; `src/wavelibrarian/report/wiki.py` : `taux_fidelite` et `section_fidelite`.
+- `src/librarian_bench/architectures/_fenetre.py` : `borner_passages` et `couper`, extraits de `pageindex.py` (même comportement, nom de l'Architecture en paramètre) et réutilisés par `llm_wiki`.
+- `src/librarian_bench/runner/wiki_fidelity.py` (copie générique) appelée en fin de `IndexCache.build` (`runner/index_cache.py`, 3 lignes) ; `src/librarian_bench/report/wiki.py` : `taux_fidelite` et `section_fidelite`.
 - `tests/unit/architectures/test_story_7_3.py`. Aucun changement de `roles.py` ni de `fake.py` (rôles `wiki_compile` et `wiki_fidelity` déjà présents).
 
 ## Design Notes
@@ -27,7 +27,7 @@ status: done
 - Runner et Rapport (seule story de l'epic à les toucher) : `runs/<run_id>/wiki_fidelity.json` est un objet `{clé: contenu du fichier d'index}`, clé = id de Configuration, suffixée `@<palier>` et `@after_update` ; il est complété à chaque `IndexCache.build` si le dossier d'index contient le fichier (chemins « cache présent » et « construit » identiques), sinon rien n'est écrit. Le choix d'un objet par Configuration plutôt qu'une copie brute vient de ce qu'une Exécution peut contenir plusieurs Configurations `llm_wiki`. `execute.py` n'est pas modifié (story 4.9 en parallèle).
 - Rapport : `report/` n'a pas de générateur dans ce commit (story 4.12 en attente) ; `section_fidelite(run_dir)` rend la section Markdown `supported ÷ claims` par Configuration (chaîne vide si fichier absent, `n/a` si aucune affirmation), à brancher dans le Rapport avec 4.12.
 - Report : `experiments/mini-test.yaml`, `tests/conformance/test_architectures.py` et `tests/e2e/test_sm3.py` n'existent pas dans ce commit de base (story 4.14 en attente) ; la Configuration `llm_wiki` et le passage de conformité restent à ajouter avec 4.14.
-- Report, hérité du cache d'index : les tests isolent `WL_HOME` quand un Faux LLM scénarisé indexe.
+- Report, hérité du cache d'index : les tests isolent `LIBRARIAN_BENCH_HOME` quand un Faux LLM scénarisé indexe.
 
 ## Tâches et critères
 

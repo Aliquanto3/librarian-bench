@@ -8,9 +8,9 @@ status: done
 
 ## Code Map
 
-- `src/wavelibrarian/components/retrievers/hybrid.py` : `HybridRetriever` (`("retriever", "hybrid")`, Params `fusion: rrf | weighted`, `rrf_k: 60`, `weight_dense: 0.5`, `candidates: 50`) et fonctions pures `fusion_rrf`, `fusion_ponderee`.
-- `src/wavelibrarian/components/rerankers/fake.py` : `FakeReranker` (`("reranker", "fake")`, recouvrement de mots, span `rerank`).
-- `src/wavelibrarian/architectures/hybrid_rag.py` : `HybridRag` (`fusion`, `rrf_k`, `weight_dense`, `reranker: null`, `rerank_top_n: 20`, `k: 5` ; `incremental_update`, `embedder_dim()`).
+- `src/librarian_bench/components/retrievers/hybrid.py` : `HybridRetriever` (`("retriever", "hybrid")`, Params `fusion: rrf | weighted`, `rrf_k: 60`, `weight_dense: 0.5`, `candidates: 50`) et fonctions pures `fusion_rrf`, `fusion_ponderee`.
+- `src/librarian_bench/components/rerankers/fake.py` : `FakeReranker` (`("reranker", "fake")`, recouvrement de mots, span `rerank`).
+- `src/librarian_bench/architectures/hybrid_rag.py` : `HybridRag` (`fusion`, `rrf_k`, `weight_dense`, `reranker: null`, `rerank_top_n: 20`, `k: 5` ; `incremental_update`, `embedder_dim()`).
 - Tests : `tests/unit/architectures/test_story_6_2.py` ; `tests/unit/test_registry.py` ajusté (le kind `reranker` n'est plus vide).
 
 ## Design Notes

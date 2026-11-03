@@ -8,9 +8,9 @@ status: done
 
 ## Code Map
 
-- `src/wavelibrarian/runner/index_cache.py` : `index_key(corpus_fingerprint, architecture)`, `IndexCache(wl_home).build(ctx, factory, corpus, post="indexing")` (rend l'instance chargée et la clé).
-- `src/wavelibrarian/runner/rundir.py` : `resolve_parsers`, `create_run_dir`, `set_status`, `JsonlWriter`, `attach_run_log` / `detach_run_log`.
-- Tests : `tests/unit/runner/test_story_4_3.py` (Faux LLM, profil `test`, Mini-corpus, `WL_HOME` dans `tmp_path`).
+- `src/librarian_bench/runner/index_cache.py` : `index_key(corpus_fingerprint, architecture)`, `IndexCache(wl_home).build(ctx, factory, corpus, post="indexing")` (rend l'instance chargée et la clé).
+- `src/librarian_bench/runner/rundir.py` : `resolve_parsers`, `create_run_dir`, `set_status`, `JsonlWriter`, `attach_run_log` / `detach_run_log`.
+- Tests : `tests/unit/runner/test_story_4_3.py` (Faux LLM, profil `test`, Mini-corpus, `LIBRARIAN_BENCH_HOME` dans `tmp_path`).
 
 ## Design Notes
 
@@ -39,10 +39,10 @@ status: done
 
 - Statut : review. 620 tests verts (suite complète), pyright 0 erreur, ruff propre, contrôle rapide sans erreur.
 - Reports traités : « 4.3 / 4.4, `parser: auto` » et, pour « Runner, RunContext », les fichiers `manifest.json`, `run.log`, `experiment.resolved.yaml`.
-- Reports non traités (stories 4.4 et suivantes) : tenir le `RunContext` vivant (`with`) pendant toute l'Exécution, câbler `run.lock` puis `Ledger(recover_orphans=True)` dans `wl run`, libération manuelle d'une réservation `hors_execution` orpheline, énergie par phase, `required_paths` des Paliers, `Scénario`, Faux LLM scénarisé.
+- Reports non traités (stories 4.4 et suivantes) : tenir le `RunContext` vivant (`with`) pendant toute l'Exécution, câbler `run.lock` puis `Ledger(recover_orphans=True)` dans `librarian-bench run`, libération manuelle d'une réservation `hors_execution` orpheline, énergie par phase, `required_paths` des Paliers, `Scénario`, Faux LLM scénarisé.
 - Écart : le temps passé dans `build` est mesuré par `time.perf_counter` ; le Poste `update` du Scénario passera `post="update"` en story 4.7. Le nom `markdown+pdf_text` pour un corpus mixte découle de `nom_parser_resolu` (1.2 / 2.2) et non d'un nom unique.
 - Risque : `os.replace` d'un dossier sur un dossier final déjà présent échouerait sous Windows ; le cas est écarté par le test de présence préalable (exécution séquentielle, `run.lock`).
-- `pyproject.toml` : `wavelibrarian.runner.rundir` rejoint `allowed_importers` du contrat « Providers atteints par la seule passerelle » pour importer `limiter_journaux` seul ; à confirmer en revue.
+- `pyproject.toml` : `librarian-bench.runner.rundir` rejoint `allowed_importers` du contrat « Providers atteints par la seule passerelle » pour importer `limiter_journaux` seul ; à confirmer en revue.
 
 ## Revue
 

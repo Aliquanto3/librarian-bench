@@ -1,6 +1,6 @@
 # Vérifications réelles du 2026-10-26 (lot v0.2.0, stories 8.10 et 8.11)
 
-Calibration réelle des Juges sur les annotations humaines d'Anaël. Windows 11. `WL_HOME` vaut `C:/Users/Utilisateur/Documents/GitHub/wl-runs-v0.2.0` (hors dépôt, non commité). Exécution annotée : `20261018-115941-a2a512`, le run mini-cpu de la story 8.8, avec l'ancien Gel (19 Questions dev). Le Gel b2 du même jour retire q-044 du split dev. Toute calibration relancée après ce Gel porte donc sur 88 lignes au lieu de 92.
+Calibration réelle des Juges sur les annotations humaines d'Anaël. Windows 11. `LIBRARIAN_BENCH_HOME` vaut `C:/Users/Utilisateur/Documents/GitHub/wl-runs-v0.2.0` (hors dépôt, non commité). Exécution annotée : `20261018-115941-a2a512`, le run mini-cpu de la story 8.8, avec l'ancien Gel (19 Questions dev). Le Gel b2 du même jour retire q-044 du split dev. Toute calibration relancée après ce Gel porte donc sur 88 lignes au lieu de 92.
 
 | # | Vérification | Résultat | Sortie |
 |---|---|---|---|
@@ -37,7 +37,7 @@ Seuil `kappa_threshold` : 0,6. Le kappa compare le verdict de la passe 0 à l'an
 | granite4.2:3b | completeness | 37 | 0,21 | 0,21 | 0,03 |
 | granite4.2:3b | faithfulness | 37 | 0,22 | 0,40 (0,38, n = 32) | 0,06 |
 
-**Exclusions constatées.** Avec la réannotation, seul `claude-opus-5-5` reste au-dessus du seuil sur les trois Critères. `claude-haiku-5-5` est exclu par completeness (0,14) et correctness (0,55). `qwen3.5:4b` et `granite4.2:3b` sont exclus sur les trois Critères. Les fichiers `calibration*.json` écrits par `wl calibrer` portent les kappas de la première annotation, parce que les annotations ont été lues au lancement. Ceux de la réannotation sont dans ce tableau.
+**Exclusions constatées.** Avec la réannotation, seul `claude-opus-5-5` reste au-dessus du seuil sur les trois Critères. `claude-haiku-5-5` est exclu par completeness (0,14) et correctness (0,55). `qwen3.5:4b` et `granite4.2:3b` sont exclus sur les trois Critères. Les fichiers `calibration*.json` écrits par `librarian-bench calibrer` portent les kappas de la première annotation, parce que les annotations ont été lues au lancement. Ceux de la réannotation sont dans ce tableau.
 
 **Décision d'Anaël (2026-10-26).** `claude-opus-5-5` devient le Juge principal. Sa mise en œuvre dans les Expériences livrées est reportée au lot suivant (voir Limites).
 
@@ -58,7 +58,7 @@ Les 19 désaccords d'Opus en faithfulness allaient tous dans le même sens : l'h
 
 La page de la story 8.9 y poussait de trois façons : sa consigne était courte, elle surlignait dans les extraits les mots de la réponse, et elle affichait la réponse attendue.
 
-La réannotation s'est faite à l'aveugle, sans voir les verdicts des Juges, sur une page hors dépôt (`Documents/annotation-fidelite-wavelibrarian.html`). Elle ne montre ni surlignage ni réponse attendue, et sa consigne est explicite : une réponse qui n'affirme rien est fidèle, et une réponse fidèle à un extrait faux reste fidèle.
+La réannotation s'est faite à l'aveugle, sans voir les verdicts des Juges, sur une page hors dépôt (`Documents/annotation-fidelite-librarian-bench.html`). Elle ne montre ni surlignage ni réponse attendue, et sa consigne est explicite : une réponse qui n'affirme rien est fidèle, et une réponse fidèle à un extrait faux reste fidèle.
 
 Après réannotation, Opus garde 3 désaccords (q-004 en bm25 et en rag-naif, q-019 en rag-naif). L'humain y a dit non pour une réponse incomplète mais exacte au regard des extraits : c'est un défaut de completeness. Ces labels sont laissés tels quels.
 

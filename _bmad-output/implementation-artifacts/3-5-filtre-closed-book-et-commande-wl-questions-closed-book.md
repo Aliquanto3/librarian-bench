@@ -1,15 +1,15 @@
 ---
 story: "3.5"
-title: Filtre closed-book et commande `wl questions closed-book`
+title: Filtre closed-book et commande `librarian-bench questions closed-book`
 status: done
 ---
 
-# Story 3.5 : Filtre closed-book et commande `wl questions closed-book`
+# Story 3.5 : Filtre closed-book et commande `librarian-bench questions closed-book`
 
 ## Code Map
 
-- `src/wavelibrarian/evalset/closed_book.py` : `filtrer(ctx, fichier, modeles)` -> `Filtrage` (fichier mis à jour, verdicts, `unanswerable` exclues) ; `valider_modeles` (Catalogue, doublons).
-- `src/wavelibrarian/cli.py` : `wl questions closed-book <questions.yaml> [--modeles a,b] [--profil] [--graine]`.
+- `src/librarian_bench/evalset/closed_book.py` : `filtrer(ctx, fichier, modeles)` -> `Filtrage` (fichier mis à jour, verdicts, `unanswerable` exclues) ; `valider_modeles` (Catalogue, doublons).
+- `src/librarian_bench/cli.py` : `librarian-bench questions closed-book <questions.yaml> [--modeles a,b] [--profil] [--graine]`.
 - Tests : `tests/unit/evalset/test_closed_book.py`.
 
 ## Design Notes
@@ -26,7 +26,7 @@ status: done
 
 ## Tâches et critères
 
-- [x] `wl questions closed-book --modeles fake-llm-a,fake-llm-b` : Questions `validated`/`corrected` posées sans contexte au rôle `closed_book`, `unanswerable` (et `generated`/`rejected`) non posées : `test_questions_validees_posees_sans_contexte_unanswerable_exclues`.
+- [x] `librarian-bench questions closed-book --modeles fake-llm-a,fake-llm-b` : Questions `validated`/`corrected` posées sans contexte au rôle `closed_book`, `unanswerable` (et `generated`/`rejected`) non posées : `test_questions_validees_posees_sans_contexte_unanswerable_exclues`.
 - [x] Sans `--modeles`, liste de `closed_book_models` du profil : `test_sans_modeles_la_liste_vient_du_profil`.
 - [x] Réponse courte contenant la référence : `contaminated_by`, correspondance exacte, aucun appel Juge : `test_reponse_courte_contenant_la_reference_contamine_sans_juge`.
 - [x] Réponse libre : verdict du Juge d'une autre Famille ; contaminée si « oui » : `test_reponse_libre_jugee_par_une_autre_famille`, `test_verdict_non_du_juge_ne_contamine_pas`.
@@ -41,7 +41,7 @@ status: done
 
 ## Revue
 
-- high, second avis 1 : corrigé. Le Faux LLM recopie la question (contracts §3), et le filtre jugeait cette copie : une question qui cite sa référence (réponse courte), ou dont la référence libre reprend ses mots (Juge factice à 50 %), ressortait contaminée. Reproduit par `wl questions closed-book --profil test` (2 sur 2). `sans_question` retire de la réponse la question recopiée avant la correspondance exacte et le Juge. Contrat §3 mis à jour en une ligne.
+- high, second avis 1 : corrigé. Le Faux LLM recopie la question (contracts §3), et le filtre jugeait cette copie : une question qui cite sa référence (réponse courte), ou dont la référence libre reprend ses mots (Juge factice à 50 %), ressortait contaminée. Reproduit par `librarian-bench questions closed-book --profil test` (2 sur 2). `sans_question` retire de la réponse la question recopiée avant la correspondance exacte et le Juge. Contrat §3 mis à jour en une ligne.
 - medium, second avis 2 : corrigé. Ajout de `test_faux_llm_par_defaut_question_qui_contient_la_reference` (courte et libre) et de `test_sans_question_garde_la_partie_nouvelle`.
 - low, second avis 3 : consigné. Les Questions de suivi sont posées sans historique, comme l'AC le demande (« sans contexte »).
 - low, second avis 4 : rejeté. AD-14 définit le Juge closed-book comme le premier modèle du réservoir d'une autre Famille, sans exclusion par `calibration.json` (réservée au Panel d'une Configuration).

@@ -8,19 +8,19 @@ from typing import Any
 import pytest
 from pydantic import BaseModel
 
-from wavelibrarian.config.catalog import load_catalog
-from wavelibrarian.config.experiment import Budget
-from wavelibrarian.core.errors import NonConformantOutput, WlError
-from wavelibrarian.core.types import Condition, CostPost, Phase
-from wavelibrarian.llm.budget import Ledger
-from wavelibrarian.llm.cache import ResponseCache
-from wavelibrarian.llm.gateway import MeteredGateway
-from wavelibrarian.llm.providers.fake import FakeProvider
-from wavelibrarian.llm.roles import ROLES
-from wavelibrarian.measure.energy import FakeEstimator
-from wavelibrarian.measure.tokenizers import ApproxTokenizer
-from wavelibrarian.measure.tracing import Tracer
-from wavelibrarian.ports.gateway import LLMRequest, LLMRole, Message
+from librarian_bench.config.catalog import load_catalog
+from librarian_bench.config.experiment import Budget
+from librarian_bench.core.errors import NonConformantOutput, WlError
+from librarian_bench.core.types import Condition, CostPost, Phase
+from librarian_bench.llm.budget import Ledger
+from librarian_bench.llm.cache import ResponseCache
+from librarian_bench.llm.gateway import MeteredGateway
+from librarian_bench.llm.providers.fake import FakeProvider
+from librarian_bench.llm.roles import ROLES
+from librarian_bench.measure.energy import FakeEstimator
+from librarian_bench.measure.tokenizers import ApproxTokenizer
+from librarian_bench.measure.tracing import Tracer
+from librarian_bench.ports.gateway import LLMRequest, LLMRole, Message
 
 
 class _Ctx:

@@ -1,6 +1,6 @@
 # Vérifications réelles du 2026-10-26 (lot v0.3.0, stories 9.9 à 9.11)
 
-Windows 11. `WL_HOME` = `C:/Users/Utilisateur/Documents/GitHub/wl-runs-v0.2.0` (hors dépôt, non commité). Commandes lancées depuis la racine du dépôt principal (`.env`), avec `uv run --extra energy` : sans l'extra, `wl calibrer` s'arrête au démarrage (« installer l'extra energy »), avant tout appel.
+Windows 11. `LIBRARIAN_BENCH_HOME` = `C:/Users/Utilisateur/Documents/GitHub/wl-runs-v0.2.0` (hors dépôt, non commité). Commandes lancées depuis la racine du dépôt principal (`.env`), avec `uv run --extra energy` : sans l'extra, `librarian-bench calibrer` s'arrête au démarrage (« installer l'extra energy »), avant tout appel.
 
 | # | Vérification | Résultat | Sortie |
 |---|---|---|---|
@@ -13,11 +13,11 @@ Windows 11. `WL_HOME` = `C:/Users/Utilisateur/Documents/GitHub/wl-runs-v0.2.0` (
 Commande :
 
 ```
-WL_HOME=C:/Users/Utilisateur/Documents/GitHub/wl-runs-v0.2.0 uv run --extra energy wl calibrer experiments/calibration-opus.yaml --annotations corpora/minicorpus/annotations --run 20261018-115941-a2a512 --sortie C:/Users/Utilisateur/Documents/GitHub/wl-runs-v0.2.0/runs/20261018-115941-a2a512/calibration-opus.json
+LIBRARIAN_BENCH_HOME=C:/Users/Utilisateur/Documents/GitHub/wl-runs-v0.2.0 uv run --extra energy librarian-bench calibrer experiments/calibration-opus.yaml --annotations corpora/minicorpus/annotations --run 20261018-115941-a2a512 --sortie C:/Users/Utilisateur/Documents/GitHub/wl-runs-v0.2.0/runs/20261018-115941-a2a512/calibration-opus.json
 ```
 
 - Exécution annotée : `20261018-115941-a2a512` (run mini-cpu de la 8.8). Annotations : `anael.yaml` après la 9.3 (5 fidélités de Réponses vides passées à `na`). Gel b2 : les 4 lignes de q-044 sont ignorées (88 lignes sur 92), comme prévu (limite (iv) de `fix-arbitrages-8-3-8-8`).
-- Juges : `claude-opus-5-5` et `claude-haiku-5-5` (`wl calibrer` exige un Panel admissible de 2 Juges ; Haiku coûte quelques centimes). 5 passes (FR-38). Plafond `per_run` 5,00 USD.
+- Juges : `claude-opus-5-5` et `claude-haiku-5-5` (`librarian-bench calibrer` exige un Panel admissible de 2 Juges ; Haiku coûte quelques centimes). 5 passes (FR-38). Plafond `per_run` 5,00 USD.
 - 354 appels, de 10:20 à 10:35 environ. **Coût : 3,32 USD** (Poste `judging`). Aucun appel servi par le Cache : le prompt et le schéma des Juges ont changé (9.2, 9.3).
 
 | Juge | Critère | n | Kappa | Instabilité | `na` (accords / désaccords) | Kappa 8.11 (réannotation) |
@@ -39,7 +39,7 @@ WL_HOME=C:/Users/Utilisateur/Documents/GitHub/wl-runs-v0.2.0 uv run --extra ener
 Commande (aucun appel Ollama : Réponses copiées, préflight des seuls Juges) :
 
 ```
-WL_HOME=C:/Users/Utilisateur/Documents/GitHub/wl-runs-v0.2.0 uv run --extra energy wl rejuger 20261018-115941-a2a512 experiments/mini-cpu.yaml
+LIBRARIAN_BENCH_HOME=C:/Users/Utilisateur/Documents/GitHub/wl-runs-v0.2.0 uv run --extra energy librarian-bench rejuger 20261018-115941-a2a512 experiments/mini-cpu.yaml
 ```
 
 - Exécution `20261026-093758-1afc6b`, `rejudged_from: 20261018-115941-a2a512`, de 10:37:56 à 10:39:09 (1 min 13). Statut `completed`, code 0. q-044 écartée (hors du split dev depuis le Gel b2) : 18 Questions × 4 Configurations = 72 Réponses, toutes `ok`, 0 Critère sans verdict, 0 égalité (Juge unique).
@@ -76,11 +76,11 @@ Feu vert d'Anaël le 2026-10-26 à 14:26 (Ollama disponible, CPU seulement). Ava
 Commande :
 
 ```
-WL_HOME=C:/Users/Utilisateur/Documents/GitHub/wl-runs-v0.2.0 uv run --extra energy wl run experiments/lazy-seuil-cpu.yaml
+LIBRARIAN_BENCH_HOME=C:/Users/Utilisateur/Documents/GitHub/wl-runs-v0.2.0 uv run --extra energy librarian-bench run experiments/lazy-seuil-cpu.yaml
 ```
 
 - Exécution `20261026-132701-5609d1`, de 14:27 à 14:46 (19 min, dont 18 min de requêtes), statut `completed`, code 0. 18 Questions × 3 seuils = 54 Réponses : 50 `ok`, 4 `error` (`NonConformantOutput` du Generator `minicpm5:1b` : q-004 aux trois seuils, q-042 à 0,5). Index réutilisé (0 s). Profil `cpu` (`num_gpu: 0`).
-- 180 appels du Decider (4 lots de 5 Passages par Question, 0 servi par le Cache WaveLibrarian : `isoler_configurations`), 50 appels de Juge. **Coût : 0,32 USD** (Registre), plafond 2,00 USD.
+- 180 appels du Decider (4 lots de 5 Passages par Question, 0 servi par le Cache LibrarianBench : `isoler_configurations`), 50 appels de Juge. **Coût : 0,32 USD** (Registre), plafond 2,00 USD.
 
 Distribution des notes du Decider (300 Passages notés par seuil, relues dans `llm_cache.sqlite` par appariement des spans `lazygraphrag.grade.*`) :
 
@@ -113,7 +113,7 @@ Scores (Juge unique `claude-opus-5-5`, phase `base`, IC bootstrap à 95 %) et re
 
 - McNemar p = 1,00 sur les trois paires (n_common 16 ou 17) : aucun seuil ne se distingue. LazyGraphRAG se situe au niveau des Configurations de mini-cpu rejugées par Opus (Qualité 0,22 à 0,28, série (b)).
 
-Latence (Réponses `ok`, p50 / p95) : 40,9 / 55,2 s à 0,1 ; 9,4 / 13,6 s à 0,3 ; 9,3 / 11,2 s à 0,5. **Écart non imputable au seuil** : la médiane d'un appel du Decider passe de 10,7 s (premier seuil exécuté) à 2,1 s (deux suivants), avec des prompts identiques. C'est le cache de préfixe d'Ollama, pas le Cache WaveLibrarian (0 succès). Pour comparer des latences entre Configurations sur Ollama, il faudrait vider ce cache entre Configurations ou alterner leur ordre : limite consignée, hors périmètre du lot.
+Latence (Réponses `ok`, p50 / p95) : 40,9 / 55,2 s à 0,1 ; 9,4 / 13,6 s à 0,3 ; 9,3 / 11,2 s à 0,5. **Écart non imputable au seuil** : la médiane d'un appel du Decider passe de 10,7 s (premier seuil exécuté) à 2,1 s (deux suivants), avec des prompts identiques. C'est le cache de préfixe d'Ollama, pas le Cache LibrarianBench (0 succès). Pour comparer des latences entre Configurations sur Ollama, il faudrait vider ce cache entre Configurations ou alterner leur ordre : limite consignée, hors périmètre du lot.
 
 **Recommandation** (décision d'Anaël, AC 2) : garder `relevance_threshold` à 0,1. Avec granite, le seuil n'a presque pas d'effet entre 0,1 et 0,5, et 0,1 retient le plus de Passages pour un rappel@5 équivalent. La valeur de `lazy_graphrag.py` n'est pas modifiée.
 

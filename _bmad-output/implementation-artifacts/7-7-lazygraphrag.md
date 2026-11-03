@@ -8,9 +8,9 @@ status: review
 
 ## Code Map
 
-- `src/wavelibrarian/architectures/lazy_graphrag.py` : `LazyGraphRag`, enregistrée `("architecture", "lazy_graphrag")`, distincte de `graphrag`. Réutilise le GraphStore `networkx` et `detect_communities` / `louvain_seed` (7.5), `extraire_entites` (`corpus/entities.py`), le Decider `llm` (Params `decider`) pour la notation.
+- `src/librarian_bench/architectures/lazy_graphrag.py` : `LazyGraphRag`, enregistrée `("architecture", "lazy_graphrag")`, distincte de `graphrag`. Réutilise le GraphStore `networkx` et `detect_communities` / `louvain_seed` (7.5), `extraire_entites` (`corpus/entities.py`), le Decider `llm` (Params `decider`) pour la notation.
 - Dossier d'index : `passages.jsonl` (feuilles seules), `graph/graph.json` (GraphStore, avec son journal), `communities.json` (id et membres). Ni vecteurs ni rapports.
-- `src/wavelibrarian/components/deciders/llm.py` et port `Decider` : `grade(..., *, step=None)` nomme l'étape (défaut inchangé `crag.grade.loopN`, donc 6.3/6.4 et leur cache intacts) ; `SYSTEM` et `max_tokens` publics (revue).
+- `src/librarian_bench/components/deciders/llm.py` et port `Decider` : `grade(..., *, step=None)` nomme l'étape (défaut inchangé `crag.grade.loopN`, donc 6.3/6.4 et leur cache intacts) ; `SYSTEM` et `max_tokens` publics (revue).
 - `tests/unit/architectures/test_story_7_7.py` (21 tests). Aucun changement de `roles.py`, `fake.py`, du runner ni du Rapport.
 
 ## Design Notes
@@ -29,7 +29,7 @@ status: review
 - [x] `relevance_budget` (20 par défaut) vérifié avant chaque appel, dans `query_params` : `test_relevance_budget_borne_les_passages_notes`, `test_budget_par_defaut_20_et_lots_de_5`, `test_relevance_budget_hors_de_l_index_key`
 - [x] Scores tous nuls (ou aucun concept connu) : abstention sans `generate` : `test_scores_tous_nuls_abstention_sans_generate`, `test_question_sans_concept_abstention_sans_appel`
 - [x] Fenêtre du modèle de notation : `test_fenetre_de_notation_reduit_le_lot`
-- [x] Enregistrée, distincte de `graphrag` (visible dans `wl registre --kind architecture`) : `test_enregistrement_et_capacites`
+- [x] Enregistrée, distincte de `graphrag` (visible dans `librarian-bench registre --kind architecture`) : `test_enregistrement_et_capacites`
 - [x] Mise à jour sans appel, égale à l'index complet : `test_update_ajout_egale_l_index_complet_sans_appel`, `test_update_suppression_egale_l_index_complet`, `test_update_document_modifie_remplace_sans_dupliquer`
 
 ## Auto Run Result

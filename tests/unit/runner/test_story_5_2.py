@@ -1,4 +1,5 @@
-"""Story 5.2 : `wl calibrer`, exclusion des Juges (profil `test`, Faux LLM, aucun réseau)."""
+"""Story 5.2 : `librarian-bench calibrer`, exclusion des Juges (profil `test`, Faux LLM, aucun
+réseau)."""
 
 import hashlib
 import json
@@ -11,16 +12,16 @@ import pytest
 import yaml
 from typer.testing import CliRunner
 
-from wavelibrarian.cli import app
-from wavelibrarian.components.judges.llm import LLMJudge
-from wavelibrarian.config.panel import excluded_judges
-from wavelibrarian.core.errors import NonConformantOutput, ProviderError
-from wavelibrarian.core.types import Criterion
-from wavelibrarian.evalset import io
-from wavelibrarian.evalset.freeze import select_questions
-from wavelibrarian.ports.components import JudgeInput
-from wavelibrarian.runner.rundir import read_answers
-from wavelibrarian.scoring.panel import criteres_juges
+from librarian_bench.cli import app
+from librarian_bench.components.judges.llm import LLMJudge
+from librarian_bench.config.panel import excluded_judges
+from librarian_bench.core.errors import NonConformantOutput, ProviderError
+from librarian_bench.core.types import Criterion
+from librarian_bench.evalset import io
+from librarian_bench.evalset.freeze import select_questions
+from librarian_bench.ports.components import JudgeInput
+from librarian_bench.runner.rundir import read_answers
+from librarian_bench.scoring.panel import criteres_juges
 
 RACINE = Path(__file__).resolve().parents[3] / "corpora" / "minicorpus"
 BM25 = {"id": "bm25", "architecture": "bm25_only"}
@@ -300,7 +301,7 @@ def test_avertit_de_relancer_closed_book_si_le_juge_exclu_y_a_servi(
     res = _calibrer(exp, tmp_path / "ann", dossier.name)
     # Pool [c, b, a] : c juge le Filtre closed-book des modèles d'une autre Famille (a, b).
     assert "Le Juge fake-llm-c a servi au Filtre closed-book" in res.output
-    assert "wl questions closed-book" in res.output
+    assert "librarian-bench questions closed-book" in res.output
 
 
 # --- AC 6 : code 2 -----------------------------------------------------------------------------

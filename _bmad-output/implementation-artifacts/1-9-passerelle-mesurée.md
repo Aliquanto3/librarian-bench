@@ -8,9 +8,9 @@ status: done
 
 ## Code Map
 
-- `src/wavelibrarian/llm/gateway.py` : `MeteredGateway` (`complete`, `complete_structured`), seul module (avec `preflight` à venir) à importer `llm.providers`.
-- `src/wavelibrarian/llm/providers/base.py` : protocole `Provider` (`complete(request, *, timeout_s)`) et `ProviderResponse(text, usage)`.
-- `src/wavelibrarian/runner/wiring.py` : `build_gateway(...)`, câblage depuis un profil (`make_tokenizer`, `tokenizer_for`, `make_estimator`, `call_timeout_s`). `llm` et `measure` sont deux couches sœurs : seul `runner` peut les joindre.
+- `src/librarian_bench/llm/gateway.py` : `MeteredGateway` (`complete`, `complete_structured`), seul module (avec `preflight` à venir) à importer `llm.providers`.
+- `src/librarian_bench/llm/providers/base.py` : protocole `Provider` (`complete(request, *, timeout_s)`) et `ProviderResponse(text, usage)`.
+- `src/librarian_bench/runner/wiring.py` : `build_gateway(...)`, câblage depuis un profil (`make_tokenizer`, `tokenizer_for`, `make_estimator`, `call_timeout_s`). `llm` et `measure` sont deux couches sœurs : seul `runner` peut les joindre.
 - `tests/unit/llm/test_gateway.py`.
 
 ## Design Notes

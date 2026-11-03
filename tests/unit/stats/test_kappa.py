@@ -2,7 +2,7 @@
 
 import pytest
 
-from wavelibrarian.stats.kappa import cohen_kappa
+from librarian_bench.stats.kappa import cohen_kappa
 
 
 def _vecteurs(oo: int, on: int, no: int, nn: int) -> tuple[list[bool], list[bool]]:

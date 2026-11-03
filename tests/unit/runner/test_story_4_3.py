@@ -9,21 +9,21 @@ from typing import Any
 import pytest
 import yaml
 
-from wavelibrarian.architectures.bm25_only import Bm25Only
-from wavelibrarian.config.experiment import ResolvedExperiment
-from wavelibrarian.config.load import load_experiment
-from wavelibrarian.config.resolve import resolve_experiment
-from wavelibrarian.core.errors import ConfigError, WlError
-from wavelibrarian.core.ids import canonical_json, sha16
-from wavelibrarian.core.types import ParsedCorpus, QuestionInput
-from wavelibrarian.corpus.declare import declare
-from wavelibrarian.corpus.ingest import ingest, parsers_par_format
-from wavelibrarian.llm.providers.fake import FakeProvider
-from wavelibrarian.ports.architecture import ArchitectureBase
-from wavelibrarian.ports.components import ComponentSpec
-from wavelibrarian.runner.context import Context
-from wavelibrarian.runner.index_cache import IndexCache, index_key
-from wavelibrarian.runner.rundir import (
+from librarian_bench.architectures.bm25_only import Bm25Only
+from librarian_bench.config.experiment import ResolvedExperiment
+from librarian_bench.config.load import load_experiment
+from librarian_bench.config.resolve import resolve_experiment
+from librarian_bench.core.errors import ConfigError, WlError
+from librarian_bench.core.ids import canonical_json, sha16
+from librarian_bench.core.types import ParsedCorpus, QuestionInput
+from librarian_bench.corpus.declare import declare
+from librarian_bench.corpus.ingest import ingest, parsers_par_format
+from librarian_bench.llm.providers.fake import FakeProvider
+from librarian_bench.ports.architecture import ArchitectureBase
+from librarian_bench.ports.components import ComponentSpec
+from librarian_bench.runner.context import Context
+from librarian_bench.runner.index_cache import IndexCache, index_key
+from librarian_bench.runner.rundir import (
     JsonlWriter,
     attach_run_log,
     create_run_dir,
@@ -193,7 +193,7 @@ def test_cle_change_avec_le_corpus_et_le_parser(ctx: Context, minicorpus: Parsed
 def test_cle_change_avec_la_version_du_parser(
     ctx: Context, minicorpus: ParsedCorpus, monkeypatch: pytest.MonkeyPatch
 ) -> None:
-    from wavelibrarian.components.parsers.markdown import MarkdownParser
+    from librarian_bench.components.parsers.markdown import MarkdownParser
 
     avant = index_key(minicorpus.fingerprint, _factory(ctx)())
     monkeypatch.setattr(MarkdownParser, "version", "2")
@@ -333,7 +333,7 @@ def test_jsonl_ajout_seulement_utf8_lf(tmp_path: Path) -> None:
 def test_run_log_ecrit_en_utf8(tmp_path: Path) -> None:
     handler = attach_run_log(tmp_path)
     try:
-        logging.getLogger("wavelibrarian.test").warning("bonjour é")
+        logging.getLogger("librarian_bench.test").warning("bonjour é")
     finally:
         detach_run_log(handler)
     assert "bonjour é" in (tmp_path / "run.log").read_text(encoding="utf-8")
@@ -350,7 +350,7 @@ def test_run_log_filtre_les_debug_reseau_et_les_en_tetes(tmp_path: Path) -> None
             log.setLevel(logging.DEBUG)  # relevé après coup (ANTHROPIC_LOG=debug)
             log.debug("Request headers: {'x-api-key': 'sk-ant-SECRET'} %s", nom)
         logging.getLogger("httpx").warning("avertissement réseau gardé")
-        logging.getLogger("wavelibrarian.runner").debug("debug du runner gardé")
+        logging.getLogger("librarian_bench.runner").debug("debug du runner gardé")
     finally:
         detach_run_log(handler)
         racine.setLevel(niveau)

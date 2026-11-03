@@ -9,11 +9,11 @@ import pytest
 import yaml
 from typer.testing import CliRunner
 
-from wavelibrarian.cli import app
-from wavelibrarian.corpus.declare import declare
-from wavelibrarian.corpus.ingest import ingest
-from wavelibrarian.corpus.scenario import appliquer_fichier, charger
-from wavelibrarian.ports.architecture import ArchitectureBase, CorpusChange
+from librarian_bench.cli import app
+from librarian_bench.corpus.declare import declare
+from librarian_bench.corpus.ingest import ingest
+from librarian_bench.corpus.scenario import appliquer_fichier, charger
+from librarian_bench.ports.architecture import ArchitectureBase, CorpusChange
 
 RACINE = Path(__file__).resolve().parents[3] / "corpora" / "minicorpus"
 SCENARIO = RACINE / "scenario" / "scenario.yaml"
@@ -268,7 +268,7 @@ def test_scenario_applique_avec_la_langue_du_corpus_et_le_parser_de_la_configura
     tmp_path: Path, wl_home: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:
     vus: list[dict[str, Any]] = []
-    import wavelibrarian.runner.execute as execute
+    import librarian_bench.runner.execute as execute
 
     original = execute.appliquer_fichier
 
@@ -365,8 +365,8 @@ def test_architecture_incrementale_naive_rag_appelle_son_update_sans_reindexer(
 ) -> None:
     """`naive_rag` (`incremental_update: true`) : son `update` n'encode que les Documents
     ajoutés ou modifiés ; `index` n'est appelé qu'en phase `base`."""
-    from wavelibrarian.architectures.naive_rag import NaiveRag
-    from wavelibrarian.components.embedders.fake import FakeEmbedder
+    from librarian_bench.architectures.naive_rag import NaiveRag
+    from librarian_bench.components.embedders.fake import FakeEmbedder
 
     appels: list[str] = []
     encodes: list[int] = []

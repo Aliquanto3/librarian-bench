@@ -9,15 +9,15 @@ from typing import Any
 import numpy as np
 import pytest
 
-from wavelibrarian import registry
-from wavelibrarian.components.embedders.sentence_transformers import SentenceTransformersEmbedder
-from wavelibrarian.config.catalog import load_catalog
-from wavelibrarian.config.defaults import load_profile
-from wavelibrarian.core.errors import WlError
-from wavelibrarian.core.types import Condition, CostPost, Phase
-from wavelibrarian.measure.tokenizers import ApproxTokenizer
-from wavelibrarian.measure.tracing import Tracer
-from wavelibrarian.ports.components import ComponentSpec, Embedder
+from librarian_bench import registry
+from librarian_bench.components.embedders.sentence_transformers import SentenceTransformersEmbedder
+from librarian_bench.config.catalog import load_catalog
+from librarian_bench.config.defaults import load_profile
+from librarian_bench.core.errors import WlError
+from librarian_bench.core.types import Condition, CostPost, Phase
+from librarian_bench.measure.tokenizers import ApproxTokenizer
+from librarian_bench.measure.tracing import Tracer
+from librarian_bench.ports.components import ComponentSpec, Embedder
 
 
 class _Ctx:
@@ -160,11 +160,11 @@ def test_un_span_embed_par_lot(ctx: _Ctx, double: type[_DoubleModele], tmp_path:
 @pytest.mark.real_local
 def test_real_local_encode_deux_phrases(tmp_path: Path) -> None:
     """Encode deux phrases avec le vrai `multilingual-e5-small` ; sauté sans modèle installé."""
-    from wavelibrarian.llm.local_models import embedder_installe
+    from librarian_bench.llm.local_models import embedder_installe
 
     pytest.importorskip("sentence_transformers")
     if not embedder_installe("intfloat/multilingual-e5-small"):
-        pytest.skip("multilingual-e5-small absent du cache local (wl installer)")
+        pytest.skip("multilingual-e5-small absent du cache local (librarian-bench installer)")
     emb = _construire(_Ctx(tmp_path / "t.jsonl"))
     v = emb.embed_passages(["Le chat dort sur le canapé.", "La recette demande deux oeufs."])
     assert v.shape == (2, 384)

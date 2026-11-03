@@ -9,12 +9,12 @@ from typing import Any, cast
 
 import pytest
 
-from wavelibrarian.config.defaults import load_profile
-from wavelibrarian.core.types import Usage
-from wavelibrarian.measure import energy
-from wavelibrarian.measure.energy import CodecarbonMeter, FakeMeter, energy_method, make_meter
-from wavelibrarian.runner.context import Context
-from wavelibrarian.runner.execute import _Runner
+from librarian_bench.config.defaults import load_profile
+from librarian_bench.core.types import Usage
+from librarian_bench.measure import energy
+from librarian_bench.measure.energy import CodecarbonMeter, FakeMeter, energy_method, make_meter
+from librarian_bench.runner.context import Context
+from librarian_bench.runner.execute import _Runner
 
 RAM = type("RAM", (), {})()
 GPU_SUIVI = type("GPU", (), {"gpu_ids": [0]})()

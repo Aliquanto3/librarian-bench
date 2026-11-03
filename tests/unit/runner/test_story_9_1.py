@@ -1,4 +1,5 @@
-"""Story 9.1 : `wl calibrer` écrit ses verdicts au fil de l'eau (SDK factice, aucun réseau)."""
+"""Story 9.1 : `librarian-bench calibrer` écrit ses verdicts au fil de l'eau (SDK factice, aucun
+réseau)."""
 
 import json
 import os
@@ -12,17 +13,17 @@ import pytest
 import yaml
 from typer.testing import CliRunner
 
-import wavelibrarian.runner.calibrer as module_calibrer
-from wavelibrarian.cli import app
-from wavelibrarian.components.judges import llm as juge_llm
-from wavelibrarian.config.validate import validate_file
-from wavelibrarian.core.errors import ConfigError, ProviderError
-from wavelibrarian.evalset import io
-from wavelibrarian.evalset.freeze import select_questions
-from wavelibrarian.llm.providers.anthropic import AnthropicProvider
-from wavelibrarian.runner.calibrer import calibrer, fichier_verdicts
-from wavelibrarian.runner.rundir import read_answers
-from wavelibrarian.scoring.panel import criteres_juges
+import librarian_bench.runner.calibrer as module_calibrer
+from librarian_bench.cli import app
+from librarian_bench.components.judges import llm as juge_llm
+from librarian_bench.config.validate import validate_file
+from librarian_bench.core.errors import ConfigError, ProviderError
+from librarian_bench.evalset import io
+from librarian_bench.evalset.freeze import select_questions
+from librarian_bench.llm.providers.anthropic import AnthropicProvider
+from librarian_bench.runner.calibrer import calibrer, fichier_verdicts
+from librarian_bench.runner.rundir import read_answers
+from librarian_bench.scoring.panel import criteres_juges
 
 RACINE = Path(__file__).resolve().parents[3]
 MINI = RACINE / "corpora" / "minicorpus"

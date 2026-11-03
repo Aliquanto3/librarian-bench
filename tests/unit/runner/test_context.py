@@ -10,22 +10,22 @@ from typing import Any
 
 import pytest
 
-from wavelibrarian.config.defaults import load_profile
-from wavelibrarian.config.experiment import (
+from librarian_bench.config.defaults import load_profile
+from librarian_bench.config.experiment import (
     Amount,
     Budget,
     ResolvedConfiguration,
     ResolvedExperiment,
     RetrySettings,
 )
-from wavelibrarian.core.errors import ConfigError, WlError
-from wavelibrarian.llm.budget import Ledger
-from wavelibrarian.ports.components import ComponentSpec, Embedder
-from wavelibrarian.ports.context import RunContext
-from wavelibrarian.ports.gateway import LLMRequest, Message
-from wavelibrarian.ports.measure import Tokenizer
-from wavelibrarian.runner.context import Context
-from wavelibrarian.runner.lock import RunLock
+from librarian_bench.core.errors import ConfigError, WlError
+from librarian_bench.llm.budget import Ledger
+from librarian_bench.ports.components import ComponentSpec, Embedder
+from librarian_bench.ports.context import RunContext
+from librarian_bench.ports.gateway import LLMRequest, Message
+from librarian_bench.ports.measure import Tokenizer
+from librarian_bench.runner.context import Context
+from librarian_bench.runner.lock import RunLock
 
 
 @pytest.fixture
@@ -221,14 +221,14 @@ def test_second_contexte_d_execution_echoue(wl_home: Path) -> None:
 
 
 def _catalogue() -> Any:
-    from wavelibrarian.config.catalog import load_catalog
+    from librarian_bench.config.catalog import load_catalog
 
     return load_catalog()
 
 
 def test_verrou_detenu_par_un_autre_processus(wl_home: Path) -> None:
     code = (
-        "import sys; from pathlib import Path; from wavelibrarian.runner.lock import RunLock\n"
+        "import sys; from pathlib import Path; from librarian_bench.runner.lock import RunLock\n"
         "verrou = RunLock(Path(sys.argv[1]), 'run-fils'); verrou.acquire()\n"
         "print('pris', flush=True); sys.stdin.read()\n"
     )

@@ -8,7 +8,7 @@ status: done
 
 ## Code Map
 
-- `src/wavelibrarian/architectures/hyde.py` : `Hyde(NaiveRag)` enregistrée `("architecture", "hyde")` ; Params de `naive_rag` plus `mix_question: false`, `hyde_model` (défaut `generator_models[0]` du profil), `hyde_max_tokens: 256`.
+- `src/librarian_bench/architectures/hyde.py` : `Hyde(NaiveRag)` enregistrée `("architecture", "hyde")` ; Params de `naive_rag` plus `mix_question: false`, `hyde_model` (défaut `generator_models[0]` du profil), `hyde_max_tokens: 256`.
 - Tests : `tests/unit/architectures/test_story_6_3.py`.
 
 ## Design Notes

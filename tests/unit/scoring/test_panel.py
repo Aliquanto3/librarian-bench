@@ -3,9 +3,9 @@
 from collections.abc import Sequence
 from typing import Any
 
-from wavelibrarian.core.types import Answer, Citation, Criterion, Question, Verdict, VerdictValue
-from wavelibrarian.ports.components import JudgeInput
-from wavelibrarian.scoring.panel import (
+from librarian_bench.core.types import Answer, Citation, Criterion, Question, Verdict, VerdictValue
+from librarian_bench.ports.components import JudgeInput
+from librarian_bench.scoring.panel import (
     PanelVerdict,
     criteres_juges,
     juger_reponse,
