@@ -99,7 +99,9 @@ def test_contrastes_non_texte_3_dans_les_deux_themes() -> None:
 def test_le_bleu_n_est_jamais_un_aplat_de_bouton() -> None:
     for sel, corps in re.findall(r"([^{}]+)\{([^{}]*)\}", CSS):
         if "button" in sel or "#exp" in sel:
-            assert not re.search(r"background(-color)?:[^;]*var\(--primaire\)", corps), sel
+            assert not re.search(
+                r"background(-color)?:[^;]*var\(--primaire(?!-doux\))(-[a-z]+)*\)", corps
+            ), sel
 
 
 def test_aucun_hex_hors_des_blocs_de_theme() -> None:
