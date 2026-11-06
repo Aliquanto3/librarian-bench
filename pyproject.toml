@@ -1,6 +1,6 @@
 [project]
 name = "librarian-bench"
-version = "0.3.0"
+version = "0.3.1"
 description = "Banc de comparaison des architectures de recherche documentaire IA (RAG, GraphRAG, LLM Wiki, recherche agentique)."
 readme = "README.md"
 license = "Apache-2.0"

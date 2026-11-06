@@ -1,5 +1,19 @@
 # Changelog
 
+## 0.3.1
+
+Contenu
+
+- Page d'annotation des Juges (`librarian-bench annotations page`) migrée vers la charte générique v2.1 : thème sombre par défaut, clair sous `prefers-color-scheme: light` et `[data-theme="light"]`, jetons de la charte, bouton principal neutre, verdicts Oui / Non en aplats de statut, contours `trait-fort`, focus visible, filet or sous le titre, Sora et Atkinson Hyperlegible avec leurs piles de repli.
+- Test de la page (`tests/unit/report/test_page_annotation_charte.py`) : contrastes 4,5:1 et 3:1 dans les deux thèmes, pas d'aplat bleu de bouton, pas de couleur hors jetons.
+- Captures dans `docs/media/charte-v2/`.
+
+Limites
+
+- La page reste autonome et hors ligne : les polices de la charte ne sont pas incorporées, le repli système s'applique si elles sont absentes du poste.
+- Le README n'a ni schéma mermaid ni badge : rien à migrer. Les polices DejaVu de `scripts/fonts/` (génération de PDF) et les corpus (`corpora/`) ne changent pas.
+- Les pages d'annotation déjà générées gardent l'ancien style jusqu'à leur régénération.
+
 ## 0.3.0
 
 - Changement de nom : WaveLibrarian devient **LibrarianBench** (dépôt `librarian-bench`, paquet
