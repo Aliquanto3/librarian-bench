@@ -101,31 +101,38 @@ HTML = r"""<!doctype html>
 <html lang="fr"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
 <title>Annotation des Juges</title>
 <style>
-:root{--bg:#f6f5f2;--card:#fff;--ink:#1d1d1b;--mute:#6b6a66;--line:#e2e0da;--acc:#2f5d8a;--yes:#2e7d4f;--no:#b23b3b;--na:#6b6a66;--soft:#eef2f6}
-@media (prefers-color-scheme:dark){:root{--bg:#17181a;--card:#212225;--ink:#ecebe7;--mute:#a19f99;--line:#34353a;--acc:#7fb0e0;--yes:#5cc28a;--no:#e27272;--na:#a19f99;--soft:#2a2d33}}
-*{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--ink);font:16px/1.5 system-ui,Segoe UI,sans-serif}
+:root{color-scheme:dark;--fond:#0F1318;--surface:#161B22;--surface-alt:#1E242C;--trait:#333B46;--trait-fort:#67717E;--texte:#E8ECF2;--texte-attenue:#A3ADBA;--primaire:#8DB0F7;--primaire-doux:#1A2742;--bouton:#E8ECF2;--bouton-survol:#FFFFFF;--sur-bouton:#0F1318;--accent:#E3C26B;--succes:#8CC7A0;--erreur:#EE8C84;--focus:#9EC0FF;--sur-statut:#0F1318;--police-titres:Sora,system-ui,'Segoe UI',Roboto,sans-serif;--police-texte:'Atkinson Hyperlegible',system-ui,'Segoe UI',Roboto,sans-serif}
+@media (prefers-color-scheme:light){:root:not([data-theme="sombre"]):not([data-theme="dark"]){color-scheme:light;--fond:#F6F8FB;--surface:#FFFFFF;--surface-alt:#ECF0F5;--trait:#CED5DF;--trait-fort:#808A97;--texte:#121821;--texte-attenue:#4F5A68;--primaire:#1D5BC2;--primaire-doux:#E1EAFA;--bouton:#121821;--bouton-survol:#2A3442;--sur-bouton:#FFFFFF;--accent:#8F6300;--succes:#1B7043;--erreur:#B3261E;--focus:#1F5FD1;--sur-statut:#FFFFFF}}
+[data-theme="clair"],[data-theme="light"]{color-scheme:light;--fond:#F6F8FB;--surface:#FFFFFF;--surface-alt:#ECF0F5;--trait:#CED5DF;--trait-fort:#808A97;--texte:#121821;--texte-attenue:#4F5A68;--primaire:#1D5BC2;--primaire-doux:#E1EAFA;--bouton:#121821;--bouton-survol:#2A3442;--sur-bouton:#FFFFFF;--accent:#8F6300;--succes:#1B7043;--erreur:#B3261E;--focus:#1F5FD1;--sur-statut:#FFFFFF}
+*{box-sizing:border-box}body{margin:0;background:var(--fond);color:var(--texte);font:16px/1.5 var(--police-texte)}
 main{max-width:860px;margin:0 auto;padding:16px}
 header{display:flex;gap:12px;align-items:center;flex-wrap:wrap;margin-bottom:12px}
-h1{font-size:20px;margin:0;flex:1}
-.bar{height:6px;background:var(--line);border-radius:3px;overflow:hidden;margin:4px 0 16px}.bar>i{display:block;height:100%;background:var(--acc)}
-.card{background:var(--card);border:1px solid var(--line);border-radius:10px;padding:18px;margin-bottom:14px}
-.lbl{font-size:12px;text-transform:uppercase;letter-spacing:.05em;color:var(--mute);margin:0 0 2px}
-.q{font-size:18px;font-weight:600;margin:0 0 14px}
-.box{background:var(--soft);border-radius:8px;padding:10px 12px;margin-bottom:10px}.box p{margin:0;font-size:17px;white-space:pre-wrap}
-.crit{border-top:1px solid var(--line);padding:12px 0 4px}
-.crit h3{margin:0;font-size:16px}.crit .help{color:var(--mute);font-size:14px;margin:2px 0 8px}
-.strict{background:var(--soft);border-left:4px solid var(--acc);border-radius:6px;padding:8px 12px;font-size:14px;margin:6px 0 10px}.strict li{margin:2px 0}
+h1,h3,.q{font-family:var(--police-titres);font-weight:600}
+h1{font-size:22px;margin:0;flex:1}h1::after{content:"";display:block;width:48px;height:3px;background:var(--accent);margin-top:6px}
+a{color:var(--primaire);text-decoration:underline}
+.bar{height:6px;background:var(--trait);border-radius:3px;overflow:hidden;margin:4px 0 16px}.bar>i{display:block;height:100%;background:var(--primaire)}
+.card{background:var(--surface);border:1px solid var(--trait);border-radius:10px;padding:18px;margin-bottom:14px}
+.lbl{font-size:12px;text-transform:uppercase;letter-spacing:.05em;color:var(--texte-attenue);margin:0 0 2px}
+.q{font-size:18px;margin:0 0 14px}
+.box{background:var(--surface-alt);border-radius:8px;padding:10px 12px;margin-bottom:10px}.box p{margin:0;font-size:17px;white-space:pre-wrap}
+.crit{border-top:1px solid var(--trait);padding:12px 0 4px}
+.crit h3{margin:0;font-size:16px}.crit .help{color:var(--texte-attenue);font-size:14px;margin:2px 0 8px}
+.strict{background:var(--surface-alt);border-left:4px solid var(--primaire);border-radius:6px;padding:8px 12px;font-size:14px;margin:6px 0 10px}.strict li{margin:2px 0}
 .btns{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
-button{font:inherit;border:1px solid var(--line);background:var(--card);color:var(--ink);border-radius:8px;padding:6px 14px;cursor:pointer}
-button.y[aria-pressed=true]{background:var(--yes);color:#fff;border-color:var(--yes)}
-button.n[aria-pressed=true]{background:var(--no);color:#fff;border-color:var(--no)}
-button.s[aria-pressed=true]{background:var(--na);color:#fff;border-color:var(--na)}
-input.note{flex:1;min-width:180px;font:inherit;font-size:14px;padding:6px 8px;border:1px solid var(--line);border-radius:8px;background:var(--card);color:var(--ink)}
-details{margin-top:12px}summary{cursor:pointer;color:var(--acc)}
-.ctx{font-size:14px;white-space:pre-wrap;background:var(--soft);border-radius:8px;padding:8px 10px;margin:8px 0}
+button{font:inherit;border:1px solid var(--trait-fort);background:var(--surface);color:var(--texte);border-radius:8px;padding:6px 14px;cursor:pointer}
+#exp{background:var(--bouton);color:var(--sur-bouton);border-color:var(--bouton)}#exp:hover{background:var(--bouton-survol);border-color:var(--bouton-survol)}
+button:disabled{opacity:.55;cursor:default}
+button.y[aria-pressed=true]{background:var(--succes);color:var(--sur-statut);border-color:var(--succes);font-weight:600}
+button.n[aria-pressed=true]{background:var(--erreur);color:var(--sur-statut);border-color:var(--erreur);font-weight:600}
+button.s[aria-pressed=true]{background:var(--primaire-doux);color:var(--texte);border-color:var(--primaire);box-shadow:inset 0 0 0 1px var(--primaire);font-weight:600}
+button:focus-visible,input:focus-visible,summary:focus-visible{outline:2px solid var(--focus);outline-offset:2px}
+input.note{flex:1;min-width:180px;font:inherit;font-size:14px;padding:6px 8px;border:1px solid var(--trait-fort);border-radius:8px;background:var(--surface);color:var(--texte)}
+input.note::placeholder{color:var(--texte-attenue);opacity:1}
+details{margin-top:12px}summary{cursor:pointer;color:var(--primaire)}
+.ctx{font-size:14px;white-space:pre-wrap;background:var(--surface-alt);border-radius:8px;padding:8px 10px;margin:8px 0}
 nav{display:flex;gap:8px;justify-content:space-between;flex-wrap:wrap}
 .guide{font-size:14px}.guide li{margin:2px 0}
-.done{color:var(--yes);font-weight:600}
+.done{color:var(--succes);font-weight:600}
 </style></head><body><main>
 <header><h1>Annotation des Juges</h1><span id="count"></span><button id="exp">Télécharger mes verdicts</button></header>
 <div class="bar"><i id="prog"></i></div>
