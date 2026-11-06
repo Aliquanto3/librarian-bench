@@ -12,10 +12,21 @@ def _jetons(bloc: str) -> dict[str, str]:
     return {m[0]: m[1].upper() for m in re.findall(r"--([a-z-]+):(#[0-9A-Fa-f]{6})", bloc)}
 
 
+def _bloc(ouverture: str) -> str:
+    """Corps du bloc qui suit `ouverture`, accolades équilibrées (blocs imbriqués compris)."""
+    debut = CSS.index(ouverture) + len(ouverture)
+    profondeur = 1
+    for i in range(debut, len(CSS)):
+        profondeur += {"{": 1, "}": -1}.get(CSS[i], 0)
+        if profondeur == 0:
+            return CSS[debut:i]
+    raise AssertionError(f"bloc non fermé : {ouverture}")
+
+
 def _themes() -> dict[str, dict[str, str]]:
-    sombre = CSS.split(":root{", 1)[1].split("}", 1)[0]
-    clair_media = CSS.split("@media (prefers-color-scheme:light){", 1)[1].split("\n", 1)[0]
-    clair_force = CSS.split('[data-theme="clair"],[data-theme="light"]{', 1)[1].split("\n", 1)[0]
+    sombre = _bloc(":root{")
+    clair_media = _bloc("@media (prefers-color-scheme:light){")
+    clair_force = _bloc('[data-theme="clair"],[data-theme="light"]{')
     return {"sombre": _jetons(sombre), "clair": _jetons(clair_force), "media": _jetons(clair_media)}
 
 
@@ -43,7 +54,8 @@ TEXTE = [  # (premier plan, fond) : 4,5:1
     ("sur-bouton", "bouton-survol"),
     ("sur-statut", "succes"),
     ("sur-statut", "erreur"),
-    ("sur-bouton", "bouton"),
+    ("texte", "primaire-doux"),  # bascule « Sans objet » enfoncée
+    ("texte-attenue", "surface"),  # texte indicatif du champ de note
 ]
 NON_TEXTE = [  # 3:1
     ("trait-fort", "surface"),
@@ -55,6 +67,8 @@ NON_TEXTE = [  # 3:1
     ("accent", "fond"),
     ("succes", "surface"),
     ("erreur", "surface"),
+    ("primaire", "primaire-doux"),  # contour de la bascule enfoncée
+    ("primaire", "surface"),
 ]
 
 
@@ -85,7 +99,7 @@ def test_contrastes_non_texte_3_dans_les_deux_themes() -> None:
 def test_le_bleu_n_est_jamais_un_aplat_de_bouton() -> None:
     for sel, corps in re.findall(r"([^{}]+)\{([^{}]*)\}", CSS):
         if "button" in sel or "#exp" in sel:
-            assert not re.search(r"background(-color)?:[^;]*var\(--primaire", corps), sel
+            assert not re.search(r"background(-color)?:[^;]*var\(--primaire\)", corps), sel
 
 
 def test_aucun_hex_hors_des_blocs_de_theme() -> None:
@@ -104,3 +118,24 @@ def test_polices_et_filet_or_de_la_charte() -> None:
     assert "Fredoka" not in CSS and "system-ui,Segoe UI" not in CSS
     assert re.search(r"h1::after\{[^}]*background:var\(--accent\)", CSS)
     assert "outline:2px solid var(--focus)" in CSS
+
+
+def test_un_seul_aplat_de_bouton_principal() -> None:
+    aplats = [
+        sel.strip()
+        for sel, corps in re.findall(r"([^{}]+)\{([^{}]*)\}", CSS)
+        if re.search(r"background:var\(--bouton\)", corps)
+    ]
+    assert aplats == ["#exp"], aplats
+
+
+def test_bascule_sans_objet_en_modele_de_selection() -> None:
+    corps = _bloc("button.s[aria-pressed=true]{")
+    assert "background:var(--primaire-doux)" in corps
+    assert "color:var(--texte)" in corps
+    assert "border-color:var(--primaire)" in corps
+
+
+def test_etats_survol_et_texte_indicatif() -> None:
+    assert "background:var(--bouton-survol)" in _bloc("#exp:hover{")
+    assert "color:var(--texte-attenue)" in _bloc("input.note::placeholder{")
